@@ -3,7 +3,7 @@ import { useDrop } from 'react-dnd';
 import { v4 as uuidv4 } from 'uuid';
 import { Grid, Ruler, ZoomIn, ZoomOut } from 'lucide-react';
 import { DesignElement } from '@/types';
-import CanvasElement from './canvas-element';
+import CanvasElement from '../canvas/canvas-element';
 
 interface DesignCanvasProps {
   backgroundImage: string | null;
