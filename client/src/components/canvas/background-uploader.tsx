@@ -1,5 +1,5 @@
 import { useState, useRef, ChangeEvent } from 'react';
-import { Image, X, Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface BackgroundUploaderProps {
@@ -61,57 +61,47 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
   };
 
   return (
-    <div className="bg-white border border-secondary-200 rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-secondary-200">
-        <h2 className="font-semibold text-secondary-800">Background Image</h2>
-        <p className="text-sm text-secondary-500 mt-1">Upload an image as design background</p>
-      </div>
-      
-      <div className="p-4">
-        {!preview ? (
-          <div 
-            className="border-2 border-dashed border-secondary-300 rounded-lg p-6 text-center bg-secondary-50 hover:bg-secondary-100 transition cursor-pointer"
-            onClick={handleFileUpload}
-          >
-            <Image className="mx-auto h-12 w-12 text-secondary-400" />
-            <p className="mt-2 text-sm font-medium text-secondary-700">Click to upload background image</p>
-            <p className="mt-1 text-xs text-secondary-500">JPEG, PNG, GIF, WebP up to 5MB</p>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              className="hidden" 
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              onChange={handleFileChange}
+    <div>
+      {preview ? (
+        <div className="mb-3">
+          <div className="relative aspect-video w-full rounded-md overflow-hidden border border-[#e0e0e0]">
+            <img 
+              src={preview} 
+              alt="Background preview" 
+              className="w-full h-full object-cover" 
             />
+            <button 
+              onClick={handleRemoveBackground}
+              className="absolute top-2 right-2 bg-white bg-opacity-70 p-1 rounded-full shadow-sm hover:bg-opacity-100"
+            >
+              <X className="h-4 w-4 text-[#333333]" />
+            </button>
           </div>
-        ) : (
-          <div>
-            <div className="aspect-w-16 aspect-h-9 bg-secondary-100 rounded-lg overflow-hidden">
-              <img 
-                src={preview} 
-                alt="Background preview" 
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="flex justify-between mt-2">
-              <button 
-                className="text-sm text-error-600 hover:text-error-500 flex items-center"
-                onClick={handleRemoveBackground}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Remove
-              </button>
-              <button 
-                className="text-sm text-primary-600 hover:text-primary-500 flex items-center"
-                onClick={handleFileUpload}
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                Replace
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          <button 
+            onClick={handleFileUpload}
+            className="mt-2 w-full flex items-center justify-center p-2 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
+          >
+            <Upload className="h-4 w-4 mr-1.5" />
+            Replace Background
+          </button>
+        </div>
+      ) : (
+        <button 
+          onClick={handleFileUpload}
+          className="w-full flex items-center justify-center p-2.5 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
+        >
+          <Upload className="h-4 w-4 mr-1.5" />
+          Upload Background Image
+        </button>
+      )}
+      
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        className="hidden" 
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        onChange={handleFileChange}
+      />
     </div>
   );
 };
