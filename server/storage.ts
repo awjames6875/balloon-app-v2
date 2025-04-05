@@ -3,9 +3,11 @@ import {
   designs, type Design, type InsertDesign,
   inventory, type Inventory, type InsertInventory,
   accessories, type Accessory, type InsertAccessory,
-  production, type Production, type InsertProduction,
+  production as productionTable, type Production, type InsertProduction,
   designAccessories
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Interface for all storage operations
 export interface IStorage {
@@ -373,4 +375,144 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
+  }
+
+  async getDesign(id: number): Promise<Design | undefined> {
+    const [design] = await db.select().from(designs).where(eq(designs.id, id));
+    return design || undefined;
+  }
+
+  async getDesignsByUser(userId: number): Promise<Design[]> {
+    return await db.select().from(designs).where(eq(designs.userId, userId));
+  }
+
+  async createDesign(design: InsertDesign): Promise<Design> {
+    const [newDesign] = await db.insert(designs).values(design).returning();
+    return newDesign;
+  }
+
+  async updateDesign(id: number, updatedDesign: Partial<Design>): Promise<Design | undefined> {
+    const [design] = await db.update(designs)
+      .set(updatedDesign)
+      .where(eq(designs.id, id))
+      .returning();
+    return design || undefined;
+  }
+
+  async deleteDesign(id: number): Promise<boolean> {
+    await db.delete(designs).where(eq(designs.id, id));
+    return true;
+  }
+
+  async getInventoryItem(id: number): Promise<Inventory | undefined> {
+    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
+    return item || undefined;
+  }
+
+  async getAllInventory(): Promise<Inventory[]> {
+    return await db.select().from(inventory);
+  }
+
+  async getInventoryByColor(color: string): Promise<Inventory[]> {
+    // Cast the color to the enum type expected by the database
+    return await db.select().from(inventory).where(eq(inventory.color, color as any));
+  }
+
+  async createInventoryItem(item: InsertInventory): Promise<Inventory> {
+    const [newItem] = await db.insert(inventory).values(item).returning();
+    return newItem;
+  }
+
+  async updateInventoryItem(id: number, updatedItem: Partial<Inventory>): Promise<Inventory | undefined> {
+    const [item] = await db.update(inventory)
+      .set(updatedItem)
+      .where(eq(inventory.id, id))
+      .returning();
+    return item || undefined;
+  }
+
+  async getAccessory(id: number): Promise<Accessory | undefined> {
+    const [accessory] = await db.select().from(accessories).where(eq(accessories.id, id));
+    return accessory || undefined;
+  }
+
+  async getAllAccessories(): Promise<Accessory[]> {
+    return await db.select().from(accessories);
+  }
+
+  async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
+    const [newAccessory] = await db.insert(accessories).values(accessory).returning();
+    return newAccessory;
+  }
+
+  async updateAccessory(id: number, updatedAccessory: Partial<Accessory>): Promise<Accessory | undefined> {
+    const [accessory] = await db.update(accessories)
+      .set(updatedAccessory)
+      .where(eq(accessories.id, id))
+      .returning();
+    return accessory || undefined;
+  }
+
+  async getProduction(id: number): Promise<Production | undefined> {
+    const [production] = await db.select().from(productionTable).where(eq(productionTable.id, id));
+    return production || undefined;
+  }
+
+  async getProductionsByDesign(designId: number): Promise<Production[]> {
+    return await db.select().from(productionTable).where(eq(productionTable.designId, designId));
+  }
+
+  async createProduction(prod: InsertProduction): Promise<Production> {
+    const [newProduction] = await db.insert(productionTable).values(prod).returning();
+    return newProduction;
+  }
+
+  async updateProduction(id: number, updatedProduction: Partial<Production>): Promise<Production | undefined> {
+    const [prod] = await db.update(productionTable)
+      .set(updatedProduction)
+      .where(eq(productionTable.id, id))
+      .returning();
+    return prod || undefined;
+  }
+
+  async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
+    await db.insert(designAccessories).values({
+      designId,
+      accessoryId,
+      quantity
+    });
+  }
+
+  async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
+    const result = await db.select({
+      accessory: accessories,
+      quantity: designAccessories.quantity
+    })
+    .from(designAccessories)
+    .innerJoin(accessories, eq(designAccessories.accessoryId, accessories.id))
+    .where(eq(designAccessories.designId, designId));
+    
+    return result;
+  }
+}
+
+export const storage = new DatabaseStorage();
