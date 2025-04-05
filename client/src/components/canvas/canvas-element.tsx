@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Move, RotateCw, Maximize, X, Edit, MousePointer } from 'lucide-react';
+import { Trash2, Move, RotateCw, Maximize, X, Edit } from 'lucide-react';
 import { DesignElement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,125 +25,119 @@ const CanvasElement = ({
   onColorChange
 }: CanvasElementProps) => {
   const elementRef = useRef<HTMLDivElement>(null);
-  const [actionMode, setActionMode] = useState<'move' | 'resize' | 'rotate' | 'edit' | null>(null);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [startDimensions, setStartDimensions] = useState({ width: 0, height: 0 });
-  const [startRotation, setStartRotation] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragMode, setDragMode] = useState<'move' | 'resize' | 'rotate' | null>(null);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [elementStart, setElementStart] = useState({ x: 0, y: 0, width: 0, height: 0, rotation: 0 });
+  const [isEditingColors, setIsEditingColors] = useState(false);
   const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
   const { toast } = useToast();
 
-  // Close edit mode when clicking outside
   useEffect(() => {
-    if (editingColorIndex !== null) {
-      const handleClickOutside = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (
-          target.closest('.color-editor') === null &&
-          !target.classList.contains('edit-color-btn')
-        ) {
-          setEditingColorIndex(null);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
+    // Only add listeners if we're dragging
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      
+      // Touch events
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleDragEnd);
+      
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleDragEnd);
       };
     }
-  }, [editingColorIndex]);
+  }, [isDragging, dragMode, dragStart, elementStart]);
 
-  const handleMouseDown = (e: React.MouseEvent | React.PointerEvent, mode: 'move' | 'resize' | 'rotate') => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent, mode: 'move' | 'resize' | 'rotate') => {
     e.stopPropagation();
-    e.preventDefault();
+    if ('preventDefault' in e) e.preventDefault();
     
-    if (!elementRef.current) return;
+    let clientX = 0, clientY = 0;
     
-    setActionMode(mode);
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
     
-    const rect = elementRef.current.getBoundingClientRect();
-    setStartPos({ x: e.clientX, y: e.clientY });
-    setStartDimensions({ width: rect.width, height: rect.height });
-    setStartRotation(element.rotation || 0);
+    setIsDragging(true);
+    setDragMode(mode);
+    setDragStart({ x: clientX, y: clientY });
+    setElementStart({
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height,
+      rotation: element.rotation || 0
+    });
     
-    // Add both mouse and pointer events for maximum compatibility
-    document.addEventListener('mousemove', handlePointerMove);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('pointermove', handlePointerMove);
-    
-    document.addEventListener('mouseup', handlePointerUp);
-    document.addEventListener('touchend', handlePointerUp);
-    document.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('pointercancel', handlePointerUp);
+    if (!isSelected) {
+      onSelect();
+    }
   };
   
   const handleTouchMove = (e: TouchEvent) => {
-    // Prevent scrolling while dragging
-    e.preventDefault();
+    e.preventDefault(); // Prevent scrolling while dragging
     
-    if (e.touches.length !== 1) return;
+    if (e.touches.length === 0) return;
     
     const touch = e.touches[0];
-    
-    // Create a synthetic mouse event from touch
-    const mouseEvent = {
+    handleDragMove({
       clientX: touch.clientX,
-      clientY: touch.clientY,
-      preventDefault: () => {},
-      stopPropagation: () => {}
-    } as unknown as MouseEvent;
-    
-    handlePointerMove(mouseEvent);
+      clientY: touch.clientY
+    } as unknown as MouseEvent);
   };
   
-  const handlePointerMove = (e: MouseEvent | PointerEvent) => {
-    if (!actionMode || !elementRef.current) return;
+  const handleDragMove = (e: MouseEvent) => {
+    if (!isDragging || !dragMode) return;
     
-    // Calculate delta from start position
-    const deltaX = e.clientX - startPos.x;
-    const deltaY = e.clientY - startPos.y;
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
     
-    switch (actionMode) {
+    switch (dragMode) {
       case 'move':
-        // Important: We use the current mouse position directly to set the new position
-        // This ensures smooth dragging even when the element is initially positioned
-        const newX = element.x + deltaX;
-        const newY = element.y + deltaY;
-        
-        // Update the start position for the next move event
-        setStartPos({ x: e.clientX, y: e.clientY });
-        
-        // Call the onMove callback with the new position
-        onMove(newX, newY);
+        onMove(elementStart.x + deltaX, elementStart.y + deltaY);
         break;
         
       case 'resize': {
         // Maintain aspect ratio
-        const aspectRatio = startDimensions.width / startDimensions.height;
-        const newWidth = Math.max(50, startDimensions.width + deltaX);
+        const aspectRatio = elementStart.width / elementStart.height;
+        const newWidth = Math.max(50, elementStart.width + deltaX);
         const newHeight = Math.max(50, newWidth / aspectRatio);
         onResize(newWidth, newHeight);
         break;
       }
         
       case 'rotate': {
-        // Calculate angle based on mouse position relative to element center
+        if (!elementRef.current) return;
+        
+        // Calculate the center of the element
         const rect = elementRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         
+        // Calculate initial angle
         const startAngle = Math.atan2(
-          startPos.y - centerY,
-          startPos.x - centerX
+          dragStart.y - centerY,
+          dragStart.x - centerX
         );
         
+        // Calculate current angle
         const currentAngle = Math.atan2(
           e.clientY - centerY,
           e.clientX - centerX
         );
         
-        // Convert radians to degrees and add to original rotation
+        // Calculate rotation in degrees
         const angleDelta = (currentAngle - startAngle) * (180 / Math.PI);
-        const newRotation = (startRotation + angleDelta) % 360;
+        const newRotation = (elementStart.rotation + angleDelta) % 360;
         
         onRotate(newRotation);
         break;
@@ -151,38 +145,34 @@ const CanvasElement = ({
     }
   };
   
-  const handlePointerUp = () => {
-    document.removeEventListener('mousemove', handlePointerMove);
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('pointermove', handlePointerMove);
-    
-    document.removeEventListener('mouseup', handlePointerUp);
-    document.removeEventListener('touchend', handlePointerUp);
-    document.removeEventListener('pointerup', handlePointerUp);
-    document.removeEventListener('pointercancel', handlePointerUp);
-    
-    if (elementRef.current) {
-      try {
-        // Release pointer capture
-        const pointers = (elementRef.current as any)._reactProps?.pointerIds || [];
-        pointers.forEach((id: number) => {
-          if (elementRef.current) {
-            elementRef.current.releasePointerCapture(id);
-          }
-        });
-      } catch (err) {
-        // Ignore errors with pointer capture
-      }
-    }
-    
-    setActionMode(null);
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragMode(null);
   };
-
+  
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (editingColorIndex !== null) {
       onColorChange(editingColorIndex, e.target.value);
     }
   };
+  
+  // Close edit mode when clicking outside
+  useEffect(() => {
+    if (isEditingColors) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (
+          elementRef.current && 
+          !elementRef.current.contains(target) && 
+          !target.closest('.color-editor')
+        ) {
+          setIsEditingColors(false);
+        }
+      };
+      window.addEventListener('mousedown', handleClickOutside);
+      return () => window.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditingColors]);
 
   // Update element position for SVG display
   const svgWithReplacedColors = element.svgContent.replace(
@@ -202,7 +192,7 @@ const CanvasElement = ({
   return (
     <div
       ref={elementRef}
-      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'} touch-none`}
+      className={`absolute ${isSelected ? 'z-10' : 'z-0'} touch-none`}
       style={{
         left: element.x,
         top: element.y,
@@ -211,26 +201,22 @@ const CanvasElement = ({
         transform: `rotate(${element.rotation || 0}deg)`,
         transformOrigin: 'center',
         outline: isSelected ? '2px solid #4299e1' : 'none',
-        touchAction: 'none', /* Prevents touch scrolling while dragging */
-        userSelect: 'none' /* Prevents text selection during drag */
+        cursor: isDragging ? (dragMode === 'move' ? 'grabbing' : dragMode === 'resize' ? 'nwse-resize' : 'grab') : 'grab',
+        touchAction: 'none',
+        userSelect: 'none',
       }}
-      onPointerDown={(e) => {
-        // Capture pointer to ensure all events go to this element
-        e.currentTarget.setPointerCapture(e.pointerId);
-        e.stopPropagation();
-        
-        // Enable direct dragging by default when clicking on the element
-        if (!isSelected) {
+      onMouseDown={(e) => handleDragStart(e, 'move')}
+      onTouchStart={(e) => handleDragStart(e, 'move')}
+      onClick={(e) => {
+        if (!isDragging) {
+          e.stopPropagation();
           onSelect();
         }
-        
-        // Initialize dragging
-        handleMouseDown(e as any, 'move');
       }}
     >
       {/* Element content */}
       <div
-        className="w-full h-full"
+        className="w-full h-full pointer-events-none"
         dangerouslySetInnerHTML={{ __html: svgWithReplacedColors }}
       />
       
@@ -238,33 +224,45 @@ const CanvasElement = ({
       {isSelected && (
         <>
           {/* Top controls */}
-          <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 flex items-center space-x-1 bg-white border border-secondary-200 rounded-md shadow-sm px-1 py-0.5">
+          <div 
+            className="absolute -top-10 left-1/2 transform -translate-x-1/2 flex items-center space-x-1 bg-white border border-secondary-200 rounded-md shadow-sm px-1 py-0.5 z-20"
+            onClick={e => e.stopPropagation()}
+          >
             <button
-              className={`p-1 rounded-sm ${actionMode === 'move' ? 'bg-primary-100 text-primary-800' : 'hover:bg-secondary-100'}`}
-              onMouseDown={(e) => handleMouseDown(e, 'move')}
+              className={`p-1 rounded-sm hover:bg-secondary-100`}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleDragStart(e, 'move');
+              }}
               title="Move"
             >
               <Move className="h-4 w-4" />
             </button>
             <button
-              className={`p-1 rounded-sm ${actionMode === 'resize' ? 'bg-primary-100 text-primary-800' : 'hover:bg-secondary-100'}`}
-              onMouseDown={(e) => handleMouseDown(e, 'resize')}
+              className={`p-1 rounded-sm hover:bg-secondary-100`}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleDragStart(e, 'resize');
+              }}
               title="Resize"
             >
               <Maximize className="h-4 w-4" />
             </button>
             <button
-              className={`p-1 rounded-sm ${actionMode === 'rotate' ? 'bg-primary-100 text-primary-800' : 'hover:bg-secondary-100'}`}
-              onMouseDown={(e) => handleMouseDown(e, 'rotate')}
+              className={`p-1 rounded-sm hover:bg-secondary-100`}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleDragStart(e, 'rotate');
+              }}
               title="Rotate"
             >
               <RotateCw className="h-4 w-4" />
             </button>
             <button
-              className={`p-1 rounded-sm ${actionMode === 'edit' ? 'bg-primary-100 text-primary-800' : 'hover:bg-secondary-100'}`}
+              className={`p-1 rounded-sm ${isEditingColors ? 'bg-primary-100 text-primary-800' : 'hover:bg-secondary-100'}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setActionMode(actionMode === 'edit' ? null : 'edit');
+                setIsEditingColors(!isEditingColors);
               }}
               title="Edit Colors"
             >
@@ -283,13 +281,16 @@ const CanvasElement = ({
           </div>
 
           {/* Color editor */}
-          {actionMode === 'edit' && (
-            <div className="absolute -left-2 -right-2 top-full mt-2 bg-white border border-secondary-200 rounded-md shadow-sm p-2 color-editor z-20">
+          {isEditingColors && (
+            <div 
+              className="absolute -left-2 -right-2 top-full mt-2 bg-white border border-secondary-200 rounded-md shadow-sm p-2 color-editor z-20"
+              onClick={e => e.stopPropagation()}
+            >
               <div className="flex justify-between items-center mb-2">
                 <h4 className="text-sm font-medium">Edit Colors</h4>
                 <button
                   className="text-secondary-500 hover:text-secondary-700"
-                  onClick={() => setActionMode(null)}
+                  onClick={() => setIsEditingColors(false)}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -328,11 +329,14 @@ const CanvasElement = ({
 
           {/* Resize handle */}
           <div
-            className="absolute bottom-0 right-0 w-5 h-5 bg-white border border-primary-500 rounded-full cursor-se-resize z-10"
-            onPointerDown={(e) => {
+            className="absolute bottom-0 right-0 w-6 h-6 bg-white border border-primary-500 rounded-full cursor-se-resize z-10"
+            onMouseDown={(e) => {
               e.stopPropagation();
-              e.currentTarget.setPointerCapture(e.pointerId);
-              handleMouseDown(e as any, 'resize');
+              handleDragStart(e, 'resize');
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              handleDragStart(e, 'resize');
             }}
           />
         </>

@@ -32,14 +32,14 @@ const DesignCanvas = ({
       // Get the canvas element's position relative to the viewport
       const canvasRect = canvasRef.current.getBoundingClientRect();
       
-      // Calculate the drop position within the canvas
+      // Calculate the drop position within the canvas, accounting for zoom and scroll
       const x = (dropOffset.x - canvasRect.left) / zoom;
       const y = (dropOffset.y - canvasRect.top) / zoom;
       
-      // Create a new element
+      // Create a new element - generate unique ID for each new element
       const newElement: DesignElement = {
-        id: item.elementId || uuidv4(),
-        type: item.type,
+        id: uuidv4(),
+        type: 'balloon-cluster',
         x,
         y,
         width: item.width || 150,
