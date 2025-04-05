@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
@@ -14,6 +14,8 @@ import {
 import bcrypt from "bcryptjs";
 import session from "express-session";
 import { analyzeDesignImage } from "./ai";
+import { pool } from "./db";
+import connectPg from "connect-pg-simple";
 
 // Set up multer for file uploads
 const upload = multer({
@@ -42,12 +44,23 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize PostgreSQL session store
+  const PostgresStore = connectPg(session);
+  
   // Session setup for authentication
   app.use(session({
+    store: new PostgresStore({
+      pool,
+      tableName: 'session', // Use this table for session storage
+      createTableIfMissing: true
+    }),
     secret: process.env.SESSION_SECRET || 'balloon-app-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    }
   }));
 
   // Auth Middleware

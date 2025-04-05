@@ -138,7 +138,7 @@ const LoginForm = () => {
                 Logging in...
               </>
             ) : (
-              <>LOGIN</>
+              <span className="font-bold text-white">Login</span>
             )}
           </button>
         </div>
