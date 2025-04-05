@@ -234,9 +234,10 @@ const Design = () => {
         <h1 className="text-xl font-bold text-[#333333]">Balloon Designer</h1>
         <div className="flex gap-2">
           <button
-            className="flex items-center px-4 py-1.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md text-sm font-medium disabled:opacity-50"
+            className="flex items-center px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium shadow-sm disabled:opacity-50 z-10"
             onClick={handleSaveDesign}
             disabled={isSaving}
+            style={{ position: 'relative' }}
           >
             {isSaving ? (
               <>
@@ -250,7 +251,7 @@ const Design = () => {
               </>
             )}
           </button>
-          <button className="flex items-center px-4 py-1.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md text-sm font-medium">
+          <button className="flex items-center px-4 py-1.5 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md text-sm font-medium shadow-sm">
             <Share className="h-4 w-4 mr-1.5" />
             Share
           </button>
