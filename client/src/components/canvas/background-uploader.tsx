@@ -1,3 +1,4 @@
+
 import { useState, useRef, ChangeEvent } from 'react';
 import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -7,52 +8,46 @@ interface BackgroundUploaderProps {
   currentBackground: string | null;
 }
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 const BackgroundUploader = ({ onBackgroundChange, currentBackground }: BackgroundUploaderProps) => {
-  const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(currentBackground);
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-      
-      if (!allowedTypes.includes(selectedFile.type)) {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload JPEG, PNG, GIF, or WebP files only.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Please upload an image under 5MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setFile(selectedFile);
-      const objectUrl = URL.createObjectURL(selectedFile);
-      setPreview(objectUrl);
-      onBackgroundChange(objectUrl);
-      
-      return () => URL.revokeObjectURL(objectUrl);
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type as any)) {
+      return "Please upload JPEG, PNG, GIF, or WebP files only.";
     }
+    if (file.size > MAX_FILE_SIZE) {
+      return "Please upload an image under 5MB.";
+    }
+    return null;
   };
 
-  const handleFileUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const error = validateFile(file);
+    if (error) {
+      toast({
+        title: "Invalid file",
+        description: error,
+        variant: "destructive",
+      });
+      return;
     }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    onBackgroundChange(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
   };
 
   const handleRemoveBackground = () => {
-    setFile(null);
     setPreview(null);
     onBackgroundChange(null);
     if (fileInputRef.current) {
@@ -78,7 +73,7 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
             </button>
           </div>
           <button 
-            onClick={handleFileUpload}
+            onClick={() => fileInputRef.current?.click()}
             className="mt-2 w-full flex items-center justify-center p-2 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
           >
             <Upload className="h-4 w-4 mr-1.5" />
@@ -87,7 +82,7 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
         </div>
       ) : (
         <button 
-          onClick={handleFileUpload}
+          onClick={() => fileInputRef.current?.click()}
           className="w-full flex items-center justify-center p-2.5 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
         >
           <Upload className="h-4 w-4 mr-1.5" />
@@ -99,7 +94,7 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
         type="file" 
         ref={fileInputRef}
         className="hidden" 
-        accept="image/jpeg,image/png,image/gif,image/webp"
+        accept={ALLOWED_TYPES.join(',')}
         onChange={handleFileChange}
       />
     </div>
