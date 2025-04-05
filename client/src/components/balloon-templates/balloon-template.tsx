@@ -10,8 +10,13 @@ const BalloonTemplate = ({ template }: BalloonTemplateProps) => {
   const [expanded, setExpanded] = useState(false);
 
   const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'balloon-cluster',
-    item: { templateId: template.id },
+    type: 'BALLOON_TEMPLATE',
+    item: { 
+      templateId: template.id,
+      type: 'balloon-cluster',
+      svgContent: template.svgContent,
+      defaultColors: template.defaultColors
+    },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
