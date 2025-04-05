@@ -72,17 +72,16 @@ const Sidebar = () => {
         <ul className="space-y-2">
           {navLinks.map((link) => (
             <li key={link.path}>
-              <Link href={link.path}>
-                <a
-                  className={`flex items-center p-2 rounded-md ${
-                    location === link.path
-                      ? "bg-primary-50 text-primary-700 font-medium"
-                      : "text-secondary-500 hover:bg-secondary-100"
-                  }`}
-                >
-                  {link.icon}
-                  {link.name}
-                </a>
+              <Link
+                href={link.path}
+                className={`flex items-center p-2 rounded-md ${
+                  location === link.path
+                    ? "bg-primary-50 text-primary-700 font-medium"
+                    : "text-secondary-500 hover:bg-secondary-100"
+                }`}
+              >
+                {link.icon}
+                {link.name}
               </Link>
             </li>
           ))}
@@ -91,17 +90,13 @@ const Sidebar = () => {
       
       {/* Bottom Links */}
       <div className="p-4 border-t border-secondary-200">
-        <Link href="/settings">
-          <a className="flex items-center p-2 rounded-md text-secondary-500 hover:bg-secondary-100">
-            <Settings className="h-5 w-5 mr-3" />
-            Settings
-          </a>
+        <Link href="/settings" className="flex items-center p-2 rounded-md text-secondary-500 hover:bg-secondary-100">
+          <Settings className="h-5 w-5 mr-3" />
+          Settings
         </Link>
-        <Link href="/help">
-          <a className="flex items-center p-2 rounded-md text-secondary-500 hover:bg-secondary-100">
-            <HelpCircle className="h-5 w-5 mr-3" />
-            Help
-          </a>
+        <Link href="/help" className="flex items-center p-2 rounded-md text-secondary-500 hover:bg-secondary-100">
+          <HelpCircle className="h-5 w-5 mr-3" />
+          Help
         </Link>
         <button
           onClick={handleLogout}

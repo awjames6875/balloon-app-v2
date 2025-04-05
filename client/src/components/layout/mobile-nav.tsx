@@ -17,15 +17,17 @@ const MobileNav = () => {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-secondary-200 py-2 z-30">
       <div className="grid grid-cols-6 gap-1">
         {navItems.map((item) => (
-          <Link key={item.path} href={item.path}>
-            <a className={`flex flex-col items-center p-2 ${
-                location === item.path
-                  ? "text-primary-600"
-                  : "text-secondary-500"
-              }`}>
-              {item.icon}
-              <span className="text-xs mt-1">{item.name}</span>
-            </a>
+          <Link 
+            key={item.path} 
+            href={item.path}
+            className={`flex flex-col items-center p-2 ${
+              location === item.path
+                ? "text-primary-600"
+                : "text-secondary-500"
+            }`}
+          >
+            {item.icon}
+            <span className="text-xs mt-1">{item.name}</span>
           </Link>
         ))}
       </div>
