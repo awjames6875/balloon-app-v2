@@ -16,6 +16,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Login form submitted"); // Debug log
 
     if (!username.trim() || !password) {
       toast({
@@ -28,6 +29,7 @@ const LoginForm = () => {
 
     try {
       setLoading(true);
+      console.log("Attempting login with:", { username }); // Debug log
       
       const response = await apiRequest("POST", "/api/auth/login", {
         username,
@@ -35,6 +37,7 @@ const LoginForm = () => {
       });
       
       const userData = await response.json();
+      console.log("Login successful, user data:", userData); // Debug log
       
       login(userData);
       
@@ -64,7 +67,7 @@ const LoginForm = () => {
         <p className="text-secondary-500 mt-2">Enter your credentials to access your account</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label htmlFor="username" className="block text-sm font-medium text-secondary-700 mb-1">
             Username
@@ -107,7 +110,7 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 flex items-center justify-center disabled:opacity-70"
+          className="w-full mt-2 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-md transition duration-200 flex items-center justify-center disabled:opacity-70"
         >
           {loading ? (
             <>
