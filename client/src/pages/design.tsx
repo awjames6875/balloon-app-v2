@@ -1,13 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ChevronRight, Save } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import DesignUploader from "@/components/design/design-uploader";
-import DesignAnalysis from "@/components/design/design-analysis";
-import AccessoriesSection from "@/components/design/accessories-section";
+import { Save } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
@@ -123,15 +119,15 @@ const Design = () => {
             </li>
             <li className="flex items-center space-x-1">
               <span className="text-secondary-500">/</span>
-              <span className="text-secondary-800 font-medium">Design Upload & Analysis</span>
+              <span className="text-secondary-800 font-medium">Balloon Design Creator</span>
             </li>
           </ol>
         </nav>
 
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-secondary-900">Design Upload & Analysis</h1>
-            <p className="text-secondary-500 mt-1">Upload balloon design images for AI-powered analysis and production planning</p>
+            <h1 className="text-2xl font-bold text-secondary-900">Balloon Design Creator</h1>
+            <p className="text-secondary-500 mt-1">Create custom balloon designs using our drag-and-drop editor</p>
           </div>
           {!showEditor ? (
             <button 
@@ -163,103 +159,20 @@ const Design = () => {
       </div>
 
       {!showEditor ? (
-        <>
-          {/* Design Upload and Analysis Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <DesignUploader onAnalysisStart={handleAnalysisStart} />
-            <DesignAnalysis loading={analyzing} />
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Create Your Balloon Design</h2>
+            <p className="text-secondary-500 mb-6">
+              Use our drag-and-drop balloon design editor to create beautiful balloon arrangements
+            </p>
+            <button 
+              onClick={toggleEditor} 
+              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm cursor-pointer inline-block"
+            >
+              Create Balloon Design
+            </button>
           </div>
-          
-          {/* Accessories Section */}
-          {activeDesign && <AccessoriesSection />}
-          
-          {/* Recent Projects */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Recent Projects</CardTitle>
-                <Link href="/design?view=all">
-                  <span className="text-sm text-primary-600 hover:text-primary-700 flex items-center cursor-pointer">
-                    View all <ChevronRight className="h-4 w-4 ml-1" />
-                  </span>
-                </Link>
-              </div>
-              <CardDescription>Your recently created designs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {designsLoading ? (
-                <div className="flex justify-center p-6">
-                  <div className="w-8 h-8 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
-                </div>
-              ) : designs && Array.isArray(designs) && designs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {designs.slice(0, 6).map((design: any) => (
-                    <div
-                      key={design.id}
-                      onClick={() => {
-                        setActiveDesign(design);
-                        setDesignName(design.clientName || 'Untitled Design');
-                        setElements(design.elements || []);
-                        setBackgroundImage(design.backgroundUrl || null);
-                        setShowEditor(true);
-                      }}
-                      className="border border-secondary-200 rounded-lg overflow-hidden hover:shadow-md transition block cursor-pointer"
-                    >
-                      <div className="aspect-w-16 aspect-h-9 bg-secondary-100">
-                        {design.imageUrl && (
-                          <img 
-                            src={design.imageUrl} 
-                            alt={design.clientName} 
-                            className="object-cover w-full h-full"
-                          />
-                        )}
-                        {design.backgroundUrl && !design.imageUrl && (
-                          <img 
-                            src={design.backgroundUrl} 
-                            alt={design.clientName} 
-                            className="object-cover w-full h-full"
-                          />
-                        )}
-                        {!design.imageUrl && !design.backgroundUrl && (
-                          <div className="w-full h-full flex items-center justify-center bg-secondary-100">
-                            <span className="text-secondary-400 text-sm">No Preview</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-medium text-secondary-800">{design.clientName}</h3>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="text-xs text-secondary-500">
-                            {new Date(design.createdAt).toLocaleDateString()}
-                          </span>
-                          <div className="flex gap-1">
-                            {design.elements && design.elements.length > 0 && (
-                              <span className="px-2 py-1 bg-secondary-100 text-secondary-700 text-xs font-medium rounded">
-                                {design.elements.length} elements
-                              </span>
-                            )}
-                            {design.totalBalloons > 0 && (
-                              <span className="px-2 py-1 bg-primary-50 text-primary-700 text-xs font-medium rounded">
-                                {design.totalBalloons} balloons
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-6">
-                  <p className="text-secondary-500">You haven't created any designs yet</p>
-                  <p className="text-sm text-secondary-400 mt-1">
-                    Click "Create Balloon Design" to start designing
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </>
+        </div>
       ) : (
         <DndProvider backend={HTML5Backend}>
           <div className="flex flex-col bg-secondary-50 border border-secondary-200 rounded-lg h-[80vh] overflow-hidden">
