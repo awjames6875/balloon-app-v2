@@ -97,12 +97,28 @@ const DesignEditor = () => {
         navigate(`/design-editor/${design.id}`, { replace: true });
       }
       
-      // Refresh designs list
+      // Create production record
+      const productionResponse = await apiRequest('POST', '/api/production', {
+        designId: design.id,
+        status: 'pending',
+        startDate: new Date().toISOString(),
+        notes: `Production for ${designName}`,
+        materialRequirements: design.materialRequirements,
+        totalBalloons: design.totalBalloons,
+        estimatedClusters: design.estimatedClusters
+      });
+
+      if (!productionResponse.ok) {
+        throw new Error('Failed to create production record');
+      }
+      
+      // Refresh both designs and production lists
       queryClient.invalidateQueries({ queryKey: ['/api/designs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/production'] });
       
       toast({
         title: 'Success',
-        description: 'Your design has been saved',
+        description: 'Design saved and sent to production',
       });
       
     } catch (error) {
