@@ -52,7 +52,7 @@ const CanvasElement = ({
     }
   }, [editingColorIndex]);
 
-  const handleMouseDown = (e: React.MouseEvent, mode: 'move' | 'resize' | 'rotate') => {
+  const handleMouseDown = (e: React.MouseEvent | React.PointerEvent, mode: 'move' | 'resize' | 'rotate') => {
     e.stopPropagation();
     e.preventDefault();
     
@@ -65,11 +65,37 @@ const CanvasElement = ({
     setStartDimensions({ width: rect.width, height: rect.height });
     setStartRotation(element.rotation || 0);
     
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    // Add both mouse and pointer events for maximum compatibility
+    document.addEventListener('mousemove', handlePointerMove);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('pointermove', handlePointerMove);
+    
+    document.addEventListener('mouseup', handlePointerUp);
+    document.addEventListener('touchend', handlePointerUp);
+    document.addEventListener('pointerup', handlePointerUp);
+    document.addEventListener('pointercancel', handlePointerUp);
   };
   
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
+    // Prevent scrolling while dragging
+    e.preventDefault();
+    
+    if (e.touches.length !== 1) return;
+    
+    const touch = e.touches[0];
+    
+    // Create a synthetic mouse event from touch
+    const mouseEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      preventDefault: () => {},
+      stopPropagation: () => {}
+    } as unknown as MouseEvent;
+    
+    handlePointerMove(mouseEvent);
+  };
+  
+  const handlePointerMove = (e: MouseEvent | PointerEvent) => {
     if (!actionMode || !elementRef.current) return;
     
     // Calculate delta from start position
@@ -125,9 +151,30 @@ const CanvasElement = ({
     }
   };
   
-  const handleMouseUp = () => {
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+  const handlePointerUp = () => {
+    document.removeEventListener('mousemove', handlePointerMove);
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('pointermove', handlePointerMove);
+    
+    document.removeEventListener('mouseup', handlePointerUp);
+    document.removeEventListener('touchend', handlePointerUp);
+    document.removeEventListener('pointerup', handlePointerUp);
+    document.removeEventListener('pointercancel', handlePointerUp);
+    
+    if (elementRef.current) {
+      try {
+        // Release pointer capture
+        const pointers = (elementRef.current as any)._reactProps?.pointerIds || [];
+        pointers.forEach((id: number) => {
+          if (elementRef.current) {
+            elementRef.current.releasePointerCapture(id);
+          }
+        });
+      } catch (err) {
+        // Ignore errors with pointer capture
+      }
+    }
+    
     setActionMode(null);
   };
 
@@ -155,7 +202,7 @@ const CanvasElement = ({
   return (
     <div
       ref={elementRef}
-      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'}`}
+      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'} touch-none`}
       style={{
         left: element.x,
         top: element.y,
@@ -164,17 +211,21 @@ const CanvasElement = ({
         transform: `rotate(${element.rotation || 0}deg)`,
         transformOrigin: 'center',
         outline: isSelected ? '2px solid #4299e1' : 'none',
+        touchAction: 'none', /* Prevents touch scrolling while dragging */
+        userSelect: 'none' /* Prevents text selection during drag */
       }}
-      onClick={(e) => {
+      onPointerDown={(e) => {
+        // Capture pointer to ensure all events go to this element
+        e.currentTarget.setPointerCapture(e.pointerId);
         e.stopPropagation();
-        onSelect();
-      }}
-      onMouseDown={(e) => {
+        
         // Enable direct dragging by default when clicking on the element
         if (!isSelected) {
           onSelect();
         }
-        handleMouseDown(e, 'move');
+        
+        // Initialize dragging
+        handleMouseDown(e as any, 'move');
       }}
     >
       {/* Element content */}
@@ -277,8 +328,12 @@ const CanvasElement = ({
 
           {/* Resize handle */}
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 bg-white border border-primary-500 rounded-full cursor-se-resize"
-            onMouseDown={(e) => handleMouseDown(e, 'resize')}
+            className="absolute bottom-0 right-0 w-5 h-5 bg-white border border-primary-500 rounded-full cursor-se-resize z-10"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              handleMouseDown(e as any, 'resize');
+            }}
           />
         </>
       )}
