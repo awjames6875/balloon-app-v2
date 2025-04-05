@@ -131,15 +131,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       
+      console.log(`Login attempt for username: ${username}`);
+      
       // Find user by username
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
+        console.log(`User not found: ${username}`);
         return res.status(401).json({ message: 'Invalid username or password' });
       }
       
+      console.log(`User found with ID: ${user.id}`);
+      
       // Compare password
+      console.log(`Comparing password for user: ${username}`);
       const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      console.log(`Password validation result: ${isPasswordValid}`);
       
       if (!isPasswordValid) {
         return res.status(401).json({ message: 'Invalid username or password' });
@@ -148,6 +156,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       req.session.userId = user.id;
       req.session.userRole = user.role;
+      
+      console.log(`Session set for user ID: ${user.id}, role: ${user.role}`);
       
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
