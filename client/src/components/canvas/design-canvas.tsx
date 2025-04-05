@@ -116,11 +116,40 @@ const DesignCanvas = ({
   
   // Element event handlers
   const handleElementMove = (id: string, x: number, y: number) => {
-    onElementsChange(
-      elements.map(el => 
-        el.id === id ? { ...el, x, y } : el
-      )
-    );
+    // Ensure coordinates stay within canvas bounds
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (canvasRect) {
+      // Normalize to actual canvas dimensions
+      const maxX = canvasRect.width / zoom;
+      const maxY = canvasRect.height / zoom;
+      
+      // Clamp the position to keep element at least partially visible
+      const element = elements.find(el => el.id === id);
+      if (element) {
+        const clampedX = Math.max(-(element.width / 2), Math.min(x, maxX - element.width / 2));
+        const clampedY = Math.max(-(element.height / 2), Math.min(y, maxY - element.height / 2));
+        
+        onElementsChange(
+          elements.map(el => 
+            el.id === id ? { ...el, x: clampedX, y: clampedY } : el
+          )
+        );
+      } else {
+        // Fallback if element not found
+        onElementsChange(
+          elements.map(el => 
+            el.id === id ? { ...el, x, y } : el
+          )
+        );
+      }
+    } else {
+      // Fallback if canvas not available
+      onElementsChange(
+        elements.map(el => 
+          el.id === id ? { ...el, x, y } : el
+        )
+      );
+    }
   };
   
   const handleElementResize = (id: string, width: number, height: number) => {

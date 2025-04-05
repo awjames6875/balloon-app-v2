@@ -78,7 +78,16 @@ const CanvasElement = ({
     
     switch (actionMode) {
       case 'move':
-        onMove(element.x + deltaX, element.y + deltaY);
+        // Important: We use the current mouse position directly to set the new position
+        // This ensures smooth dragging even when the element is initially positioned
+        const newX = element.x + deltaX;
+        const newY = element.y + deltaY;
+        
+        // Update the start position for the next move event
+        setStartPos({ x: e.clientX, y: e.clientY });
+        
+        // Call the onMove callback with the new position
+        onMove(newX, newY);
         break;
         
       case 'resize': {
@@ -131,9 +140,13 @@ const CanvasElement = ({
   // Update element position for SVG display
   const svgWithReplacedColors = element.svgContent.replace(
     /fill="(#[A-Fa-f0-9]{6})"/g,
-    (match, color, index) => {
-      if (element.colors && element.colors[index]) {
-        return `fill="${element.colors[index]}"`;
+    (match, originalColor, index, fullString) => {
+      // Find the correct index for this color in the string
+      const colorIndex = fullString.substring(0, index).match(/fill="(#[A-Fa-f0-9]{6})"/g)?.length || 0;
+      
+      // Use the color at the correct index from the element's colors array
+      if (element.colors && element.colors[colorIndex]) {
+        return `fill="${element.colors[colorIndex]}"`;
       }
       return match;
     }
@@ -142,7 +155,7 @@ const CanvasElement = ({
   return (
     <div
       ref={elementRef}
-      className={`absolute cursor-pointer ${isSelected ? 'z-10' : 'z-0'}`}
+      className={`absolute cursor-move ${isSelected ? 'z-10' : 'z-0'}`}
       style={{
         left: element.x,
         top: element.y,
@@ -155,6 +168,13 @@ const CanvasElement = ({
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
+      }}
+      onMouseDown={(e) => {
+        // Enable direct dragging by default when clicking on the element
+        if (!isSelected) {
+          onSelect();
+        }
+        handleMouseDown(e, 'move');
       }}
     >
       {/* Element content */}
