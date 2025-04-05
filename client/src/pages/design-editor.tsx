@@ -156,23 +156,52 @@ const DesignEditor = () => {
               placeholder="Untitled Design"
             />
           </div>
-          <button
-            className="flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
-            onClick={handleSaveDesign}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1.5" />
-                Save Design
-              </>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="flex items-center px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md text-sm font-medium disabled:opacity-50"
+              onClick={handleSaveDesign}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1.5" />
+                  Save Design
+                </>
+              )}
+            </button>
+            <button
+              className="flex items-center px-3 py-1.5 border border-primary-600 text-primary-600 hover:bg-primary-50 rounded-md text-sm font-medium"
+              onClick={() => {
+                const template = {
+                  id: `template-${Date.now()}`,
+                  name: designName,
+                  svgContent: elements[0]?.svgContent || '',
+                  defaultColors: elements.map(el => el.colors).flat(),
+                  width: elements[0]?.width || 150,
+                  height: elements[0]?.height || 150,
+                  category: 'custom',
+                  elements: elements
+                };
+                
+                // Save template to localStorage
+                const savedTemplates = JSON.parse(localStorage.getItem('savedTemplates') || '[]');
+                savedTemplates.push(template);
+                localStorage.setItem('savedTemplates', JSON.stringify(savedTemplates));
+                
+                toast({
+                  title: 'Success',
+                  description: 'Template saved successfully',
+                });
+              }}
+            >
+              Save as Template
+            </button>
+          </div>
         </header>
         
         {/* Main Content */}

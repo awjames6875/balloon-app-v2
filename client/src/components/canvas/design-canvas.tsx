@@ -26,6 +26,15 @@ const DesignCanvas = ({
   const [, drop] = useDrop(() => ({
     accept: 'BALLOON_TEMPLATE',
     drop: (item: any, monitor) => {
+      if (item.elements) {
+        // Load saved template elements
+        onElementsChange(item.elements.map((el: any) => ({
+          ...el,
+          id: `element-${Date.now()}-${Math.random()}`
+        })));
+        return;
+      }
+      
       const dropOffset = monitor.getClientOffset();
       if (!dropOffset || !canvasRef.current || !wrapperRef.current) return;
       

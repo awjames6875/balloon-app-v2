@@ -15,7 +15,8 @@ const BalloonTemplate = ({ template }: BalloonTemplateProps) => {
       templateId: template.id,
       type: 'balloon-cluster',
       svgContent: template.svgContent,
-      defaultColors: template.defaultColors
+      defaultColors: template.defaultColors,
+      elements: template.elements || undefined
     },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),

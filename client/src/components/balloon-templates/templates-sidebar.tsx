@@ -7,7 +7,10 @@ import { Search } from 'lucide-react';
 const TemplatesSidebar = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredTemplates = balloonClusterTemplates.filter(template =>
+  const savedTemplates = JSON.parse(localStorage.getItem('savedTemplates') || '[]');
+  const allTemplates = [...balloonClusterTemplates, ...savedTemplates];
+  
+  const filteredTemplates = allTemplates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
