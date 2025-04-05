@@ -225,6 +225,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch designs' });
     }
   });
+  
+  // Create a design with elements and background
+  app.post('/api/designs/create', isAuthenticated, async (req, res) => {
+    const { clientName = 'Anonymous Client', eventDate, elements = [], backgroundUrl, notes } = req.body;
+    const userId = req.session.userId!;
+    
+    try {
+      console.log('Creating design with elements:', elements.length);
+      
+      const design = await storage.createDesign({
+        userId,
+        clientName,
+        eventDate: eventDate || new Date().toISOString().split('T')[0],
+        elements: JSON.stringify(elements || []),
+        backgroundUrl: backgroundUrl || null,
+        notes: notes || '',
+      });
+      
+      console.log('Design created successfully:', design.id);
+      res.json(design);
+    } catch (error) {
+      console.error('Error creating design:', error);
+      res.status(500).json({ message: 'Error creating design' });
+    }
+  });
 
   app.get('/api/designs/:id', isAuthenticated, async (req, res) => {
     try {

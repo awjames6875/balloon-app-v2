@@ -132,43 +132,38 @@ const Design = () => {
     try {
       setIsSaving(true);
       
+      // Make sure elements is always an array
+      const elementsCopy = Array.isArray(elements) ? [...elements] : [];
+      
       const designData = {
         clientName: clientName || designName,
         eventDate: eventDate || null,
-        elements,
+        elements: elementsCopy,
         backgroundUrl: backgroundImage,
         notes: eventType || null
       };
       
-      let response;
-      let design;
+      console.log('Saving design with elements:', elementsCopy.length);
       
-      if (activeDesign?.id) {
-        // Update existing design
-        response = await apiRequest(
-          'PATCH',
-          `/api/designs/${activeDesign.id}`,
-          designData
-        );
-        
-        if (!response.ok) {
-          throw new Error('Failed to update design');
-        }
-        
-        design = await response.json();
-        setActiveDesign(design);
-        
-      } else {
-        // Create new design
-        response = await apiRequest('POST', '/api/designs/create', designData);
-        
-        if (!response.ok) {
-          throw new Error('Failed to create design');
-        }
-        
-        design = await response.json();
-        setActiveDesign(design);
+      // Create new design
+      const response = await fetch('/api/designs/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(designData),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create design: ${errorText}`);
       }
+      
+      const design = await response.json();
+      
+      // Update active design
+      setActiveDesign(design);
       
       // Refresh designs list
       queryClient.invalidateQueries({ queryKey: ['/api/designs'] });
@@ -177,6 +172,9 @@ const Design = () => {
         title: 'Success',
         description: 'Your design has been saved',
       });
+      
+      // Redirect to production page with the new design
+      // navigate(`/production/${design.id}`);
       
     } catch (error) {
       console.error('Save error:', error);
