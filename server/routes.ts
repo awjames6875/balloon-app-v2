@@ -247,6 +247,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/designs/:id', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      const design = await storage.getDesign(designId);
+      
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Check if user owns this design or is admin
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Update the design
+      const updatedDesign = await storage.updateDesign(designId, {
+        ...req.body,
+        updatedAt: new Date()
+      });
+      
+      if (!updatedDesign) {
+        return res.status(500).json({ message: 'Failed to update design' });
+      }
+      
+      res.json(updatedDesign);
+    } catch (error) {
+      console.error('Update design error:', error);
+      res.status(500).json({ message: 'Failed to update design' });
+    }
+  });
+
   app.post('/api/designs/:id/analyze', isAuthenticated, async (req, res) => {
     try {
       const designId = parseInt(req.params.id);

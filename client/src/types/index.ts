@@ -1,96 +1,75 @@
-// User types
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  fullName: string;
-  role: 'admin' | 'designer' | 'inventory_manager';
-  createdAt: string;
+import { colorEnum, balloonSizeEnum } from '@shared/schema';
+
+export type ColorType = typeof colorEnum.enumValues[number];
+export type BalloonSizeType = typeof balloonSizeEnum.enumValues[number];
+
+// Balloon template type
+export interface BalloonClusterTemplate {
+  id: string;
+  name: string;
+  svgContent: string;
+  defaultColors: string[];
+  width: number;
+  height: number;
+  category: string;
+  type?: string;
+  smallBalloonCount?: number;
+  largeBalloonCount?: number;
 }
 
-// Design types
-export interface Design {
-  id: number;
-  userId: number;
-  clientName: string;
-  eventDate?: string;
-  dimensions?: string;
-  notes?: string;
-  imageUrl?: string;
-  colorAnalysis?: {
+// Canvas design element type
+export interface DesignElement {
+  id: string;
+  type: 'balloon-cluster';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  svgContent: string;
+  colors: string[];
+  scale?: number;
+}
+
+// API response types
+export interface AnalysisResult {
+  colorAnalysis: {
     colors: Array<{
       name: string;
       percentage: number;
     }>;
   };
-  materialRequirements?: {
+  materialRequirements: {
     [color: string]: {
       total: number;
       small: number;
       large: number;
     };
   };
-  totalBalloons?: number;
-  estimatedClusters?: number;
-  productionTime?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Inventory types
-export interface Inventory {
-  id: number;
-  color: string;
-  size: string;
-  quantity: number;
-  threshold: number;
-  status: 'in_stock' | 'low_stock' | 'out_of_stock';
-  updatedAt: string;
-}
-
-// Accessory types
-export interface Accessory {
-  id: number;
-  name: string;
-  quantity: number;
-  threshold: number;
-  status: 'in_stock' | 'low_stock' | 'out_of_stock';
-  updatedAt: string;
-}
-
-// Production types
-export interface Production {
-  id: number;
-  designId: number;
-  status: 'pending' | 'in-progress' | 'completed';
-  startDate: string | null;
-  completionDate: string | null;
-  actualTime: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Design analysis types
-export interface ColorAnalysis {
-  colors: Array<{
-    name: string;
-    percentage: number;
-  }>;
-}
-
-export interface MaterialRequirements {
-  [color: string]: {
-    total: number;
-    small: number;
-    large: number;
-  };
-}
-
-export interface DesignAnalysis {
-  colorAnalysis: ColorAnalysis;
-  materialRequirements: MaterialRequirements;
   totalBalloons: number;
   estimatedClusters: number;
   productionTime: string;
+}
+
+export interface DesignAnalysisResponse {
+  id: number;
+  userId: number;
+  designId: number;
+  colorAnalysis: {
+    colors: Array<{
+      name: string;
+      percentage: number;
+    }>;
+  };
+  materialRequirements: {
+    [color: string]: {
+      total: number;
+      small: number;
+      large: number;
+    };
+  };
+  totalBalloons: number;
+  estimatedClusters: number;
+  productionTime: string;
+  createdAt: string;
 }

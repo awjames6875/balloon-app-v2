@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, json, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,6 +7,22 @@ export const userRoleEnum = pgEnum('user_role', ['admin', 'designer', 'inventory
 export const colorEnum = pgEnum('color', ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'white', 'black', 'silver', 'gold']);
 export const balloonSizeEnum = pgEnum('balloon_size', ['11inch', '16inch']);
 export const inventoryStatusEnum = pgEnum('inventory_status', ['in_stock', 'low_stock', 'out_of_stock']);
+
+// Element schema definition for canvas editor
+export const designElementSchema = z.object({
+  id: z.string(),
+  type: z.literal('balloon-cluster'),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+  rotation: z.number(),
+  svgContent: z.string(),
+  colors: z.array(z.string()),
+  scale: z.number().optional(),
+});
+
+export type DesignElement = z.infer<typeof designElementSchema>;
 
 // Users table
 export const users = pgTable("users", {
@@ -28,6 +44,8 @@ export const designs = pgTable("designs", {
   dimensions: text("dimensions"),
   notes: text("notes"),
   imageUrl: text("image_url"),
+  backgroundUrl: text("background_url"),
+  elements: json("elements").$type<DesignElement[]>().default([]),
   colorAnalysis: json("color_analysis").$type<{
     colors: Array<{
       name: string;
@@ -106,6 +124,13 @@ export const insertDesignSchema = createInsertSchema(designs).pick({
   dimensions: true,
   notes: true,
   imageUrl: true,
+  backgroundUrl: true,
+  elements: true,
+  colorAnalysis: true,
+  materialRequirements: true,
+  totalBalloons: true,
+  estimatedClusters: true,
+  productionTime: true,
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).pick({

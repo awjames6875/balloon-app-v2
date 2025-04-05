@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "@/context/auth-context";
 import { useEffect, Suspense, lazy } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 // Layouts and common components
 import Sidebar from "@/components/layout/sidebar";
@@ -19,6 +21,7 @@ import Inventory from "@/pages/inventory";
 import Production from "@/pages/production";
 import Analytics from "@/pages/analytics";
 import Payments from "@/pages/payments";
+import DesignEditor from "@/pages/design-editor";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -91,6 +94,11 @@ function Router() {
           <Payments />
         </ProtectedRoute>
       </Route>
+      <Route path="/design-editor/:id?">
+        <ProtectedRoute>
+          <DesignEditor />
+        </ProtectedRoute>
+      </Route>
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />
@@ -102,21 +110,24 @@ function App() {
   const { user } = useAuth();
   const [location] = useLocation();
   const isAuthPage = location === "/login" || location === "/register";
+  const isDesignEditor = location.startsWith("/design-editor");
 
   return (
     <QueryClientProvider client={queryClient}>
-      {!isAuthPage && user ? (
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 flex flex-col h-full overflow-y-auto bg-secondary-50">
-            <Router />
-          </main>
-          <MobileNav />
-        </div>
-      ) : (
-        <Router />
-      )}
-      <Toaster />
+      <DndProvider backend={HTML5Backend}>
+        {!isAuthPage && !isDesignEditor && user ? (
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-secondary-50">
+              <Router />
+            </main>
+            <MobileNav />
+          </div>
+        ) : (
+          <Router />
+        )}
+        <Toaster />
+      </DndProvider>
     </QueryClientProvider>
   );
 }

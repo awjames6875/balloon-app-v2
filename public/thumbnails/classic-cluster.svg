@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Large balloons (16-inch) -->
+  <circle cx="100" cy="70" r="35" fill="#FF5757" />
+  <circle cx="65" cy="95" r="35" fill="#5271FF" />
+  
+  <!-- Small balloons (11-inch) -->
+  <circle cx="135" cy="95" r="25" fill="#FFD166" />
+  <circle cx="80" cy="120" r="25" fill="#06D6A0" />
+  <circle cx="120" cy="120" r="25" fill="#118AB2" />
+  <circle cx="45" cy="125" r="25" fill="#073B4C" />
+  <circle cx="155" cy="125" r="25" fill="#FF8A5B" />
+  <circle cx="65" cy="150" r="25" fill="#B5FF7D" />
+  <circle cx="100" cy="145" r="25" fill="#AF8BFF" />
+  <circle cx="135" cy="150" r="25" fill="#FFB8DE" />
+  <circle cx="85" cy="170" r="25" fill="#FFFD82" />
+  <circle cx="115" cy="170" r="25" fill="#E63946" />
+  <circle cx="75" cy="195" r="25" fill="#457B9D" />
+</svg>
