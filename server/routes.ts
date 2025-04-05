@@ -135,10 +135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Username and password are required' });
       }
 
-      // Find user by username (case insensitive)
-      const normalizedUsername = username.toLowerCase();
-      const users = await storage.getAllUsers();
-      const user = users.find(u => u.username.toLowerCase() === normalizedUsername);
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
       
       if (!user) {
         return res.status(401).json({ message: 'Invalid username or password' });
