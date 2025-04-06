@@ -182,7 +182,7 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
           <div className="mb-6">
             <h3 className="text-base font-medium text-secondary-800 mb-3">Color Analysis</h3>
             <div className="grid grid-cols-4 gap-3">
-              {colors.map((color, index) => (
+              {colors.map((color: { name: string; percentage: number }, index: number) => (
                 <div key={index} className="bg-white border border-secondary-200 rounded p-3 text-center">
                   <div 
                     className="w-full h-12 rounded mb-2" 
@@ -200,26 +200,29 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
             <h3 className="text-base font-medium text-secondary-800 mb-3">Material Requirements</h3>
             <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(materials).map(([color, data], index) => (
-                  <div key={index} className="bg-white p-3 rounded shadow-sm">
-                    <p className="text-xs text-secondary-500">{color} Balloons</p>
-                    <div className="flex justify-between items-end mt-1">
-                      <div>
-                        <p className="text-2xl font-semibold text-secondary-900">{data.total}</p>
-                        <div className="flex space-x-1 text-xs">
-                          <span className="text-secondary-500">11":</span>
-                          <span className="font-medium text-secondary-700">{data.small}</span>
-                          <span className="text-secondary-500">16":</span>
-                          <span className="font-medium text-secondary-700">{data.large}</span>
+                {Object.entries(materials).map(([color, data], index: number) => {
+                  const materialData = data as { total: number; small: number; large: number };
+                  return (
+                    <div key={index} className="bg-white p-3 rounded shadow-sm">
+                      <p className="text-xs text-secondary-500">{color} Balloons</p>
+                      <div className="flex justify-between items-end mt-1">
+                        <div>
+                          <p className="text-2xl font-semibold text-secondary-900">{materialData.total}</p>
+                          <div className="flex space-x-1 text-xs">
+                            <span className="text-secondary-500">11":</span>
+                            <span className="font-medium text-secondary-700">{materialData.small}</span>
+                            <span className="text-secondary-500">16":</span>
+                            <span className="font-medium text-secondary-700">{materialData.large}</span>
+                          </div>
                         </div>
+                        <div 
+                          className="h-8 w-8 rounded" 
+                          style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
+                        ></div>
                       </div>
-                      <div 
-                        className="h-8 w-8 rounded" 
-                        style={{ backgroundColor: color.toLowerCase() === 'white' ? '#ffffff' : color.toLowerCase() }}
-                      ></div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               {/* Total Summary */}

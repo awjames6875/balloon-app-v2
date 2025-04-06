@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         clientName,
         eventDate: eventDate || new Date().toISOString().split('T')[0],
-        elements: JSON.stringify(elements || []),
+        elements: JSON.stringify(elements || []) as any, // Type casting to avoid TS error
         backgroundUrl: backgroundUrl || null,
         notes: notes || '',
       });
@@ -775,6 +775,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Complete payment error:', error);
       res.status(500).json({ message: 'Failed to complete payment' });
+    }
+  });
+
+  // Add a design's material requirements to inventory
+  app.post('/api/designs/:id/save-to-inventory', isAuthenticated, hasRole(['admin', 'inventory_manager']), async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      
+      // Get the design
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Get all inventory
+      const allInventory = await storage.getAllInventory();
+      
+      // Extract balloon counts from the design
+      const { materialCounts } = req.body;
+      
+      if (!materialCounts || Object.keys(materialCounts).length === 0) {
+        return res.status(400).json({ message: 'No material counts provided' });
+      }
+      
+      // Process each color
+      for (const [colorName, counts] of Object.entries(materialCounts)) {
+        const { small, large } = counts as { small: number, large: number };
+        
+        // Map color name to database color (lowercase)
+        // Convert to one of the allowable color enum values
+        const colorMapping: Record<string, "red" | "blue" | "green" | "yellow" | "purple" | "pink" | "orange" | "white" | "black" | "silver" | "gold"> = {
+          'Red': 'red',
+          'Pink': 'pink',
+          'Purple': 'purple',
+          'Deep Purple': 'purple',
+          'Indigo': 'blue',
+          'Blue': 'blue',
+          'Light Blue': 'blue',
+          'Teal': 'green',
+          'Green': 'green',
+          'Light Green': 'green',
+          'Lime': 'green',
+          'Yellow': 'yellow',
+          'Amber': 'yellow',
+          'Orange': 'orange',
+          'Deep Orange': 'orange',
+          'Brown': 'black',
+          'white': 'white',
+          'black': 'black',
+          'silver': 'silver',
+          'gold': 'gold'
+        };
+        
+        // Default to red if the color name can't be mapped
+        const dbColor = colorMapping[colorName] || 'red';
+        
+        // Find matching inventory items
+        const smallItems = allInventory.filter(item => 
+          item.color === dbColor && item.size === '11inch'
+        );
+        
+        const largeItems = allInventory.filter(item => 
+          item.color === dbColor && item.size === '16inch'
+        );
+        
+        // Update inventory or create new items if needed
+        if (smallItems.length > 0) {
+          // Add to existing inventory
+          await storage.updateInventoryItem(smallItems[0].id, {
+            quantity: smallItems[0].quantity + small
+          });
+        } else if (small > 0) {
+          // Create new inventory item
+          await storage.createInventoryItem({
+            color: dbColor,
+            size: '11inch',
+            quantity: small,
+            threshold: 20
+          });
+        }
+        
+        if (largeItems.length > 0) {
+          // Add to existing inventory
+          await storage.updateInventoryItem(largeItems[0].id, {
+            quantity: largeItems[0].quantity + large
+          });
+        } else if (large > 0) {
+          // Create new inventory item
+          await storage.createInventoryItem({
+            color: dbColor,
+            size: '16inch',
+            quantity: large,
+            threshold: 20
+          });
+        }
+      }
+      
+      res.status(200).json({ 
+        message: 'Design materials saved to inventory',
+        designId 
+      });
+    } catch (error) {
+      console.error('Save to inventory error:', error);
+      res.status(500).json({ message: 'Failed to save materials to inventory' });
     }
   });
 

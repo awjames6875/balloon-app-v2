@@ -1,7 +1,17 @@
-import { colorEnum, balloonSizeEnum } from '@shared/schema';
+import { colorEnum, balloonSizeEnum, userRoleEnum } from '@shared/schema';
 
 export type ColorType = typeof colorEnum.enumValues[number];
 export type BalloonSizeType = typeof balloonSizeEnum.enumValues[number];
+export type UserRoleType = typeof userRoleEnum.enumValues[number];
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  role: UserRoleType;
+  createdAt: string;
+}
 
 // Balloon template type
 export interface BalloonClusterTemplate {

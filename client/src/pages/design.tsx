@@ -36,6 +36,8 @@ const Design = () => {
   const { activeDesign, setActiveDesign } = useDesign();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [isSavingToInventory, setIsSavingToInventory] = useState(false);
+  const [isGeneratingForm, setIsGeneratingForm] = useState(false);
   
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery({
@@ -185,6 +187,57 @@ const Design = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+  
+  // Function to save balloon requirements to inventory
+  
+  const handleSaveToInventory = async () => {
+    try {
+      if (!activeDesign) {
+        toast({
+          title: 'No active design',
+          description: 'Please save the design first before adding to inventory',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setIsSavingToInventory(true);
+      
+      // Format data for API
+      const materialCounts: Record<string, { small: number, large: number }> = {};
+      
+      Object.entries(balloonCounts.colorCounts).forEach(([colorName, counts]) => {
+        materialCounts[colorName] = {
+          small: counts.small,
+          large: counts.large
+        };
+      });
+      
+      // Call the API to save to inventory
+      const response = await apiRequest(
+        'POST', 
+        `/api/designs/${activeDesign.id}/save-to-inventory`,
+        { materialCounts }
+      );
+      
+      // Refresh inventory data
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      
+      toast({
+        title: 'Saved to inventory',
+        description: 'The balloon requirements have been added to your inventory',
+      });
+    } catch (error) {
+      console.error('Save to inventory error:', error);
+      toast({
+        title: 'Save to inventory failed',
+        description: 'There was an error updating the inventory',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingToInventory(false);
     }
   };
 
@@ -395,11 +448,24 @@ const Design = () => {
                 
                 {/* Action Buttons */}
                 <div className="flex justify-center gap-4 mt-4">
-                  <button className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium">
+                  <button 
+                    className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium"
+                  >
                     Generate Production Form
                   </button>
-                  <button className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium">
-                    Save to Inventory
+                  <button 
+                    className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium flex items-center justify-center"
+                    onClick={handleSaveToInventory}
+                    disabled={isSavingToInventory || !activeDesign}
+                  >
+                    {isSavingToInventory ? (
+                      <>
+                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      'Save to Inventory'
+                    )}
                   </button>
                 </div>
               </div>
