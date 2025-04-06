@@ -46,9 +46,8 @@ const DesignAssistant = ({ designId }: DesignAssistantProps) => {
     setIsProcessing(true);
     
     try {
-      // In a real application, this would send the command to the server for processing
-      // For now, we'll simulate a response after a short delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call the API to process the command
+      const result = await modifyDesign(designId, input);
       
       const aiMessage: Message = {
         sender: 'ai',
@@ -57,11 +56,16 @@ const DesignAssistant = ({ designId }: DesignAssistantProps) => {
       
       setMessages(prev => [...prev, aiMessage]);
       
-      // Update the design with modified values (this would normally come from the server)
-      if (activeDesign) {
-        // This is a simplified simulation of how the design might be updated
-        // In a real app, this data would come from the server after AI processing
-        const updatedDesign = {...activeDesign};
+      // Update the design with modified values from the server
+      if (activeDesign && result) {
+        const updatedDesign = {
+          ...activeDesign, 
+          colorAnalysis: result.colorAnalysis,
+          materialRequirements: result.materialRequirements,
+          totalBalloons: result.totalBalloons,
+          estimatedClusters: result.estimatedClusters,
+          productionTime: result.productionTime
+        };
         setActiveDesign(updatedDesign);
       }
       
