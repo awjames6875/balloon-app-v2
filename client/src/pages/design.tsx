@@ -38,6 +38,7 @@ const Design = () => {
   const { toast } = useToast();
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
   const [isGeneratingForm, setIsGeneratingForm] = useState(false);
+  const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery({
@@ -191,6 +192,111 @@ const Design = () => {
   };
   
   // Function to save balloon requirements to inventory
+  
+  // Function to generate production form
+  const handleGenerateProductionForm = async () => {
+    try {
+      if (!activeDesign) {
+        toast({
+          title: 'No active design',
+          description: 'Please save the design first before generating a production form',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setIsGeneratingForm(true);
+      
+      // Call the API to generate a production form
+      const response = await apiRequest(
+        'POST', 
+        `/api/designs/${activeDesign.id}/generate-production`,
+        { 
+          clientName,
+          eventDate,
+          eventType,
+          balloonCounts: balloonCounts.colorCounts
+        }
+      );
+      
+      toast({
+        title: 'Production Form Generated',
+        description: 'The production form has been successfully created',
+      });
+      
+      // Navigate to the production page
+      navigate('/production');
+      
+    } catch (error) {
+      console.error('Production form generation error:', error);
+      toast({
+        title: 'Generation failed',
+        description: 'There was an error generating the production form',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingForm(false);
+    }
+  };
+  
+  // Function to check inventory availability
+  const handleCheckInventory = async () => {
+    try {
+      if (!activeDesign) {
+        toast({
+          title: 'No active design',
+          description: 'Please save the design first before checking inventory',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setIsCheckingInventory(true);
+      
+      // Format data for API
+      const materialCounts: Record<string, { small: number, large: number }> = {};
+      
+      Object.entries(balloonCounts.colorCounts).forEach(([colorName, counts]) => {
+        materialCounts[colorName] = {
+          small: counts.small,
+          large: counts.large
+        };
+      });
+      
+      // Call the API to check inventory status
+      const response = await apiRequest(
+        'POST', 
+        `/api/designs/${activeDesign.id}/check-inventory`,
+        { materialCounts }
+      );
+      
+      if (response.available) {
+        toast({
+          title: 'Inventory Check Complete',
+          description: 'All required materials are available in stock',
+        });
+      } else {
+        toast({
+          title: 'Inventory Alert',
+          description: 'Some materials are low or out of stock. Check inventory details.',
+          variant: 'destructive',
+        });
+        
+        // Navigate to inventory page
+        navigate('/inventory');
+      }
+      
+    } catch (error) {
+      console.error('Inventory check error:', error);
+      toast({
+        title: 'Inventory check failed',
+        description: 'There was an error checking the inventory status',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCheckingInventory(false);
+    }
+  };
   
   const handleSaveToInventory = async () => {
     try {
@@ -449,9 +555,18 @@ const Design = () => {
                 {/* Action Buttons */}
                 <div className="flex justify-center gap-4 mt-4">
                   <button 
-                    className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium"
+                    className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
+                    onClick={handleGenerateProductionForm}
+                    disabled={isGeneratingForm || !activeDesign}
                   >
-                    Generate Production Form
+                    {isGeneratingForm ? (
+                      <>
+                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      'Generate Production Form'
+                    )}
                   </button>
                   <button 
                     className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium flex items-center justify-center"
