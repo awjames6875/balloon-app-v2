@@ -447,6 +447,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch inventory' });
     }
   });
+  
+  app.get('/api/inventory/check', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.query.designId as string);
+      
+      if (isNaN(designId)) {
+        return res.status(400).json({ message: 'Invalid design ID' });
+      }
+      
+      // Check if design exists
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Get all inventory
+      const inventory = await storage.getAllInventory();
+      
+      // Check if the design has material requirements
+      if (!design.materialRequirements) {
+        return res.status(200).json({ status: 'unavailable', message: 'No material requirements found for this design' });
+      }
+      
+      // Compare material requirements with inventory
+      let status = 'available';
+      const materialReqs = design.materialRequirements;
+      
+      for (const [color, requirements] of Object.entries(materialReqs as Record<string, any>)) {
+        const inventoryItems = inventory.filter(item => item.color.toLowerCase() === color.toLowerCase());
+        
+        if (inventoryItems.length === 0) {
+          status = 'unavailable';
+          break;
+        }
+        
+        // Check if small balloons are available
+        const smallBalloons = inventoryItems.find(item => item.size === '11inch');
+        if (!smallBalloons || smallBalloons.quantity < requirements.small) {
+          status = smallBalloons ? 'low' : 'unavailable';
+          if (status === 'unavailable') break;
+        }
+        
+        // Check if large balloons are available
+        const largeBalloons = inventoryItems.find(item => item.size === '16inch');
+        if (!largeBalloons || largeBalloons.quantity < requirements.large) {
+          status = largeBalloons ? 'low' : 'unavailable';
+          if (status === 'unavailable') break;
+        }
+      }
+      
+      res.json({ status, designId });
+    } catch (error) {
+      console.error('Check inventory error:', error);
+      res.status(500).json({ message: 'Failed to check inventory status' });
+    }
+  });
 
   app.post('/api/inventory', isAuthenticated, hasRole(['admin', 'inventory_manager']), async (req, res) => {
     try {

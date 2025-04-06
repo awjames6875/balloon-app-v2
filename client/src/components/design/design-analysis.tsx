@@ -3,7 +3,6 @@ import { useDesign } from "@/context/design-context";
 import { Zap, FileText, Package } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Design } from "@/types";
 import DesignAssistant from "./design-assistant";
 
 interface DesignAnalysisProps {
@@ -34,9 +33,17 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
     try {
       setGeneratingForm(true);
       
-      // This would normally call an API to generate a production form
-      // For now, we'll simulate a delay and success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Make a real API call to create a production record
+      const response = await apiRequest('POST', '/api/production', {
+        designId: activeDesign.id,
+        status: 'pending',
+        startDate: new Date().toISOString(),
+        notes: `Production for ${activeDesign.clientName || 'Untitled Design'}`
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create production record');
+      }
       
       toast({
         title: "Production Form Generated",
@@ -60,21 +67,29 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
     try {
       setCheckingInventory(true);
       
-      // This would normally call an API to check inventory status
-      // For now, we'll simulate a delay and success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Make real API call to check inventory availability based on material requirements
+      const response = await apiRequest('GET', `/api/inventory/check?designId=${activeDesign.id}`);
       
-      const statusMessages = {
+      if (!response.ok) {
+        throw new Error('Failed to check inventory');
+      }
+      
+      const inventoryCheckResult = await response.json();
+      const status = inventoryCheckResult.status || 'unavailable';
+      
+      const statusMessages: Record<string, string> = {
         available: "All materials are in stock and ready for production.",
         low: "Some materials are running low. Please check the inventory manager.",
         unavailable: "Some required materials are out of stock. Please restock before production."
       };
       
+      setInventoryStatus(status as 'available' | 'low' | 'unavailable');
+      
       toast({
         title: "Inventory Check Complete",
-        description: statusMessages[inventoryStatus],
-        variant: inventoryStatus === 'available' ? 'default' : 
-                 inventoryStatus === 'low' ? 'warning' : 'destructive',
+        description: statusMessages[status] || "Inventory status unknown.",
+        variant: (status === 'available' ? 'default' : 
+                 status === 'low' ? 'destructive' : 'destructive') as "default" | "destructive"
       });
     } catch (error) {
       console.error("Error checking inventory:", error);
