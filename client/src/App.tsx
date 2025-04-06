@@ -116,15 +116,19 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <DndProvider backend={HTML5Backend}>
         {!isAuthPage && !isDesignEditor && user ? (
-          <div className="flex h-screen overflow-hidden">
+          <div className="flex h-screen w-full overflow-hidden">
             <Sidebar />
-            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-secondary-50">
-              <Router />
+            <main className="flex-1 flex flex-col h-full overflow-y-auto bg-secondary-50 pb-16 md:pb-0">
+              <div className="container mx-auto p-4 max-w-[1200px]">
+                <Router />
+              </div>
             </main>
             <MobileNav />
           </div>
         ) : (
-          <Router />
+          <div className="h-screen w-full overflow-hidden">
+            <Router />
+          </div>
         )}
         <Toaster />
       </DndProvider>
