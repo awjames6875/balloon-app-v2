@@ -270,7 +270,9 @@ const Design = () => {
         { materialCounts }
       );
       
-      if (response.available) {
+      const result: { available: boolean; missingItems?: string[] } = await response.json();
+      
+      if (result && result.available) {
         toast({
           title: 'Inventory Check Complete',
           description: 'All required materials are available in stock',
@@ -327,6 +329,9 @@ const Design = () => {
         `/api/designs/${activeDesign.id}/save-to-inventory`,
         { materialCounts }
       );
+      
+      // Process response if needed
+      await response.json();
       
       // Refresh inventory data
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
@@ -556,16 +561,16 @@ const Design = () => {
                 <div className="flex justify-center gap-4 mt-4">
                   <button 
                     className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
-                    onClick={handleGenerateProductionForm}
-                    disabled={isGeneratingForm || !activeDesign}
+                    onClick={handleCheckInventory}
+                    disabled={isCheckingInventory || !activeDesign}
                   >
-                    {isGeneratingForm ? (
+                    {isCheckingInventory ? (
                       <>
                         <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        Generating...
+                        Checking...
                       </>
                     ) : (
-                      'Generate Production Form'
+                      'Check Inventory'
                     )}
                   </button>
                   <button 

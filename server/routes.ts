@@ -252,6 +252,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Error creating design' });
     }
   });
+  
+  // Save material requirements to inventory
+  app.post('/api/designs/:id/save-to-inventory', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      const { materialCounts } = req.body;
+      
+      if (isNaN(designId)) {
+        return res.status(400).json({ message: 'Invalid design ID' });
+      }
+      
+      // Check if design exists
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Check if user has permission to access this design
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Get all inventory
+      const inventory = await storage.getAllInventory();
+      
+      // Update inventory with the required materials
+      for (const [colorName, counts] of Object.entries(materialCounts)) {
+        const colorInventory = inventory.filter(item => 
+          item.color.toLowerCase() === colorName.toLowerCase()
+        );
+        
+        // @ts-ignore - TS doesn't know the structure of counts
+        const smallBalloons = counts.small || 0;
+        // @ts-ignore
+        const largeBalloons = counts.large || 0;
+        
+        // Add/update small balloons (11inch) inventory
+        let smallInventory = colorInventory.find(item => item.size === '11inch');
+        if (smallInventory) {
+          await storage.updateInventoryItem(smallInventory.id, {
+            quantity: smallInventory.quantity + smallBalloons
+          });
+        } else {
+          // Create a new inventory item
+          await storage.createInventoryItem({
+            color: colorName as any, // Type casting to match enum
+            size: '11inch',
+            quantity: smallBalloons,
+            status: 'in_stock'
+          });
+        }
+        
+        // Add/update large balloons (16inch) inventory
+        let largeInventory = colorInventory.find(item => item.size === '16inch');
+        if (largeInventory) {
+          await storage.updateInventoryItem(largeInventory.id, {
+            quantity: largeInventory.quantity + largeBalloons
+          });
+        } else {
+          // Create a new inventory item
+          await storage.createInventoryItem({
+            color: colorName as any, // Type casting to match enum
+            size: '16inch',
+            quantity: largeBalloons,
+            status: 'in_stock'
+          });
+        }
+      }
+      
+      res.json({ 
+        success: true,
+        message: 'Inventory successfully updated'
+      });
+      
+    } catch (error) {
+      console.error('Save to inventory error:', error);
+      res.status(500).json({ message: 'Failed to update inventory' });
+    }
+  });
+  
+  // Check inventory availability for a design
+  app.post('/api/designs/:id/check-inventory', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      const { materialCounts } = req.body;
+      
+      if (isNaN(designId)) {
+        return res.status(400).json({ message: 'Invalid design ID' });
+      }
+      
+      // Check if design exists
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Check if user has permission to access this design
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Get all inventory
+      const inventory = await storage.getAllInventory();
+      
+      // Check material requirements against inventory
+      const missingItems: string[] = [];
+      let isAvailable = true;
+      
+      for (const [colorName, counts] of Object.entries(materialCounts)) {
+        const colorInventory = inventory.filter(item => 
+          item.color.toLowerCase() === colorName.toLowerCase()
+        );
+        
+        // @ts-ignore - TS doesn't know the structure of counts
+        const smallBalloons = counts.small || 0;
+        // @ts-ignore
+        const largeBalloons = counts.large || 0;
+        
+        // Check small balloons (11inch)
+        const smallInventory = colorInventory.find(item => item.size === '11inch');
+        if (!smallInventory || smallInventory.quantity < smallBalloons) {
+          missingItems.push(`${colorName} (11inch)`);
+          isAvailable = false;
+        }
+        
+        // Check large balloons (16inch)
+        const largeInventory = colorInventory.find(item => item.size === '16inch');
+        if (!largeInventory || largeInventory.quantity < largeBalloons) {
+          missingItems.push(`${colorName} (16inch)`);
+          isAvailable = false;
+        }
+      }
+      
+      res.json({ 
+        available: isAvailable,
+        missingItems: missingItems.length > 0 ? missingItems : undefined
+      });
+      
+    } catch (error) {
+      console.error('Check inventory error:', error);
+      res.status(500).json({ message: 'Failed to check inventory' });
+    }
+  });
 
   app.get('/api/designs/:id', isAuthenticated, async (req, res) => {
     try {
