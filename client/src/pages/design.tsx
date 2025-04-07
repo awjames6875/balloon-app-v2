@@ -454,26 +454,26 @@ const Design = () => {
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-800">Canvas Designer</h2>
+                      <h2 className="text-lg font-medium text-gray-800">Design Canvas</h2>
                       <p className="text-sm text-gray-500">
                         Drag and drop balloon clusters onto the canvas
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
+                      <div className="flex flex-col gap-1">
                         <label className="text-sm text-gray-500">Balloon Color:</label>
-                        <select 
-                          className="border border-gray-300 rounded px-2 py-1 text-sm"
-                          value={selectedColor.value}
-                          onChange={(e) => {
-                            const selected = colorOptions.find(c => c.value === e.target.value);
-                            if (selected) setSelectedColor(selected);
-                          }}
-                        >
+                        <div className="flex flex-wrap gap-1 max-w-xs">
                           {colorOptions.map(color => (
-                            <option key={color.name} value={color.value}>{color.name}</option>
+                            <button
+                              key={color.name}
+                              className={`w-6 h-6 rounded-full transition-all shadow hover:scale-110 ${selectedColor.value === color.value ? 'border-2 border-black ring-2 ring-gray-200' : 'border border-gray-300'}`}
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                              aria-label={`Select ${color.name} color`}
+                              onClick={() => setSelectedColor(color)}
+                            />
                           ))}
-                        </select>
+                        </div>
                       </div>
                       <button 
                         className="flex items-center px-3 py-1 bg-[#5568FE] text-white rounded-md text-sm"
@@ -482,15 +482,31 @@ const Design = () => {
                         <PlusCircle className="h-4 w-4 mr-1" />
                         Add Cluster
                       </button>
-                      <button 
-                        className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm border border-gray-300"
+                      <label 
+                        className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm border border-gray-300 cursor-pointer"
                         onClick={() => {
-                          // This is where the image uploader will be hooked up
+                          const fileInput = document.getElementById('background-file-input');
+                          if (fileInput) {
+                            fileInput.click();
+                          }
                         }}
                       >
                         <Image className="h-4 w-4 mr-1" />
                         Background
-                      </button>
+                        <input 
+                          id="background-file-input" 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const file = e.target.files[0];
+                              const url = URL.createObjectURL(file);
+                              setBackgroundImage(url);
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
                   </div>
                   <div className="relative bg-[#F8F9FA] border-2 border-dashed border-gray-300 rounded-lg h-[500px] overflow-hidden">

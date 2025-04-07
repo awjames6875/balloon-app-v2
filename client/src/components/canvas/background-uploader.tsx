@@ -3,11 +3,12 @@ import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface BackgroundUploaderProps {
-  onBackgroundChange: (url: string | null) => void;
-  currentBackground: string | null;
+  onUpload: (url: string | null) => void;
+  buttonText?: string;
+  currentBackground?: string | null;
 }
 
-const BackgroundUploader = ({ onBackgroundChange, currentBackground }: BackgroundUploaderProps) => {
+const BackgroundUploader = ({ onUpload, buttonText = "Upload Background", currentBackground }: BackgroundUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -41,14 +42,14 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
       
       // Create a URL for the file
       const backgroundUrl = URL.createObjectURL(file);
-      onBackgroundChange(backgroundUrl);
+      onUpload(backgroundUrl);
       
       setIsUploading(false);
     }
   };
 
   const handleRemoveBackground = () => {
-    onBackgroundChange(null);
+    onUpload(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -97,7 +98,7 @@ const BackgroundUploader = ({ onBackgroundChange, currentBackground }: Backgroun
           ) : (
             <span className="flex items-center justify-center">
               <Upload className="w-4 h-4 mr-2" />
-              Upload Background
+              {buttonText}
             </span>
           )}
         </button>
