@@ -1209,7 +1209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create order for this design
-      const { notes, supplierName, priority } = req.body;
+      const { notes, supplierName, priority, expectedDeliveryDate, items } = req.body;
       
       const orderData = {
         userId: req.session.userId!,
@@ -1217,13 +1217,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
         notes: notes || `Order for design: ${design.clientName}`,
         supplierName: supplierName || 'Default Supplier',
-        priority: priority || 'normal'
+        priority: priority || 'normal',
+        expectedDeliveryDate: expectedDeliveryDate || new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) // Default to 1 week from now
       };
       
       const order = await storage.createOrder(orderData);
       
-      // If the design has material requirements, add them as order items
-      if (design.materialRequirements && Object.keys(design.materialRequirements).length > 0) {
+      // If custom items are sent, use them instead of material requirements
+      if (items && Array.isArray(items) && items.length > 0) {
+        console.log("Using custom items for order:", items);
+        
+        for (const item of items) {
+          await storage.addOrderItem({
+            orderId: order.id,
+            inventoryType: 'balloon',
+            color: item.color.toLowerCase() as any, // Cast to colorEnum type
+            size: item.size,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75), // Use provided unit price or default
+            subtotal: item.quantity * (item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75)) // Calculate subtotal
+          });
+        }
+      }
+      // Otherwise, if the design has material requirements, add them as order items
+      else if (design.materialRequirements && Object.keys(design.materialRequirements).length > 0) {
+        console.log("Using material requirements for order:", design.materialRequirements);
+        
         for (const [color, requirements] of Object.entries(design.materialRequirements)) {
           // Add small balloons as an order item
           if (requirements.small > 0) {

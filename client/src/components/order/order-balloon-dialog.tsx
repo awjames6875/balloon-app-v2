@@ -80,11 +80,20 @@ export function OrderBalloonDialog({
   const createOrderMutation = useMutation({
     mutationFn: async () => {
       // 1. Create the order
+      console.log("Sending order data:", {
+        supplierName: orderForm.supplierName,
+        expectedDeliveryDate: orderForm.expectedDeliveryDate,
+        priority: orderForm.priority,
+        notes: orderForm.notes || `Order for design #${designId}`,
+        items: orderForm.items
+      });
+      
       const response = await apiRequest('/api/designs/' + designId + '/order', 'POST', {
         supplierName: orderForm.supplierName,
         expectedDeliveryDate: orderForm.expectedDeliveryDate,
         priority: orderForm.priority,
-        notes: orderForm.notes || `Order for design #${designId}`
+        notes: orderForm.notes || `Order for design #${designId}`,
+        items: orderForm.items // Pass the items to order
       });
       
       return response;
@@ -105,7 +114,8 @@ export function OrderBalloonDialog({
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Order placement error:", error);
       toast({
         title: "Failed to place order",
         description: "There was an error creating your order. Please try again.",
