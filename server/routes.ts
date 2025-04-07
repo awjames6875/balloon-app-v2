@@ -966,8 +966,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add a design's material requirements to inventory
-  app.post('/api/designs/:id/save-to-inventory', isAuthenticated, hasRole(['admin', 'inventory_manager']), async (req, res) => {
+  // Commented out duplicate route to avoid conflict with the first implementation
+  /* app.post('/api/designs/:id/save-to-inventory', isAuthenticated, hasRole(['admin', 'inventory_manager']), async (req, res) => {
     try {
       const designId = parseInt(req.params.id);
       
@@ -1068,7 +1068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Save to inventory error:', error);
       res.status(500).json({ message: 'Failed to save materials to inventory' });
     }
-  });
+  }); */
 
   // Serve uploaded images
   app.use('/uploads', (req, res, next) => {
