@@ -15,6 +15,7 @@ import DesignUploader from '@/components/design/design-uploader';
 import DesignAnalysis from '@/components/design/design-analysis';
 import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
 import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 // Color palette for the balloon clusters
 const colorOptions = [
@@ -462,18 +463,24 @@ const Design = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col gap-1">
                         <label className="text-sm text-gray-500">Balloon Color:</label>
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {colorOptions.map(color => (
-                            <button
-                              key={color.name}
-                              className={`w-6 h-6 rounded-full transition-all shadow hover:scale-110 ${selectedColor.value === color.value ? 'border-2 border-black ring-2 ring-gray-200' : 'border border-gray-300'}`}
-                              style={{ backgroundColor: color.value }}
-                              title={color.name}
-                              aria-label={`Select ${color.name} color`}
-                              onClick={() => setSelectedColor(color)}
-                            />
-                          ))}
-                        </div>
+                        <Select value={selectedColor.name} onValueChange={(value) => {
+                          const newColor = colorOptions.find(c => c.name === value);
+                          if (newColor) setSelectedColor(newColor);
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {colorOptions.map(color => (
+                              <SelectItem key={color.name} value={color.name}>
+                                <div className="flex items-center">
+                                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.value }} />
+                                  <span className="ml-2">{color.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <button 
                         className="flex items-center px-3 py-1 bg-[#5568FE] text-white rounded-md text-sm"
