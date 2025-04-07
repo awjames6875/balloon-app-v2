@@ -45,15 +45,17 @@ export function CheckInventoryButton({
 
       // Check if we have a design ID to check inventory against
       if (designId) {
-        result = await apiRequest(`/api/inventory/check?designId=${designId}`, {
-          method: "GET"
-        });
+        result = await apiRequest(
+          "GET",
+          `/api/inventory/check?designId=${designId}`
+        );
       } else {
         // Otherwise check general inventory with the material requirements
-        result = await apiRequest("/api/inventory/check-availability", {
-          method: "POST",
-          data: { balloonCounts: materialRequirements },
-        });
+        result = await apiRequest(
+          "POST",
+          "/api/inventory/check-availability",
+          { balloonCounts: materialRequirements }
+        );
       }
 
       setInventoryResult(result);

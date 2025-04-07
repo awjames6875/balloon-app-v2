@@ -19,8 +19,8 @@ import { analyzeDesignImage } from "./ai";
 import { pool } from "./db";
 import connectPg from "connect-pg-simple";
 
-// Import modular route files
-import orderRoutes from './routes/order.routes';
+// Import the route registration function
+import { registerRoutes as registerModularRoutes } from './routes/index';
 
 // Import session types
 import "./types";
@@ -1298,8 +1298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Register the modular order routes
-  app.use('/api/orders', orderRoutes);
+  // Register all modular routes
+  registerModularRoutes(app);
 
   // Serve uploaded images
   app.use('/uploads', (req, res, next) => {

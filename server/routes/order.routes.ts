@@ -323,10 +323,9 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       userId: req.userId,
       notes: `Kid-friendly order: ${quantity} ${color} ${size} balloons`,
       supplierName: 'Store Inventory',
-      status: 'pending',
-      priority: 'medium',
+      priority: 'normal',
       totalQuantity: quantity,
-      totalCost: 0, // Will be calculated after adding the item
+      totalCost: 0 // Will be calculated after adding the item
     });
     
     // Set pricing based on balloon size (simplified for kids)

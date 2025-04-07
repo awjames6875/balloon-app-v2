@@ -93,10 +93,11 @@ export function BalloonOrderDialog({
       };
 
       // Send order to API
-      const response = await apiRequest("/api/orders/balloon", {
-        method: "POST",
-        data: orderData,
-      });
+      const response = await apiRequest(
+        "POST",
+        "/api/orders/balloon", 
+        orderData
+      );
 
       // Show success message
       toast({
