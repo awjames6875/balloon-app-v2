@@ -1,4 +1,3 @@
-
 import { useState, useRef, ChangeEvent } from 'react';
 import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -8,95 +7,111 @@ interface BackgroundUploaderProps {
   currentBackground: string | null;
 }
 
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
 const BackgroundUploader = ({ onBackgroundChange, currentBackground }: BackgroundUploaderProps) => {
-  const [preview, setPreview] = useState<string | null>(currentBackground);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type as any)) {
-      return "Please upload JPEG, PNG, GIF, or WebP files only.";
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return "Please upload an image under 5MB.";
-    }
-    return null;
-  };
-
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const error = validateFile(file);
-    if (error) {
-      toast({
-        title: "Invalid file",
-        description: error,
-        variant: "destructive",
-      });
-      return;
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload a JPEG, PNG, GIF, or WebP image.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please upload an image smaller than 5MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setIsUploading(true);
+      
+      // Create a URL for the file
+      const backgroundUrl = URL.createObjectURL(file);
+      onBackgroundChange(backgroundUrl);
+      
+      setIsUploading(false);
     }
-
-    const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
-    onBackgroundChange(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
   };
 
   const handleRemoveBackground = () => {
-    setPreview(null);
     onBackgroundChange(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
   return (
     <div>
-      {preview ? (
-        <div className="mb-3">
-          <div className="relative aspect-video w-full rounded-md overflow-hidden border border-[#e0e0e0]">
+      {currentBackground ? (
+        <div className="mt-2">
+          <div className="aspect-video bg-gray-100 rounded-md overflow-hidden relative">
             <img 
-              src={preview} 
-              alt="Background preview" 
-              className="w-full h-full object-cover" 
+              src={currentBackground} 
+              alt="Background" 
+              className="w-full h-full object-contain"
             />
-            <button 
+            <button
+              type="button"
               onClick={handleRemoveBackground}
-              className="absolute top-2 right-2 bg-white bg-opacity-70 p-1 rounded-full shadow-sm hover:bg-opacity-100"
+              className="absolute top-2 right-2 p-1 bg-white rounded-full shadow hover:bg-gray-100"
             >
-              <X className="h-4 w-4 text-[#333333]" />
+              <X className="w-4 h-4 text-gray-600" />
             </button>
           </div>
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-2 w-full flex items-center justify-center p-2 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
-          >
-            <Upload className="h-4 w-4 mr-1.5" />
-            Replace Background
-          </button>
         </div>
       ) : (
-        <button 
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center justify-center p-2.5 bg-[#f0f0f0] hover:bg-[#e5e5e5] text-[#333333] rounded-md text-sm font-medium"
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          className="w-full py-2 px-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-600 hover:border-blue-400 hover:text-blue-500 transition-colors"
+          disabled={isUploading}
         >
-          <Upload className="h-4 w-4 mr-1.5" />
-          Upload Background Image
+          {isUploading ? (
+            <span className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Uploading...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center">
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Background
+            </span>
+          )}
         </button>
       )}
-      
-      <input 
-        type="file" 
-        ref={fileInputRef}
-        className="hidden" 
-        accept={ALLOWED_TYPES.join(',')}
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        className="hidden"
         onChange={handleFileChange}
+        ref={fileInputRef}
       />
+      <p className="text-xs text-gray-500 mt-1">
+        Recommended: 1280×720px, JPEG, PNG, or WebP
+      </p>
     </div>
   );
 };

@@ -184,110 +184,78 @@ const DesignUploader = ({ onAnalysisStart }: DesignUploaderProps) => {
             <div className="mt-4">
               <p className="text-sm font-medium text-secondary-800 mb-2">Preview:</p>
               <div className="aspect-w-4 aspect-h-3 bg-secondary-100 rounded-lg overflow-hidden relative">
-                <img 
-                  className="object-cover w-full h-full" 
-                  src={preview} 
-                  alt="Design preview" 
-                />
-              </div>
-              <div className="flex justify-between mt-2">
+                <img src={preview} alt="Design preview" className="object-contain w-full h-full" />
                 <button 
-                  className="text-sm text-error-600 hover:text-error-500 flex items-center"
                   onClick={handleRemoveFile}
+                  className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-sm hover:bg-secondary-100"
                 >
-                  <X className="h-4 w-4 mr-1" />
-                  Remove
+                  <X className="h-4 w-4 text-secondary-600" />
                 </button>
-                <span className="text-xs text-secondary-500">
-                  {file?.name} ({(file?.size || 0) / 1024 > 1024 
-                    ? `${((file?.size || 0) / 1024 / 1024).toFixed(2)}MB` 
-                    : `${((file?.size || 0) / 1024).toFixed(2)}KB`})
-                </span>
               </div>
             </div>
           )}
           
-          {/* Submit Button */}
-          <button 
-            className="w-full mt-4 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleStartAnalysis}
-            disabled={!file || uploading}
-          >
-            {uploading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Start AI Analysis
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-      
-      {/* Project Specifications */}
-      <div className="bg-white rounded-lg shadow-sm border border-secondary-200 overflow-hidden mt-6">
-        <div className="p-4 border-b border-secondary-200">
-          <h2 className="font-semibold text-secondary-800">Project Specifications</h2>
-          <p className="text-sm text-secondary-500 mt-1">Enter project details</p>
-        </div>
-        
-        <div className="p-4">
-          <form onSubmit={handleSaveSpecifications}>
-            {/* Client Details */}
-            <div className="mb-4">
-              <label htmlFor="clientName" className="block text-sm font-medium text-secondary-700 mb-1">Client Name</label>
+          {/* Form */}
+          <form className="mt-4 space-y-4" onSubmit={handleSaveSpecifications}>
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1">Client Name</label>
               <input 
                 type="text" 
-                id="clientName" 
-                className="w-full rounded-md border border-secondary-300 px-3 py-2 text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
-                placeholder="Enter client name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
+                className="w-full p-2 border border-secondary-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Enter client name"
               />
             </div>
-            
-            <div className="mb-4">
-              <label htmlFor="eventDate" className="block text-sm font-medium text-secondary-700 mb-1">Event Date</label>
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1">Event Date</label>
               <input 
                 type="date" 
-                id="eventDate" 
-                className="w-full rounded-md border border-secondary-300 px-3 py-2 text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
+                className="w-full p-2 border border-secondary-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
-            
-            <div className="mb-4">
-              <label htmlFor="dimensions" className="block text-sm font-medium text-secondary-700 mb-1">Dimensions</label>
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1">Dimensions</label>
               <input 
                 type="text" 
-                id="dimensions" 
-                className="w-full rounded-md border border-secondary-300 px-3 py-2 text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
-                placeholder="e.g. 6ft x 8ft"
                 value={dimensions}
                 onChange={(e) => setDimensions(e.target.value)}
+                className="w-full p-2 border border-secondary-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="e.g. 10ft x 8ft"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-secondary-700 mb-1">Notes</label>
+              <textarea 
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full p-2 border border-secondary-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Additional information about this design"
+                rows={3}
               />
             </div>
             
-            <div className="mb-4">
-              <label htmlFor="notes" className="block text-sm font-medium text-secondary-700 mb-1">Special Instructions</label>
-              <textarea 
-                id="notes" 
-                rows={3} 
-                className="w-full rounded-md border border-secondary-300 px-3 py-2 text-secondary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500" 
-                placeholder="Add any special instructions here"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              ></textarea>
-            </div>
-
+            <button 
+              type="button" 
+              className={`w-full py-2 px-4 ${preview ? 'bg-primary-600 hover:bg-primary-700' : 'bg-secondary-300 cursor-not-allowed'} text-white font-medium rounded-md transition mt-4`}
+              onClick={handleStartAnalysis}
+              disabled={!preview || uploading}
+            >
+              {uploading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Analyzing...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload & Analyze Design
+                </div>
+              )}
+            </button>
+            
             <button 
               type="submit" 
               className="w-full py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition"

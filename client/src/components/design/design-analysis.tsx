@@ -257,9 +257,6 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
             </div>
           </div>
           
-          {/* Interactive Design Assistant */}
-          <DesignAssistant designId={activeDesign?.id} />
-          
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 mt-6">
             <button 

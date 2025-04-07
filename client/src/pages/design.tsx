@@ -3,7 +3,7 @@ import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Share, Upload, PlusCircle } from "lucide-react";
+import { Save, Share, Upload, PlusCircle, Image } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import DesignCanvas from '@/components/canvas/design-canvas';
@@ -11,6 +11,9 @@ import MaterialRequirementsPanel from '@/components/canvas/material-requirements
 import BackgroundUploader from '@/components/canvas/background-uploader';
 import { useToast } from '@/hooks/use-toast';
 import { DesignElement } from '@/types';
+import DesignUploader from '@/components/design/design-uploader';
+import DesignAnalysis from '@/components/design/design-analysis';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Color palette for the balloon clusters
 const colorOptions = [
@@ -39,6 +42,9 @@ const Design = () => {
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
   const [isGeneratingForm, setIsGeneratingForm] = useState(false);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  
+  // For Design Uploader
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery({
@@ -389,6 +395,11 @@ const Design = () => {
 
   const balloonCounts = calculateBalloonCounts();
   
+  // Handler for when analysis starts
+  const handleAnalysisStart = () => {
+    setIsAnalyzing(true);
+  };
+  
   return (
     <div className="bg-[#f5f5f7] min-h-screen">
       {/* Header Bar */}
@@ -420,193 +431,219 @@ const Design = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <DndProvider backend={HTML5Backend}>
-        <div className="flex h-[calc(100vh-57px)]">
-          {/* Left Sidebar - Templates */}
-          <div className="w-[300px] bg-white border-r border-[#e0e0e0] flex flex-col h-full">
-            <div className="p-4 border-b border-[#e0e0e0]">
-              <h3 className="font-bold text-[#333333]">Balloon Clusters</h3>
-              <p className="text-xs text-[#777777] mt-1">Standard: 11 balloons (11"×11"), 2 balloons (16")</p>
-            </div>
-            
-            <div className="p-4">
-              <h4 className="font-bold text-[#333333] mb-3">Select Color</h4>
-              <div className="grid grid-cols-4 gap-3 mb-5">
-                {colorOptions.slice(0, 16).map((color, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`w-12 h-12 rounded-full cursor-pointer ${selectedColor.value === color.value ? 'ring-2 ring-offset-2 ring-[#5568FE]' : ''}`}
-                    style={{ backgroundColor: color.value }}
-                    onClick={() => setSelectedColor(color)}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-              
-              <button 
-                onClick={addClusterToCanvas}
-                className="w-full py-2.5 mt-2 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md text-sm font-medium"
-              >
-                <div className="flex items-center justify-center">
-                  <PlusCircle className="h-4 w-4 mr-1.5" />
-                  Add Cluster to Canvas
-                </div>
-              </button>
-            </div>
-            
-            <div className="border-t border-[#e0e0e0] mt-4 p-4">
-              <h4 className="font-bold text-[#333333] mb-3">Background</h4>
-              <BackgroundUploader 
-                onBackgroundChange={setBackgroundImage} 
-                currentBackground={backgroundImage}
-              />
-            </div>
-          </div>
+      {/* Design Mode Tabs */}
+      <div className="bg-white border-b border-[#e0e0e0] px-6 py-2">
+        <Tabs defaultValue="canvas" className="w-full">
+          <TabsList className="grid w-[400px] grid-cols-2">
+            <TabsTrigger value="canvas" className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Canvas Designer
+            </TabsTrigger>
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Design Image
+            </TabsTrigger>
+          </TabsList>
           
-          {/* Canvas Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex-1 p-4 overflow-auto">
-              <div className="bg-white p-4 rounded-md border border-[#e0e0e0] h-[440px] overflow-auto">
-                <DesignCanvas 
-                  backgroundImage={backgroundImage} 
-                  elements={elements} 
-                  onElementsChange={handleElementsChange} 
-                />
-              </div>
-              
-              {/* Material Requirements Table */}
-              <div className="bg-white mt-4 p-4 rounded-md border border-[#e0e0e0]">
-                <h3 className="font-bold text-[#333333] mb-3">Balloon Count</h3>
-                
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr>
-                        <th className="p-2 text-left bg-[#f5f5f7] border border-[#e0e0e0]">Color</th>
-                        <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">11-inch</th>
-                        <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">16-inch</th>
-                        <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Total</th>
-                        <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Clusters</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(balloonCounts.colorCounts).map(([colorName, counts], idx) => (
-                        <tr key={idx}>
-                          <td className="p-2 border border-[#e0e0e0] flex items-center">
-                            <div className="w-5 h-5 rounded-full mr-2" style={{ backgroundColor: colorOptions.find(c => c.name === colorName)?.value || '#ccc' }}></div>
-                            {colorName}
-                          </td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{counts.small}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{counts.large}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{counts.total}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{counts.clusters}</td>
-                        </tr>
+          {/* Canvas Design Tab */}
+          <TabsContent value="canvas">
+            <DndProvider backend={HTML5Backend}>
+              <div className="flex h-[calc(100vh-120px)]">
+                {/* Left Sidebar - Templates */}
+                <div className="w-[300px] bg-white border-r border-[#e0e0e0] flex flex-col h-full">
+                  <div className="p-4 border-b border-[#e0e0e0]">
+                    <h3 className="font-bold text-[#333333]">Balloon Clusters</h3>
+                    <p className="text-xs text-[#777777] mt-1">Standard: 11 balloons (11"×11"), 2 balloons (16")</p>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h4 className="font-bold text-[#333333] mb-3">Select Color</h4>
+                    <div className="grid grid-cols-4 gap-3 mb-5">
+                      {colorOptions.slice(0, 16).map((color, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`w-12 h-12 rounded-full cursor-pointer ${selectedColor.value === color.value ? 'ring-2 ring-offset-2 ring-[#5568FE]' : ''}`}
+                          style={{ backgroundColor: color.value }}
+                          onClick={() => setSelectedColor(color)}
+                          title={color.name}
+                        />
                       ))}
-                      {elements.length > 0 && (
-                        <tr className="bg-[#f5f5f7] font-bold">
-                          <td className="p-2 border border-[#e0e0e0]">TOTAL</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalSmall}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalLarge}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalBalloons}</td>
-                          <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalClusters}</td>
-                        </tr>
-                      )}
-                      {elements.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="p-4 text-center text-gray-500">
-                            No balloon clusters added yet. Use the panel on the left to add clusters.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* Project Information */}
-                <h3 className="font-bold text-[#333333] mt-6 mb-3">Project Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="mb-3">
-                    <label className="block text-sm text-[#777777] mb-1">Client Name</label>
-                    <input
-                      type="text"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                      placeholder="Enter client name"
-                    />
+                    </div>
+                    
+                    <button 
+                      onClick={addClusterToCanvas}
+                      className="w-full py-2.5 mt-2 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md text-sm font-medium"
+                    >
+                      <div className="flex items-center justify-center">
+                        <PlusCircle className="h-4 w-4 mr-1.5" />
+                        Add Cluster to Canvas
+                      </div>
+                    </button>
                   </div>
-                  <div className="mb-3">
-                    <label className="block text-sm text-[#777777] mb-1">Event Date</label>
-                    <input
-                      type="date"
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="block text-sm text-[#777777] mb-1">Event Type</label>
-                    <input
-                      type="text"
-                      value={eventType}
-                      onChange={(e) => setEventType(e.target.value)}
-                      className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                      placeholder="Birthday, Wedding, etc."
+                  
+                  <div className="border-t border-[#e0e0e0] mt-4 p-4">
+                    <h4 className="font-bold text-[#333333] mb-3">Background</h4>
+                    <BackgroundUploader 
+                      onBackgroundChange={setBackgroundImage} 
+                      currentBackground={backgroundImage}
                     />
                   </div>
                 </div>
                 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap justify-center gap-4 mt-4">
-                  <button 
-                    className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
-                    onClick={handleCheckInventory}
-                    disabled={isCheckingInventory || !activeDesign}
-                  >
-                    {isCheckingInventory ? (
-                      <>
-                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        Checking...
-                      </>
-                    ) : (
-                      'Check Inventory'
-                    )}
-                  </button>
-                  <button 
-                    className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium flex items-center justify-center"
-                    onClick={handleSaveToInventory}
-                    disabled={isSavingToInventory || !activeDesign}
-                  >
-                    {isSavingToInventory ? (
-                      <>
-                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
-                        Saving...
-                      </>
-                    ) : (
-                      'Save to Inventory'
-                    )}
-                  </button>
-                  <button 
-                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium flex items-center justify-center"
-                    onClick={handleGenerateProductionForm}
-                    disabled={isGeneratingForm || !activeDesign}
-                  >
-                    {isGeneratingForm ? (
-                      <>
-                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      'Generate Production Form'
-                    )}
-                  </button>
+                {/* Canvas Area */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="flex-1 p-4 overflow-auto">
+                    <div className="bg-white p-4 rounded-md border border-[#e0e0e0] h-[440px] overflow-auto">
+                      <DesignCanvas 
+                        backgroundImage={backgroundImage} 
+                        elements={elements} 
+                        onElementsChange={handleElementsChange} 
+                      />
+                    </div>
+                    
+                    {/* Material Requirements Table */}
+                    <div className="bg-white mt-4 p-4 rounded-md border border-[#e0e0e0]">
+                      <h3 className="font-bold text-[#333333] mb-3">Balloon Count</h3>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="p-2 text-left bg-[#f5f5f7] border border-[#e0e0e0]">Color</th>
+                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">11-inch</th>
+                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">16-inch</th>
+                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Total</th>
+                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Clusters</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(balloonCounts.colorCounts).map(([colorName, counts], idx) => (
+                              <tr key={idx}>
+                                <td className="p-2 border border-[#e0e0e0] flex items-center">
+                                  <div className="w-5 h-5 rounded-full mr-2" style={{ backgroundColor: colorOptions.find(c => c.name === colorName)?.value || '#ccc' }}></div>
+                                  {colorName}
+                                </td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.small}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.large}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.total}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.clusters}</td>
+                              </tr>
+                            ))}
+                            {elements.length > 0 && (
+                              <tr className="bg-[#f5f5f7] font-bold">
+                                <td className="p-2 border border-[#e0e0e0]">TOTAL</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalSmall}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalLarge}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalBalloons}</td>
+                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalClusters}</td>
+                              </tr>
+                            )}
+                            {elements.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="p-4 text-center text-gray-500">
+                                  No balloon clusters added yet. Use the panel on the left to add clusters.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Project Information */}
+                      <h3 className="font-bold text-[#333333] mt-6 mb-3">Project Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="mb-3">
+                          <label className="block text-sm text-[#777777] mb-1">Client Name</label>
+                          <input
+                            type="text"
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                            placeholder="Enter client name"
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="block text-sm text-[#777777] mb-1">Event Date</label>
+                          <input
+                            type="date"
+                            value={eventDate}
+                            onChange={(e) => setEventDate(e.target.value)}
+                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="block text-sm text-[#777777] mb-1">Event Type</label>
+                          <input
+                            type="text"
+                            value={eventType}
+                            onChange={(e) => setEventType(e.target.value)}
+                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                            placeholder="Birthday, Wedding, etc."
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap justify-center gap-4 mt-4">
+                        <button 
+                          className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
+                          onClick={handleCheckInventory}
+                          disabled={isCheckingInventory || !activeDesign}
+                        >
+                          {isCheckingInventory ? (
+                            <>
+                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                              Checking...
+                            </>
+                          ) : (
+                            'Check Inventory'
+                          )}
+                        </button>
+                        <button 
+                          className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium flex items-center justify-center"
+                          onClick={handleSaveToInventory}
+                          disabled={isSavingToInventory || !activeDesign}
+                        >
+                          {isSavingToInventory ? (
+                            <>
+                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            'Save to Inventory'
+                          )}
+                        </button>
+                        <button 
+                          className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium flex items-center justify-center"
+                          onClick={handleGenerateProductionForm}
+                          disabled={isGeneratingForm || !activeDesign}
+                        >
+                          {isGeneratingForm ? (
+                            <>
+                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                              Generating...
+                            </>
+                          ) : (
+                            'Generate Production Form'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </DndProvider>
+          </TabsContent>
+          
+          {/* Upload Design Tab */}
+          <TabsContent value="upload">
+            <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <DesignUploader onAnalysisStart={handleAnalysisStart} />
+              <DesignAnalysis loading={isAnalyzing} />
             </div>
-          </div>
-        </div>
-      </DndProvider>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
