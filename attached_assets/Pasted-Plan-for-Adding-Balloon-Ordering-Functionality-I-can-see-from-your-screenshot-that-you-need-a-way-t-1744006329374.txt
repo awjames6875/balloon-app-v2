@@ -1,0 +1,61 @@
+Plan for Adding Balloon Ordering Functionality
+I can see from your screenshot that you need a way to order balloons directly from the inventory check dialog. Here's a plan for implementing this feature without writing code yet:
+
+1. Update the "Order More Balloons" Button
+Currently, the "Order More Balloons" button in the dialog just redirects users to the inventory page. Instead, we should:
+
+Change it to "Order Missing Balloons" for clarity
+Make it open a new order form dialog instead of just navigating away
+2. Create a New Order Form Dialog
+When clicked, the "Order Missing Balloons" button would open a new dialog with:
+
+Header Section:
+Clear title: "Order Balloons for Your Design"
+Subtitle explaining what's happening: "We'll add these balloons to your next order"
+Order Summary Table:
+Show only the rows where balloons are needed (red rows from previous screen)
+Include columns for:
+Color (with colored dots)
+Size (11" or 16")
+Current Stock
+Amount Needed for Design
+Quantity to Order (pre-filled with the difference)
+Subtotal Price (based on quantity × unit price)
+Order Form Fields:
+Supplier dropdown (if there are multiple)
+Expected delivery date picker
+Priority level (Normal/Rush)
+Notes field for special instructions
+Total Section:
+Show the total quantity being ordered
+Show the estimated total cost
+Include any applicable shipping/rush fees
+Action Buttons:
+"Cancel" button to close the dialog
+"Save for Later" to save the order without submitting
+"Place Order" button to submit the order
+3. Order Confirmation Screen
+After clicking "Place Order":
+
+Show a confirmation message with the order number
+Provide expected delivery timeline
+Option to view all pending orders
+Option to return to the design
+4. Inventory Management Integration
+The order would automatically update a "Pending Orders" section in the inventory management page
+When balloons arrive, users can mark them as received, which automatically updates inventory quantities
+5. Kid-Friendly Elements
+To keep it understandable for a 5th grader:
+
+Include a simple explanation at the top: "You need more balloons for your design. Let's order them!"
+Use the same visual indicators (❌, ⚠️, ✅) for consistency
+Add visual aids like a delivery truck icon for the shipping section
+Keep language simple and direct
+6. Navigation Flow
+User creates design → Saves design → Checks inventory
+System shows comparison with missing items highlighted in red
+User clicks "Order Missing Balloons"
+Order form appears with missing items pre-filled
+User reviews, adjusts quantities if needed, and places order
+Confirmation appears and order is logged in inventory system
+Would you like me to implement this plan? It would create a smooth workflow from identifying missing balloons to ordering exactly what you need.
