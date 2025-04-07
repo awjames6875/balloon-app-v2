@@ -14,6 +14,7 @@ import { DesignElement } from '@/types';
 import DesignUploader from '@/components/design/design-uploader';
 import DesignAnalysis from '@/components/design/design-analysis';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
 
 // Color palette for the balloon clusters
 const colorOptions = [
@@ -41,6 +42,7 @@ const Design = () => {
   const { toast } = useToast();
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   
   // For Design Uploader
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -270,6 +272,33 @@ const Design = () => {
         return;
       }
       
+      // Format data for API
+      const materialCounts: Record<string, { small: number, large: number }> = {};
+      
+      Object.entries(balloonCounts.colorCounts).forEach(([colorName, counts]) => {
+        materialCounts[colorName] = {
+          small: counts.small,
+          large: counts.large
+        };
+      });
+      
+      // Show the inventory comparison dialog instead of immediately saving
+      setShowInventoryDialog(true);
+    } catch (error) {
+      console.error('Preparation error:', error);
+      toast({
+        title: 'Error',
+        description: 'There was an error preparing inventory data',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // This function is called from the dialog when the user confirms saving to inventory
+  const processSaveToInventory = async () => {
+    try {
+      if (!activeDesign) return;
+      
       setIsSavingToInventory(true);
       
       // Format data for API
@@ -299,6 +328,8 @@ const Design = () => {
         title: 'Saved to inventory',
         description: result.message || 'The balloon requirements have been added to your inventory',
       });
+      
+      return result;
     } catch (error) {
       console.error('Save to inventory error:', error);
       toast({
@@ -306,6 +337,7 @@ const Design = () => {
         description: 'There was an error updating the inventory',
         variant: 'destructive',
       });
+      throw error;
     } finally {
       setIsSavingToInventory(false);
     }
@@ -353,8 +385,37 @@ const Design = () => {
     setIsAnalyzing(true);
   };
   
+  // Get material counts for the dialog
+  const getMaterialCounts = () => {
+    const materialCounts: Record<string, { small: number, large: number }> = {};
+    
+    Object.entries(balloonCounts.colorCounts).forEach(([colorName, counts]) => {
+      materialCounts[colorName] = {
+        small: counts.small,
+        large: counts.large
+      };
+    });
+    
+    return materialCounts;
+  };
+  
   return (
     <div className="bg-[#f5f5f7] min-h-screen">
+      {/* Inventory Comparison Dialog */}
+      {activeDesign && (
+        <InventoryComparisonDialog
+          open={showInventoryDialog}
+          onOpenChange={setShowInventoryDialog}
+          designId={activeDesign.id}
+          materialCounts={getMaterialCounts()}
+          onSaveToInventory={processSaveToInventory}
+          onNavigateToInventory={() => {
+            setShowInventoryDialog(false);
+            navigate('/inventory');
+          }}
+        />
+      )}
+    
       {/* Header Bar */}
       <div className="bg-white border-b border-[#e0e0e0] px-4 py-3 flex justify-between items-center">
         <h1 className="text-xl font-bold text-[#333333]">Balloon Designer</h1>
