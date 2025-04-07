@@ -1,66 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Clipboard, Package, Check } from 'lucide-react';
-import { DesignElement } from '@/types';
+
+interface BalloonCounts {
+  colorCounts: {
+    [colorName: string]: {
+      small: number;
+      large: number;
+      total: number;
+      clusters: number;
+      color?: string;
+    }
+  };
+  totalSmall: number;
+  totalLarge: number;
+  totalBalloons: number;
+  totalClusters: number;
+}
 
 interface MaterialRequirementsPanelProps {
-  elements: DesignElement[];
-  colorOptions: { name: string; value: string }[];
+  balloonCounts: BalloonCounts;
 }
 
-interface BalloonCount {
-  small: number;
-  large: number;
-  total: number;
-}
-
-interface ColorCount {
-  [colorName: string]: BalloonCount & { clusters: number };
-}
-
-const MaterialRequirementsPanel = ({ elements, colorOptions }: MaterialRequirementsPanelProps) => {
+const MaterialRequirementsPanel = ({ balloonCounts }: MaterialRequirementsPanelProps) => {
   const [copied, setCopied] = useState(false);
-  const [totalCounts, setTotalCounts] = useState({
-    totalSmall: 0,
-    totalLarge: 0,
-    totalBalloons: 0,
-    totalClusters: 0,
-  });
-  const [colorCounts, setColorCounts] = useState<ColorCount>({});
-
-  // Calculate balloon counts based on elements
-  useEffect(() => {
-    const counts: ColorCount = {};
-    let totalSmall = 0;
-    let totalLarge = 0;
-    let totalClusters = 0;
-
-    elements.forEach(element => {
-      const color = element.colors[0];
-      const colorName = colorOptions.find(c => c.value === color)?.name || color;
-      
-      if (!counts[colorName]) {
-        counts[colorName] = {small: 0, large: 0, total: 0, clusters: 0};
-      }
-      
-      // Each standard cluster has 11 small balloons and 2 large balloons
-      counts[colorName].small += 11;
-      counts[colorName].large += 2;
-      counts[colorName].total += 13;
-      counts[colorName].clusters += 1;
-      
-      totalSmall += 11;
-      totalLarge += 2;
-      totalClusters += 1;
-    });
-
-    setColorCounts(counts);
-    setTotalCounts({
-      totalSmall,
-      totalLarge,
-      totalBalloons: totalSmall + totalLarge,
-      totalClusters
-    });
-  }, [elements, colorOptions]);
+  const colorCounts = balloonCounts.colorCounts || {};
+  const totalCounts = {
+    totalSmall: balloonCounts.totalSmall || 0,
+    totalLarge: balloonCounts.totalLarge || 0,
+    totalBalloons: balloonCounts.totalBalloons || 0,
+    totalClusters: balloonCounts.totalClusters || 0,
+  };
 
   const handleCopyToClipboard = () => {
     let clipboardText = 'Material Requirements:\n\n';
@@ -109,7 +78,7 @@ const MaterialRequirementsPanel = ({ elements, colorOptions }: MaterialRequireme
         </button>
       </div>
       
-      {elements.length === 0 ? (
+      {Object.keys(colorCounts).length === 0 ? (
         <div className="py-6 text-center text-gray-500">
           <Package className="h-12 w-12 mx-auto text-gray-300" />
           <p className="mt-2">Add balloon clusters to see material requirements</p>
@@ -133,7 +102,17 @@ const MaterialRequirementsPanel = ({ elements, colorOptions }: MaterialRequireme
                     <td className="py-2 px-3 border border-gray-200 text-xs flex items-center">
                       <div 
                         className="w-4 h-4 rounded-full mr-2" 
-                        style={{ backgroundColor: colorOptions.find(c => c.name === colorName)?.value || '#ccc' }}
+                        style={{ backgroundColor: colorName === 'Red' ? '#FF5252' : 
+                                                 colorName === 'Blue' ? '#2196F3' : 
+                                                 colorName === 'Green' ? '#4CAF50' : 
+                                                 colorName === 'Yellow' ? '#FFEB3B' : 
+                                                 colorName === 'Purple' ? '#9C27B0' : 
+                                                 colorName === 'Pink' ? '#E91E63' : 
+                                                 colorName === 'Orange' ? '#FF9800' : 
+                                                 colorName === 'White' ? '#FFFFFF' : 
+                                                 colorName === 'Black' ? '#000000' : 
+                                                 colorName === 'Silver' ? '#C0C0C0' : 
+                                                 colorName === 'Gold' ? '#FFD700' : '#ccc' }}
                       ></div>
                       {colorName}
                     </td>
