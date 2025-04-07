@@ -297,10 +297,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Create a new inventory item
           await storage.createInventoryItem({
-            color: colorName as any, // Type casting to match enum
+            color: colorName.toLowerCase() as any, // Convert to lowercase to match enum
             size: '11inch',
             quantity: smallBalloons,
-            status: 'in_stock'
+            threshold: 20 // Default threshold instead of status which isn't in the schema
           });
         }
         
@@ -313,10 +313,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Create a new inventory item
           await storage.createInventoryItem({
-            color: colorName as any, // Type casting to match enum
+            color: colorName.toLowerCase() as any, // Convert to lowercase to match enum
             size: '16inch',
             quantity: largeBalloons,
-            status: 'in_stock'
+            threshold: 20 // Default threshold instead of status which isn't in the schema
           });
         }
       }
