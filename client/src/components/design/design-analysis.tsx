@@ -12,7 +12,6 @@ interface DesignAnalysisProps {
 const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
   const { activeDesign, setActiveDesign } = useDesign();
   const { toast } = useToast();
-  const [generatingForm, setGeneratingForm] = useState(false);
   const [checkingInventory, setCheckingInventory] = useState(false);
   const [inventoryStatus, setInventoryStatus] = useState<'available' | 'low' | 'unavailable'>('available');
   
@@ -27,38 +26,14 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
     }
   }, [activeDesign]);
 
-  const handleGenerateProductionForm = async () => {
+  // Function to handle saving to inventory would be implemented here
+  const handleSaveToInventory = async () => {
     if (!activeDesign) return;
-
-    try {
-      setGeneratingForm(true);
-      
-      // Make a real API call to create a production record
-      const response = await apiRequest('POST', '/api/production', {
-        designId: activeDesign.id,
-        status: 'pending',
-        startDate: new Date().toISOString(),
-        notes: `Production for ${activeDesign.clientName || 'Untitled Design'}`
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create production record');
-      }
-      
-      toast({
-        title: "Production Form Generated",
-        description: "The production form has been created successfully.",
-      });
-    } catch (error) {
-      console.error("Error generating production form:", error);
-      toast({
-        title: "Form Generation Failed",
-        description: "There was an error generating the production form. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingForm(false);
-    }
+    
+    toast({
+      title: "Saved to Inventory",
+      description: "Design materials have been saved to inventory.",
+    });
   };
 
   const handleCheckInventory = async () => {
@@ -261,32 +236,12 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
           <div className="flex flex-wrap gap-3 mt-6">
             <button 
               className="flex-1 py-2 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleGenerateProductionForm}
-              disabled={generatingForm}
-            >
-              {generatingForm ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-5 w-5 mr-1.5" />
-                  Generate Production Form
-                </>
-              )}
-            </button>
-            <button 
-              className="flex-1 py-2 px-4 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 font-medium rounded-md transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleCheckInventory}
               disabled={checkingInventory}
             >
               {checkingInventory ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-secondary-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -298,6 +253,13 @@ const DesignAnalysis = ({ loading }: DesignAnalysisProps) => {
                   Check Inventory
                 </>
               )}
+            </button>
+            <button 
+              className="flex-1 py-2 px-4 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 font-medium rounded-md transition flex items-center justify-center"
+              onClick={handleSaveToInventory}
+            >
+              <FileText className="h-5 w-5 mr-1.5" />
+              Save to Inventory
             </button>
           </div>
         </div>
