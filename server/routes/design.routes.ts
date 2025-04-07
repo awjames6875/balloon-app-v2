@@ -354,6 +354,39 @@ router.post('/:id/create-production', isAuthenticated, isDesignOwnerOrAdmin, cre
 }));
 
 /**
+ * Create a design with elements
+ * POST /api/designs/create
+ * Requires authentication
+ */
+router.post('/create', isAuthenticated, createAuthHandler(async (req, res) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    const { clientName = 'Anonymous Client', eventDate, elements = [], backgroundUrl, notes } = req.body;
+    
+    console.log('Creating design with elements:', Array.isArray(elements) ? elements.length : 'N/A');
+    
+    // Create the design
+    const design = await storage.createDesign({
+      userId: req.userId,
+      clientName,
+      eventDate: eventDate || new Date().toISOString().split('T')[0],
+      elements: JSON.stringify(elements || []) as any, // Type casting to avoid TS error
+      backgroundUrl: backgroundUrl || null,
+      notes: notes || ''
+    });
+    
+    console.log('Design created successfully:', design.id);
+    res.status(201).json(design);
+  } catch (error) {
+    console.error('Create design error:', error);
+    res.status(500).json({ message: 'Failed to create design' });
+  }
+}));
+
+/**
  * Create a design with elements and analyze required balloons
  * POST /api/designs/create-with-analysis
  * Requires authentication
