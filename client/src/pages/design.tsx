@@ -15,6 +15,7 @@ import DesignUploader from '@/components/design/design-uploader';
 import DesignAnalysis from '@/components/design/design-analysis';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
+import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
 
 // Color palette for the balloon clusters
 const colorOptions = [
@@ -200,6 +201,10 @@ const Design = () => {
   
   // Function to save balloon requirements to inventory
   
+  // State for inventory check dialog
+  const [showInventoryCheckDialog, setShowInventoryCheckDialog] = useState(false);
+  const [inventoryCheckData, setInventoryCheckData] = useState<Record<string, { small: number, large: number }>>({});
+  
   // Function to check inventory availability
   const handleCheckInventory = async () => {
     try {
@@ -224,30 +229,11 @@ const Design = () => {
         };
       });
       
-      // Call the API to check inventory status
-      const response = await apiRequest(
-        'POST', 
-        `/api/designs/${activeDesign.id}/check-inventory`,
-        { materialCounts }
-      );
+      // Store material counts for the dialog
+      setInventoryCheckData(materialCounts);
       
-      const result: { available: boolean; missingItems?: string[] } = await response.json();
-      
-      if (result && result.available) {
-        toast({
-          title: 'Inventory Check Complete',
-          description: 'All required materials are available in stock',
-        });
-      } else {
-        toast({
-          title: 'Inventory Alert',
-          description: 'Some materials are low or out of stock. Check inventory details.',
-          variant: 'destructive',
-        });
-        
-        // Navigate to inventory page
-        navigate('/inventory');
-      }
+      // Show the inventory check dialog instead of API call
+      setShowInventoryCheckDialog(true);
       
     } catch (error) {
       console.error('Inventory check error:', error);
@@ -411,6 +397,20 @@ const Design = () => {
           onSaveToInventory={processSaveToInventory}
           onNavigateToInventory={() => {
             setShowInventoryDialog(false);
+            navigate('/inventory');
+          }}
+        />
+      )}
+      
+      {/* Inventory Check Dialog - Our new kid-friendly comparison dialog */}
+      {activeDesign && (
+        <InventoryCheckDialog
+          open={showInventoryCheckDialog}
+          onOpenChange={setShowInventoryCheckDialog}
+          designId={activeDesign.id}
+          materialCounts={inventoryCheckData}
+          onNavigateToInventory={() => {
+            setShowInventoryCheckDialog(false);
             navigate('/inventory');
           }}
         />
