@@ -1,19 +1,35 @@
-import { Router, Request, Response } from 'express';
-import { isAuthenticated, AuthenticatedRequest, isDesignOwnerOrAdmin } from '../middleware/auth.middleware';
-import { storage } from '../storage';
-import { insertDesignSchema } from '@shared/schema';
+import { Router, Request, Response, NextFunction } from 'express';
+import { isAuthenticated, hasRole, isDesignOwnerOrAdmin } from '../middleware/auth.middleware';
+import { storage } from '../storage-updated';
+import { insertDesignSchema } from '../../shared/schema';
 import { z } from 'zod';
 import { uploadDesignImage } from '../middleware/upload.middleware';
+import { RepositoryFactory } from '../repositories';
+import { AuthenticatedRequest } from '../types/express';
 import { analyzeDesignImage } from '../ai';
 
 const router = Router();
+
+// Type-safe Express request handler
+function createHandler(handler: (req: Request, res: Response, next: NextFunction) => Promise<void> | void) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    return handler(req, res, next);
+  };
+}
+
+// Type-safe Express authenticated request handler
+function createAuthHandler(handler: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void> | void) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    return handler(req as AuthenticatedRequest, res, next);
+  };
+}
 
 /**
  * Get all designs for current user
  * GET /api/designs
  * Requires authentication
  */
-router.get('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', isAuthenticated, createAuthHandler(async (req, res) => {
   try {
     if (!req.userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -25,14 +41,14 @@ router.get('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response
     console.error('Get designs error:', error);
     res.status(500).json({ message: 'Failed to fetch designs' });
   }
-});
+}));
 
 /**
  * Get a design by ID
  * GET /api/designs/:id
  * Requires authentication and ownership of the design or admin role
  */
-router.get('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', isAuthenticated, createAuthHandler(async (req, res) => {
   try {
     if (!req.userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -58,21 +74,22 @@ router.get('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Respo
     console.error('Get design error:', error);
     res.status(500).json({ message: 'Failed to fetch design' });
   }
-});
+}));
 
 /**
  * Create a new design
  * POST /api/designs
  * Requires authentication
  */
-router.post('/', isAuthenticated, (req: AuthenticatedRequest, res: Response) => {
+router.post('/', isAuthenticated, (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
   uploadDesignImage(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ message: err.message });
     }
     
     try {
-      if (!req.userId) {
+      if (!authReq.userId) {
         return res.status(401).json({ message: 'Authentication required' });
       }
       
@@ -84,7 +101,7 @@ router.post('/', isAuthenticated, (req: AuthenticatedRequest, res: Response) => 
       
       const data = {
         ...req.body,
-        userId: req.userId,
+        userId: authReq.userId,
         imageUrl: `/uploads/${imageFile.filename}`
       };
       
@@ -116,7 +133,7 @@ router.post('/', isAuthenticated, (req: AuthenticatedRequest, res: Response) => 
  * PATCH /api/designs/:id
  * Requires authentication and ownership of the design or admin role
  */
-router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.patch('/:id', isAuthenticated, createAuthHandler(async (req, res) => {
   try {
     if (!req.userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -162,14 +179,14 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
     console.error('Update design error:', error);
     res.status(500).json({ message: 'Failed to update design' });
   }
-});
+}));
 
 /**
  * Delete a design
  * DELETE /api/designs/:id
  * Requires authentication and ownership of the design or admin role
  */
-router.delete('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', isAuthenticated, createAuthHandler(async (req, res) => {
   try {
     if (!req.userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -201,14 +218,14 @@ router.delete('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Re
     console.error('Delete design error:', error);
     res.status(500).json({ message: 'Failed to delete design' });
   }
-});
+}));
 
 /**
  * Check inventory for a design
  * POST /api/designs/:id/check-inventory
  * Requires authentication and ownership of the design or admin role
  */
-router.post('/:id/check-inventory', isAuthenticated, isDesignOwnerOrAdmin, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/check-inventory', isAuthenticated, isDesignOwnerOrAdmin, createAuthHandler(async (req, res) => {
   try {
     const designId = parseInt(req.params.id);
     if (isNaN(designId)) {
@@ -303,14 +320,14 @@ router.post('/:id/check-inventory', isAuthenticated, isDesignOwnerOrAdmin, async
       }
     });
   }
-});
+}));
 
 /**
  * Create a production request from a design
  * POST /api/designs/:id/create-production
  * Requires authentication and ownership of the design or admin role
  */
-router.post('/:id/create-production', isAuthenticated, isDesignOwnerOrAdmin, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/create-production', isAuthenticated, isDesignOwnerOrAdmin, createAuthHandler(async (req, res) => {
   try {
     const designId = parseInt(req.params.id);
     if (isNaN(designId)) {
@@ -324,9 +341,9 @@ router.post('/:id/create-production', isAuthenticated, isDesignOwnerOrAdmin, asy
       designId,
       status: 'pending',
       notes: notes || null,
-      startDate: new Date(),
-      completionDate: null,
-      actualTime: null
+      startDate: new Date()
+      // These fields are managed internally or during updates
+      // completionDate and actualTime are not in the InsertProduction type
     });
     
     res.status(201).json(production);
@@ -334,14 +351,14 @@ router.post('/:id/create-production', isAuthenticated, isDesignOwnerOrAdmin, asy
     console.error('Create production error:', error);
     res.status(500).json({ message: 'Failed to create production request' });
   }
-});
+}));
 
 /**
  * Create a design with elements and analyze required balloons
  * POST /api/designs/create-with-analysis
  * Requires authentication
  */
-router.post('/create-with-analysis', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/create-with-analysis', isAuthenticated, createAuthHandler(async (req, res) => {
   try {
     if (!req.userId) {
       return res.status(401).json({ message: 'Authentication required' });
@@ -373,7 +390,7 @@ router.post('/create-with-analysis', isAuthenticated, async (req: AuthenticatedR
           analysis.totalBalloons += 4; // Assuming each cluster has 4 balloons
           
           if (Array.isArray(element.colors)) {
-            element.colors.forEach(color => {
+            element.colors.forEach((color: string) => {
               if (!analysis.colors.includes(color)) {
                 analysis.colors.push(color);
               }
@@ -422,6 +439,6 @@ router.post('/create-with-analysis', isAuthenticated, async (req: AuthenticatedR
       }
     });
   }
-});
+}));
 
 export default router;

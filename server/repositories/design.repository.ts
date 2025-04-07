@@ -1,7 +1,8 @@
-import { Design, InsertDesign, designs, designAccessories, accessories, Accessory } from '@shared/schema';
-import { BaseRepository } from './base.repository';
+import { eq, sql } from 'drizzle-orm';
+import { Design, InsertDesign, Accessory } from '@shared/schema';
 import { db } from '../db';
-import { eq, and } from 'drizzle-orm';
+import { designs, designAccessories, accessories } from '@shared/schema';
+import { BaseRepository } from './base.repository';
 
 /**
  * Design-specific repository interface
@@ -10,22 +11,22 @@ export interface IDesignRepository extends BaseRepository<Design, InsertDesign> 
   /**
    * Find all designs created by a user
    * @param userId The user's id
-   * @returns Array of designs belonging to the user
+   * @returns Array of designs created by the user
    */
   findByUser(userId: number): Promise<Design[]>;
   
   /**
-   * Add an accessory to a design with a specified quantity
-   * @param designId The design id
-   * @param accessoryId The accessory id
-   * @param quantity The quantity to add
+   * Add an accessory to a design
+   * @param designId The design's id
+   * @param accessoryId The accessory's id
+   * @param quantity The quantity of the accessory
    */
   addAccessory(designId: number, accessoryId: number, quantity: number): Promise<void>;
   
   /**
-   * Get all accessories associated with a design
-   * @param designId The design id
-   * @returns Array of accessories with their quantities
+   * Get all accessories used in a design
+   * @param designId The design's id
+   * @returns Array of accessories with quantities
    */
   getAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]>;
 }
@@ -42,63 +43,90 @@ export class DesignRepository implements IDesignRepository {
   async findByUser(userId: number): Promise<Design[]> {
     return await db.select().from(designs).where(eq(designs.userId, userId));
   }
-  
+
   async create(design: InsertDesign): Promise<Design> {
-    const result = await db.insert(designs).values(design).returning();
-    return result[0];
+    try {
+      // Use a slightly different approach to avoid type issues
+      const result = await db.insert(designs).values({
+        userId: design.userId,
+        clientName: design.clientName,
+        eventDate: design.eventDate,
+        dimensions: design.dimensions,
+        notes: design.notes,
+        imageUrl: design.imageUrl,
+        backgroundUrl: design.backgroundUrl,
+        elements: design.elements,
+        colorAnalysis: design.colorAnalysis,
+        materialRequirements: design.materialRequirements,
+        totalBalloons: design.totalBalloons,
+        estimatedClusters: design.estimatedClusters,
+        productionTime: design.productionTime
+      } as any).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating design:', error);
+      throw error;
+    }
   }
-  
+
   async update(id: number, designData: Partial<Design>): Promise<Design | undefined> {
-    const result = await db.update(designs)
+    const result = await db
+      .update(designs)
       .set(designData)
       .where(eq(designs.id, id))
       .returning();
+    
     return result[0];
   }
-  
+
   async delete(id: number): Promise<boolean> {
-    // First delete any associated accessories
-    await db.delete(designAccessories).where(eq(designAccessories.designId, id));
+    // First, delete associated design accessories
+    await db
+      .delete(designAccessories)
+      .where(eq(designAccessories.designId, id));
+      
+    // Then delete the design
+    const result = await db
+      .delete(designs)
+      .where(eq(designs.id, id))
+      .returning({ id: designs.id });
     
-    // Then delete the design itself
-    const result = await db.delete(designs).where(eq(designs.id, id)).returning();
     return result.length > 0;
   }
-  
+
   async addAccessory(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    // Check if the association already exists
-    const existing = await db.select()
+    // Check if the design-accessory pair already exists
+    const existingRecord = await db
+      .select()
       .from(designAccessories)
       .where(
-        and(
-          eq(designAccessories.designId, designId),
-          eq(designAccessories.accessoryId, accessoryId)
-        )
+        sql`${designAccessories.designId} = ${designId} AND ${designAccessories.accessoryId} = ${accessoryId}`
       )
       .limit(1);
     
-    if (existing.length > 0) {
-      // Update existing quantity
-      await db.update(designAccessories)
+    if (existingRecord.length > 0) {
+      // Update the quantity
+      await db
+        .update(designAccessories)
         .set({ quantity })
         .where(
-          and(
-            eq(designAccessories.designId, designId),
-            eq(designAccessories.accessoryId, accessoryId)
-          )
+          sql`${designAccessories.designId} = ${designId} AND ${designAccessories.accessoryId} = ${accessoryId}`
         );
     } else {
-      // Create new association
-      await db.insert(designAccessories).values({
-        designId,
-        accessoryId,
-        quantity
-      });
+      // Create a new record
+      await db
+        .insert(designAccessories)
+        .values({
+          designId,
+          accessoryId,
+          quantity
+        });
     }
   }
-  
+
   async getAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    const results = await db
+    const result = await db
       .select({
         accessory: accessories,
         quantity: designAccessories.quantity
@@ -107,6 +135,6 @@ export class DesignRepository implements IDesignRepository {
       .innerJoin(accessories, eq(designAccessories.accessoryId, accessories.id))
       .where(eq(designAccessories.designId, designId));
     
-    return results;
+    return result;
   }
 }

@@ -1,10 +1,10 @@
-// Repository interfaces
-import { IUserRepository } from './user.repository';
-import { IDesignRepository } from './design.repository';
-import { IInventoryRepository } from './inventory.repository';
-import { IAccessoryRepository } from './accessory.repository';
-import { IProductionRepository } from './production.repository';
-import { IOrderRepository } from './order.repository';
+// Repository interfaces and implementations
+import { IUserRepository, UserRepository } from './user.repository';
+import { IDesignRepository, DesignRepository } from './design.repository';
+import { IInventoryRepository, InventoryRepository } from './inventory.repository';
+import { IAccessoryRepository, AccessoryRepository } from './accessory.repository';
+import { IProductionRepository, ProductionRepository } from './production.repository';
+import { IOrderRepository, OrderRepository } from './order.repository';
 
 /**
  * Factory for creating repository instances
@@ -22,10 +22,9 @@ export class RepositoryFactory {
    * @returns User repository instance
    */
   static getUserRepository(): IUserRepository {
-    // Implement when UserRepository is available
-    // if (!this.userRepository) {
-    //   this.userRepository = new UserRepository();
-    // }
+    if (!this.userRepository) {
+      this.userRepository = new UserRepository();
+    }
     return this.userRepository;
   }
   
@@ -34,10 +33,9 @@ export class RepositoryFactory {
    * @returns Design repository instance
    */
   static getDesignRepository(): IDesignRepository {
-    // Implement when DesignRepository is available
-    // if (!this.designRepository) {
-    //   this.designRepository = new DesignRepository();
-    // }
+    if (!this.designRepository) {
+      this.designRepository = new DesignRepository();
+    }
     return this.designRepository;
   }
   
@@ -46,10 +44,9 @@ export class RepositoryFactory {
    * @returns Inventory repository instance
    */
   static getInventoryRepository(): IInventoryRepository {
-    // Implement when InventoryRepository is available
-    // if (!this.inventoryRepository) {
-    //   this.inventoryRepository = new InventoryRepository();
-    // }
+    if (!this.inventoryRepository) {
+      this.inventoryRepository = new InventoryRepository();
+    }
     return this.inventoryRepository;
   }
   
@@ -58,10 +55,9 @@ export class RepositoryFactory {
    * @returns Accessory repository instance
    */
   static getAccessoryRepository(): IAccessoryRepository {
-    // Implement when AccessoryRepository is available
-    // if (!this.accessoryRepository) {
-    //   this.accessoryRepository = new AccessoryRepository();
-    // }
+    if (!this.accessoryRepository) {
+      this.accessoryRepository = new AccessoryRepository();
+    }
     return this.accessoryRepository;
   }
   
@@ -70,10 +66,9 @@ export class RepositoryFactory {
    * @returns Production repository instance
    */
   static getProductionRepository(): IProductionRepository {
-    // Implement when ProductionRepository is available
-    // if (!this.productionRepository) {
-    //   this.productionRepository = new ProductionRepository();
-    // }
+    if (!this.productionRepository) {
+      this.productionRepository = new ProductionRepository();
+    }
     return this.productionRepository;
   }
   
@@ -82,10 +77,9 @@ export class RepositoryFactory {
    * @returns Order repository instance
    */
   static getOrderRepository(): IOrderRepository {
-    // Implement when OrderRepository is available
-    // if (!this.orderRepository) {
-    //   this.orderRepository = new OrderRepository();
-    // }
+    if (!this.orderRepository) {
+      this.orderRepository = new OrderRepository();
+    }
     return this.orderRepository;
   }
 }

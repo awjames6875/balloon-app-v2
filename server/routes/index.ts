@@ -2,10 +2,14 @@ import { Express, Router } from 'express';
 import { Server } from 'http';
 
 // Import route modules
-// For example:
-// import authRoutes from './auth.routes';
-// import designRoutes from './design.routes';
-// import inventoryRoutes from './inventory.routes';
+import authRouter from './auth.routes';
+import designRouter from './design.routes';
+import inventoryRouter from './inventory.routes';
+import accessoryRouter from './accessory.routes';
+import orderRouter from './order.routes';
+import productionRouter from './production.routes';
+import paymentRouter from './payment.routes';
+import uploadRouter from './upload.routes';
 
 /**
  * Register all application routes
@@ -13,20 +17,15 @@ import { Server } from 'http';
  * @returns HTTP server instance
  */
 export function registerRoutes(app: Express): Server {
-  // Create router instances for each domain
-  // const authRouter = Router();
-  // const designRouter = Router();
-  // const inventoryRouter = Router();
-  
-  // Register route handlers for each domain
-  // authRoutes(authRouter);
-  // designRoutes(designRouter);
-  // inventoryRoutes(inventoryRouter);
-  
   // Mount routers to specific paths
-  // app.use('/api/auth', authRouter);
-  // app.use('/api/designs', designRouter);
-  // app.use('/api/inventory', inventoryRouter);
+  app.use('/api/auth', authRouter);
+  app.use('/api/designs', designRouter);
+  app.use('/api/inventory', inventoryRouter);
+  app.use('/api/accessories', accessoryRouter);
+  app.use('/api/orders', orderRouter);
+  app.use('/api/production', productionRouter);
+  app.use('/api/payments', paymentRouter);
+  app.use('/api/upload', uploadRouter);
   
   // Start HTTP server
   const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -34,5 +33,3 @@ export function registerRoutes(app: Express): Server {
     console.log(`Server running on port ${PORT}`);
   });
 }
-
-// This function will be expanded as more route modules are implemented
