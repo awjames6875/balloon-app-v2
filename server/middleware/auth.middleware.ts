@@ -34,10 +34,14 @@ export const isAuthenticated = async (req: AuthenticatedRequest, res: Response, 
 
     // Set user info on request
     req.userId = user.id;
-    const role = req.session.userRole;
-    if (role === 'admin' || role === 'designer' || role === 'inventory_manager') {
-      req.userRole = role;
+    
+    // Ensure session always has correct role
+    if (!req.session.userRole || req.session.userRole !== user.role) {
+      req.session.userRole = user.role;
     }
+    
+    // Set role on request
+    req.userRole = user.role;
 
     // Refresh session
     req.session.touch();

@@ -260,9 +260,11 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
 router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log('New balloon order request:', {
-      body: req.body,
+      body: JSON.stringify(req.body),
       userId: req.userId,
-      session: req.session,
+      sessionId: req.session.id,
+      sessionUserId: req.session.userId,
+      sessionUserRole: req.session.userRole,
       userRole: req.userRole
     });
 
@@ -275,6 +277,7 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
     const { color, size, quantity, eventName } = req.body;
     
     if (!color || !size || !quantity) {
+      console.error('Missing required balloon order fields:', { color, size, quantity });
       return res.status(400).json({ 
         message: 'Missing required information',
         details: 'Please tell us what color, size, and how many balloons you need!'
@@ -283,9 +286,30 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
     
     // Simple validation for child-friendly interface
     if (quantity < 1 || quantity > 100) {
+      console.error('Invalid quantity in balloon order:', quantity);
       return res.status(400).json({ 
         message: 'Invalid quantity',
         details: 'Please choose between 1 and 100 balloons'
+      });
+    }
+    
+    // Validate color against colorEnum
+    const validColors = ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'white', 'black', 'silver', 'gold'];
+    if (!validColors.includes(color.toLowerCase())) {
+      console.error('Invalid color in balloon order:', color);
+      return res.status(400).json({
+        message: 'Invalid color',
+        details: 'Please choose one of our available colors'
+      });
+    }
+    
+    // Validate size against balloonSizeEnum
+    const validSizes = ['11inch', '16inch'];
+    if (!validSizes.includes(size)) {
+      console.error('Invalid size in balloon order:', size);
+      return res.status(400).json({
+        message: 'Invalid size',
+        details: 'Please choose either 11 inch or 16 inch balloons'
       });
     }
     
@@ -337,6 +361,20 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
     
   } catch (error) {
     console.error('Create balloon order error:', error);
+    
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Check for specific error types
+    if (error instanceof z.ZodError) {
+      console.error('Zod validation error in balloon order:', error.errors);
+      return res.status(400).json({
+        message: 'There was a problem with your balloon choices',
+        details: 'Please check your options and try again'
+      });
+    }
     
     // Kid-friendly error message
     res.status(500).json({ 
