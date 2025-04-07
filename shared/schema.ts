@@ -7,6 +7,7 @@ export const userRoleEnum = pgEnum('user_role', ['admin', 'designer', 'inventory
 export const colorEnum = pgEnum('color', ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'white', 'black', 'silver', 'gold']);
 export const balloonSizeEnum = pgEnum('balloon_size', ['11inch', '16inch']);
 export const inventoryStatusEnum = pgEnum('inventory_status', ['in_stock', 'low_stock', 'out_of_stock']);
+export const orderStatusEnum = pgEnum('order_status', ['pending', 'processing', 'completed', 'cancelled']);
 
 // Element schema definition for canvas editor
 export const designElementSchema = z.object({
@@ -108,6 +109,34 @@ export const production = pgTable("production", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Orders table
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  designId: integer("design_id").references(() => designs.id),
+  status: orderStatusEnum("status").notNull().default('pending'),
+  supplierName: text("supplier_name"),
+  expectedDeliveryDate: timestamp("expected_delivery_date"),
+  priority: text("priority").notNull().default('normal'),
+  notes: text("notes"),
+  totalQuantity: integer("total_quantity").notNull().default(0),
+  totalCost: integer("total_cost").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Order items table for detailed items in an order
+export const orderItems = pgTable("order_items", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  inventoryType: text("inventory_type").notNull().default('balloon'),
+  color: colorEnum("color").notNull(),
+  size: balloonSizeEnum("size").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: integer("unit_price").notNull(),
+  subtotal: integer("subtotal").notNull(),
+});
+
 // Create Insert Schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -153,6 +182,27 @@ export const insertProductionSchema = createInsertSchema(production).pick({
   notes: true,
 });
 
+export const insertOrderSchema = createInsertSchema(orders).pick({
+  userId: true,
+  designId: true,
+  supplierName: true,
+  expectedDeliveryDate: true,
+  priority: true,
+  notes: true,
+  totalQuantity: true,
+  totalCost: true,
+});
+
+export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
+  orderId: true,
+  inventoryType: true,
+  color: true,
+  size: true,
+  quantity: true,
+  unitPrice: true,
+  subtotal: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -168,3 +218,9 @@ export type InsertAccessory = z.infer<typeof insertAccessorySchema>;
 
 export type Production = typeof production.$inferSelect;
 export type InsertProduction = z.infer<typeof insertProductionSchema>;
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;

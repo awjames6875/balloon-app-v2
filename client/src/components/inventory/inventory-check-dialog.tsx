@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, AlertTriangle, XCircle, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Inventory } from "@shared/schema";
+import { OrderBalloonDialog } from "../order/order-balloon-dialog";
 
 interface ColorRequirement {
   small: number;
@@ -34,6 +35,7 @@ export function InventoryCheckDialog({
   onNavigateToInventory
 }: InventoryCheckDialogProps) {
   const { toast } = useToast();
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   
   // Fetch current inventory data
   const { data: inventory, isLoading: inventoryLoading } = useQuery<Inventory[]>({
@@ -106,132 +108,143 @@ export function InventoryCheckDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Do I Have Enough Balloons?</DialogTitle>
-          <DialogDescription className="text-base">
-            {getKidFriendlyMessage()}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {inventoryLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            <span className="ml-3">Loading balloon counts...</span>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-base">
-                <thead>
-                  <tr className="bg-muted/50">
-                    <th className="p-3 text-left font-bold">Color</th>
-                    <th className="p-3 text-left font-bold">Size</th>
-                    <th className="p-3 text-right font-bold">What You Need</th>
-                    <th className="p-3 text-right font-bold">What You Have</th>
-                    <th className="p-3 text-right font-bold">Difference</th>
-                    <th className="p-3 text-center font-bold">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonData.map((item, index) => (
-                    <tr 
-                      key={index} 
-                      className={`border-b border-muted ${
-                        item.status === 'unavailable' 
-                          ? 'bg-red-50' 
-                          : item.status === 'low' 
-                            ? 'bg-amber-50' 
-                            : ''
-                      }`}
-                    >
-                      <td className="p-3 capitalize flex items-center">
-                        <div 
-                          className="w-5 h-5 rounded-full mr-2" 
-                          style={{ backgroundColor: getColorHex(item.color) }}
-                        ></div>
-                        {item.color}
-                      </td>
-                      <td className="p-3">{item.size === '11inch' ? '11"' : '16"'}</td>
-                      <td className="p-3 text-right font-medium">{item.required}</td>
-                      <td className="p-3 text-right font-medium">{item.inStock}</td>
-                      <td className={`p-3 text-right font-bold ${item.difference < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {item.difference >= 0 ? '+' : ''}{item.difference}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Do I Have Enough Balloons?</DialogTitle>
+            <DialogDescription className="text-base">
+              {getKidFriendlyMessage()}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {inventoryLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              <span className="ml-3">Loading balloon counts...</span>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-base">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="p-3 text-left font-bold">Color</th>
+                      <th className="p-3 text-left font-bold">Size</th>
+                      <th className="p-3 text-right font-bold">What You Need</th>
+                      <th className="p-3 text-right font-bold">What You Have</th>
+                      <th className="p-3 text-right font-bold">Difference</th>
+                      <th className="p-3 text-center font-bold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonData.map((item, index) => (
+                      <tr 
+                        key={index} 
+                        className={`border-b border-muted ${
+                          item.status === 'unavailable' 
+                            ? 'bg-red-50' 
+                            : item.status === 'low' 
+                              ? 'bg-amber-50' 
+                              : ''
+                        }`}
+                      >
+                        <td className="p-3 capitalize flex items-center">
+                          <div 
+                            className="w-5 h-5 rounded-full mr-2" 
+                            style={{ backgroundColor: getColorHex(item.color) }}
+                          ></div>
+                          {item.color}
+                        </td>
+                        <td className="p-3">{item.size === '11inch' ? '11"' : '16"'}</td>
+                        <td className="p-3 text-right font-medium">{item.required}</td>
+                        <td className="p-3 text-right font-medium">{item.inStock}</td>
+                        <td className={`p-3 text-right font-bold ${item.difference < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {item.difference >= 0 ? '+' : ''}{item.difference}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center items-center gap-2">
+                            {getStatusEmoji(item.status)}
+                            {getStatusText(item.status)}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    
+                    {/* Totals row */}
+                    <tr className="bg-muted/30 font-bold">
+                      <td className="p-3" colSpan={2}>TOTALS</td>
+                      <td className="p-3 text-right">{totals.required}</td>
+                      <td className="p-3 text-right">{totals.inStock}</td>
+                      <td className={`p-3 text-right ${totals.inStock - totals.required < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {totals.inStock - totals.required >= 0 ? '+' : ''}
+                        {totals.inStock - totals.required}
                       </td>
                       <td className="p-3 text-center">
-                        <div className="flex justify-center items-center gap-2">
-                          {getStatusEmoji(item.status)}
-                          {getStatusText(item.status)}
-                        </div>
+                        {overallStatus === 'available' ? '✅' : overallStatus === 'low' ? '⚠️' : '❌'}
                       </td>
                     </tr>
-                  ))}
-                  
-                  {/* Totals row */}
-                  <tr className="bg-muted/30 font-bold">
-                    <td className="p-3" colSpan={2}>TOTALS</td>
-                    <td className="p-3 text-right">{totals.required}</td>
-                    <td className="p-3 text-right">{totals.inStock}</td>
-                    <td className={`p-3 text-right ${totals.inStock - totals.required < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {totals.inStock - totals.required >= 0 ? '+' : ''}
-                      {totals.inStock - totals.required}
-                    </td>
-                    <td className="p-3 text-center">
-                      {overallStatus === 'available' ? '✅' : overallStatus === 'low' ? '⚠️' : '❌'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <div className={`p-4 rounded-md mt-4 border ${
-              overallStatus === 'unavailable' 
-                ? 'border-red-200 bg-red-50' 
-                : overallStatus === 'low' 
-                  ? 'border-amber-200 bg-amber-50' 
-                  : 'border-green-200 bg-green-50'
-            }`}>
-              <div className="flex items-center mb-2">
-                <span className="font-bold mr-2 text-lg">What This Means:</span>
-                {getStatusText(overallStatus)}
+                  </tbody>
+                </table>
               </div>
               
-              <p className="text-base">
-                {overallStatus === 'available' 
-                  ? 'You have all the balloons you need for this design. You\'re ready to start creating!' 
+              <div className={`p-4 rounded-md mt-4 border ${
+                overallStatus === 'unavailable' 
+                  ? 'border-red-200 bg-red-50' 
                   : overallStatus === 'low' 
-                    ? 'You have enough, but some colors are running low. You might want to order more soon!'
-                    : 'You don\'t have enough balloons for this design. You need to order more supplies before you can start.'}
-              </p>
-            </div>
-          </>
-        )}
-        
-        <DialogFooter className="flex-col sm:flex-row gap-3 mt-4">
-          {overallStatus === 'unavailable' && (
-            <Button 
-              size="lg"
-              variant="default" 
-              onClick={onNavigateToInventory}
-              className="w-full sm:w-auto"
-            >
-              <ShoppingBag className="h-5 w-5 mr-2" />
-              Order More Balloons
-            </Button>
+                    ? 'border-amber-200 bg-amber-50' 
+                    : 'border-green-200 bg-green-50'
+              }`}>
+                <div className="flex items-center mb-2">
+                  <span className="font-bold mr-2 text-lg">What This Means:</span>
+                  {getStatusText(overallStatus)}
+                </div>
+                
+                <p className="text-base">
+                  {overallStatus === 'available' 
+                    ? 'You have all the balloons you need for this design. You\'re ready to start creating!' 
+                    : overallStatus === 'low' 
+                      ? 'You have enough, but some colors are running low. You might want to order more soon!'
+                      : 'You don\'t have enough balloons for this design. You need to order more supplies before you can start.'}
+                </p>
+              </div>
+            </>
           )}
           
-          <Button 
-            size="lg"
-            variant={overallStatus === 'unavailable' ? 'outline' : 'default'} 
-            onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
-          >
-            {overallStatus === 'available' ? 'Continue with Design' : 'Close'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="flex-col sm:flex-row gap-3 mt-4">
+            {overallStatus === 'unavailable' && (
+              <Button 
+                size="lg"
+                variant="default" 
+                onClick={() => setOrderDialogOpen(true)}
+                className="w-full sm:w-auto"
+              >
+                <ShoppingBag className="h-5 w-5 mr-2" />
+                Order Missing Balloons
+              </Button>
+            )}
+            
+            <Button 
+              size="lg"
+              variant={overallStatus === 'unavailable' ? 'outline' : 'default'} 
+              onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto"
+            >
+              {overallStatus === 'available' ? 'Continue with Design' : 'Close'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {orderDialogOpen && (
+        <OrderBalloonDialog
+          open={orderDialogOpen}
+          onOpenChange={setOrderDialogOpen}
+          designId={designId}
+          materialRequirements={comparisonData}
+        />
+      )}
+    </>
   );
 }
 

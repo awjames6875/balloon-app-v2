@@ -9,7 +9,9 @@ import {
   insertDesignSchema, 
   insertInventorySchema, 
   insertAccessorySchema,
-  insertProductionSchema
+  insertProductionSchema,
+  insertOrderSchema,
+  insertOrderItemSchema
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import session from "express-session";
@@ -1069,6 +1071,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to save materials to inventory' });
     }
   }); */
+
+  // Order routes
+  app.post('/api/orders', isAuthenticated, async (req, res) => {
+    try {
+      const orderData = insertOrderSchema.parse(req.body);
+      
+      // Add the current user ID to the order data
+      const fullOrderData = {
+        ...orderData,
+        userId: req.session.userId!,
+        status: 'pending' // Default status for new orders
+      };
+      
+      const order = await storage.createOrder(fullOrderData);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error('Create order error:', error);
+      res.status(400).json({ message: 'Failed to create order' });
+    }
+  });
+  
+  app.get('/api/orders', isAuthenticated, async (req, res) => {
+    try {
+      // Get orders for the current user
+      const orders = await storage.getOrdersByUser(req.session.userId!);
+      res.json(orders);
+    } catch (error) {
+      console.error('Get orders error:', error);
+      res.status(500).json({ message: 'Failed to fetch orders' });
+    }
+  });
+  
+  app.get('/api/orders/:id', isAuthenticated, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+      }
+      
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      
+      // Check if the user owns this order or is an admin
+      if (order.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Get order items
+      const orderItems = await storage.getOrderItems(orderId);
+      
+      res.json({
+        ...order,
+        items: orderItems
+      });
+    } catch (error) {
+      console.error('Get order error:', error);
+      res.status(500).json({ message: 'Failed to fetch order' });
+    }
+  });
+  
+  app.patch('/api/orders/:id', isAuthenticated, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+      }
+      
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      
+      // Check if the user owns this order or is an admin
+      if (order.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Update order
+      const updatedOrder = await storage.updateOrder(orderId, req.body);
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error('Update order error:', error);
+      res.status(500).json({ message: 'Failed to update order' });
+    }
+  });
+  
+  app.post('/api/orders/:id/items', isAuthenticated, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: 'Invalid order ID' });
+      }
+      
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      
+      // Check if the user owns this order or is an admin
+      if (order.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Parse and validate order item data
+      const orderItemData = insertOrderItemSchema.parse({
+        ...req.body,
+        orderId
+      });
+      
+      // Create order item
+      const orderItem = await storage.addOrderItem(orderItemData);
+      res.status(201).json(orderItem);
+    } catch (error) {
+      console.error('Add order item error:', error);
+      res.status(400).json({ message: 'Failed to add order item' });
+    }
+  });
+  
+  app.post('/api/designs/:id/order', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      if (isNaN(designId)) {
+        return res.status(400).json({ message: 'Invalid design ID' });
+      }
+      
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Check if the user owns this design or is an admin
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Create order for this design
+      const { notes, supplierName, priority } = req.body;
+      
+      const orderData = {
+        userId: req.session.userId!,
+        designId,
+        status: 'pending',
+        notes: notes || `Order for design: ${design.clientName}`,
+        supplierName: supplierName || 'Default Supplier',
+        priority: priority || 'normal'
+      };
+      
+      const order = await storage.createOrder(orderData);
+      
+      // If the design has material requirements, add them as order items
+      if (design.materialRequirements && Object.keys(design.materialRequirements).length > 0) {
+        for (const [color, requirements] of Object.entries(design.materialRequirements)) {
+          // Add small balloons as an order item
+          if (requirements.small > 0) {
+            await storage.addOrderItem({
+              orderId: order.id,
+              inventoryType: 'balloon',
+              color: color.toLowerCase() as any, // Cast to colorEnum type
+              size: '11inch',
+              quantity: requirements.small,
+              unitPrice: 0.5, // Default price, could be fetched from a price list
+              subtotal: requirements.small * 0.5 // Calculate subtotal
+            });
+          }
+          
+          // Add large balloons as an order item
+          if (requirements.large > 0) {
+            await storage.addOrderItem({
+              orderId: order.id,
+              inventoryType: 'balloon',
+              color: color.toLowerCase() as any, // Cast to colorEnum type
+              size: '16inch',
+              quantity: requirements.large,
+              unitPrice: 0.75, // Default price, could be fetched from a price list
+              subtotal: requirements.large * 0.75 // Calculate subtotal
+            });
+          }
+        }
+      }
+      
+      // Get all order items
+      const orderItems = await storage.getOrderItems(order.id);
+      
+      // Calculate total cost
+      const totalCost = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      
+      // Update order with total cost
+      const updatedOrder = await storage.updateOrder(order.id, {
+        totalCost,
+        totalQuantity: orderItems.reduce((sum, item) => sum + item.quantity, 0)
+      });
+      
+      res.status(201).json({
+        ...updatedOrder,
+        items: orderItems
+      });
+    } catch (error) {
+      console.error('Create design order error:', error);
+      res.status(400).json({ message: 'Failed to create order for design' });
+    }
+  });
 
   // Serve uploaded images
   app.use('/uploads', (req, res, next) => {

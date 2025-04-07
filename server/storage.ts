@@ -4,6 +4,8 @@ import {
   inventory, type Inventory, type InsertInventory,
   accessories, type Accessory, type InsertAccessory,
   production as productionTable, type Production, type InsertProduction,
+  orders, type Order, type InsertOrder,
+  orderItems, type OrderItem, type InsertOrderItem,
   designAccessories
 } from "@shared/schema";
 import { db } from "./db";
@@ -46,6 +48,17 @@ export interface IStorage {
   // Design accessories operations
   addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void>;
   getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]>;
+  
+  // Order operations
+  getOrder(id: number): Promise<Order | undefined>;
+  getOrdersByUser(userId: number): Promise<Order[]>;
+  getOrdersByDesign(designId: number): Promise<Order[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined>;
+  
+  // Order items operations
+  getOrderItems(orderId: number): Promise<OrderItem[]>;
+  addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
 }
 
 export class MemStorage implements IStorage {
@@ -54,6 +67,8 @@ export class MemStorage implements IStorage {
   private inventory: Map<number, Inventory>;
   private accessories: Map<number, Accessory>;
   private production: Map<number, Production>;
+  private orders: Map<number, Order>;
+  private orderItems: Map<number, OrderItem[]>;
   private designAccessoriesMap: Map<number, { accessoryId: number; quantity: number }[]>;
   
   private userIdCounter: number;
@@ -61,6 +76,8 @@ export class MemStorage implements IStorage {
   private inventoryIdCounter: number;
   private accessoryIdCounter: number;
   private productionIdCounter: number;
+  private orderIdCounter: number;
+  private orderItemIdCounter: number;
   private designAccessoryIdCounter: number;
 
   constructor() {
@@ -69,6 +86,8 @@ export class MemStorage implements IStorage {
     this.inventory = new Map();
     this.accessories = new Map();
     this.production = new Map();
+    this.orders = new Map();
+    this.orderItems = new Map();
     this.designAccessoriesMap = new Map();
     
     this.userIdCounter = 1;
@@ -76,6 +95,8 @@ export class MemStorage implements IStorage {
     this.inventoryIdCounter = 1;
     this.accessoryIdCounter = 1;
     this.productionIdCounter = 1;
+    this.orderIdCounter = 1;
+    this.orderItemIdCounter = 1;
     this.designAccessoryIdCounter = 1;
     
     // Initialize with default accessories
@@ -373,6 +394,69 @@ export class MemStorage implements IStorage {
     
     return result;
   }
+  
+  // Order operations
+  async getOrder(id: number): Promise<Order | undefined> {
+    return this.orders.get(id);
+  }
+
+  async getOrdersByUser(userId: number): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(order => order.userId === userId);
+  }
+
+  async getOrdersByDesign(designId: number): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(order => order.designId === designId);
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const id = this.orderIdCounter++;
+    const timestamp = new Date();
+    
+    const newOrder: Order = {
+      ...order,
+      id,
+      status: order.status || 'pending',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    
+    this.orders.set(id, newOrder);
+    return newOrder;
+  }
+
+  async updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined> {
+    const existingOrder = this.orders.get(id);
+    if (!existingOrder) return undefined;
+
+    const updatedOrder = {
+      ...existingOrder,
+      ...order,
+      updatedAt: new Date()
+    };
+    
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  // Order items operations
+  async getOrderItems(orderId: number): Promise<OrderItem[]> {
+    return this.orderItems.get(orderId) || [];
+  }
+
+  async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
+    const id = this.orderItemIdCounter++;
+    
+    const newOrderItem: OrderItem = {
+      ...orderItem,
+      id
+    };
+    
+    const orderItems = this.orderItems.get(orderItem.orderId) || [];
+    orderItems.push(newOrderItem);
+    this.orderItems.set(orderItem.orderId, orderItems);
+    
+    return newOrderItem;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -512,6 +596,43 @@ export class DatabaseStorage implements IStorage {
     .where(eq(designAccessories.designId, designId));
     
     return result;
+  }
+  
+  // Orders operations
+  async getOrder(id: number): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
+  }
+
+  async getOrdersByUser(userId: number): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.userId, userId));
+  }
+
+  async getOrdersByDesign(designId: number): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.designId, designId));
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  async updateOrder(id: number, updatedOrder: Partial<Order>): Promise<Order | undefined> {
+    const [order] = await db.update(orders)
+      .set(updatedOrder)
+      .where(eq(orders.id, id))
+      .returning();
+    return order || undefined;
+  }
+
+  // Order items operations
+  async getOrderItems(orderId: number): Promise<OrderItem[]> {
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  }
+
+  async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
+    const [newOrderItem] = await db.insert(orderItems).values(orderItem).returning();
+    return newOrderItem;
   }
 }
 
