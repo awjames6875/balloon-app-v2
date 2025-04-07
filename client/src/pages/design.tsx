@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { DesignElement } from '@/types';
 import DesignUploader from '@/components/design/design-uploader';
 import DesignAnalysis from '@/components/design/design-analysis';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
 import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
 
@@ -445,192 +444,156 @@ const Design = () => {
         </div>
       </div>
 
-      {/* Design Mode Tabs */}
+      {/* Design Canvas */}
       <div className="bg-white border-b border-[#e0e0e0] px-6 py-2">
-        <Tabs defaultValue="canvas" className="w-full">
-          <TabsList className="grid w-[400px] grid-cols-1">
-            <TabsTrigger value="canvas" className="flex items-center gap-2">
-              <PlusCircle className="h-4 w-4" />
-              Canvas Designer
-            </TabsTrigger>
-          </TabsList>
-          
-          {/* Canvas Design Tab */}
-          <TabsContent value="canvas">
-            <DndProvider backend={HTML5Backend}>
-              <div className="flex h-[calc(100vh-120px)]">
-                {/* Left Sidebar - Templates */}
-                <div className="w-[300px] bg-white border-r border-[#e0e0e0] flex flex-col h-full">
-                  <div className="p-4 border-b border-[#e0e0e0]">
-                    <h3 className="font-bold text-[#333333]">Balloon Clusters</h3>
-                    <p className="text-xs text-[#777777] mt-1">Standard: 11 balloons (11"×11"), 2 balloons (16")</p>
-                  </div>
-                  
-                  <div className="p-4">
-                    <h4 className="font-bold text-[#333333] mb-3">Select Color</h4>
-                    <div className="grid grid-cols-4 gap-3 mb-5">
-                      {colorOptions.slice(0, 16).map((color, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`w-12 h-12 rounded-full cursor-pointer ${selectedColor.value === color.value ? 'ring-2 ring-offset-2 ring-[#5568FE]' : ''}`}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => setSelectedColor(color)}
-                          title={color.name}
-                        />
-                      ))}
+        <div className="w-full">
+          {/* Canvas Design Content */}
+          <DndProvider backend={HTML5Backend}>
+            <div className="flex gap-6">
+              <div className="w-4/5">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-lg font-medium text-gray-800">Canvas Designer</h2>
+                      <p className="text-sm text-gray-500">
+                        Drag and drop balloon clusters onto the canvas
+                      </p>
                     </div>
-                    
-                    <button 
-                      onClick={addClusterToCanvas}
-                      className="w-full py-2.5 mt-2 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md text-sm font-medium"
-                    >
-                      <div className="flex items-center justify-center">
-                        <PlusCircle className="h-4 w-4 mr-1.5" />
-                        Add Cluster to Canvas
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <label className="text-sm text-gray-500">Balloon Color:</label>
+                        <select 
+                          className="border border-gray-300 rounded px-2 py-1 text-sm"
+                          value={selectedColor.value}
+                          onChange={(e) => {
+                            const selected = colorOptions.find(c => c.value === e.target.value);
+                            if (selected) setSelectedColor(selected);
+                          }}
+                        >
+                          {colorOptions.map(color => (
+                            <option key={color.name} value={color.value}>{color.name}</option>
+                          ))}
+                        </select>
                       </div>
-                    </button>
+                      <button 
+                        className="flex items-center px-3 py-1 bg-[#5568FE] text-white rounded-md text-sm"
+                        onClick={addClusterToCanvas}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-1" />
+                        Add Cluster
+                      </button>
+                      <button 
+                        className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm border border-gray-300"
+                        onClick={() => {
+                          // This is where the image uploader will be hooked up
+                        }}
+                      >
+                        <Image className="h-4 w-4 mr-1" />
+                        Background
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="border-t border-[#e0e0e0] mt-4 p-4">
-                    <h4 className="font-bold text-[#333333] mb-3">Background</h4>
-                    <BackgroundUploader 
-                      onBackgroundChange={setBackgroundImage} 
-                      currentBackground={backgroundImage}
+                  <div className="relative bg-[#F8F9FA] border-2 border-dashed border-gray-300 rounded-lg h-[500px] overflow-hidden">
+                    <DesignCanvas 
+                      elements={elements}
+                      onElementsChange={handleElementsChange}
+                      backgroundImage={backgroundImage}
                     />
                   </div>
                 </div>
-                
-                {/* Canvas Area */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <div className="flex-1 p-4 overflow-auto">
-                    <div className="bg-white p-4 rounded-md border border-[#e0e0e0] h-[440px] overflow-auto">
-                      <DesignCanvas 
-                        backgroundImage={backgroundImage} 
-                        elements={elements} 
-                        onElementsChange={handleElementsChange} 
+                <div className="mt-4">
+                  <BackgroundUploader
+                    onUpload={(url) => setBackgroundImage(url)}
+                    buttonText="Upload Background Image"
+                  />
+                </div>
+              </div>
+              <div className="w-1/5">
+                <div className="bg-[#F8F9FA] border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-md font-medium text-gray-800 mb-3">Design Information</h3>
+                  <div className="space-y-3 mb-6">
+                    <div className="mb-3">
+                      <label className="block text-sm text-[#777777] mb-1">Design Name</label>
+                      <input 
+                        type="text" 
+                        value={designName}
+                        onChange={(e) => setDesignName(e.target.value)}
+                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                        placeholder="Enter design name"
                       />
                     </div>
-                    
-                    {/* Material Requirements Table */}
-                    <div className="bg-white mt-4 p-4 rounded-md border border-[#e0e0e0]">
-                      <h3 className="font-bold text-[#333333] mb-3">Balloon Count</h3>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr>
-                              <th className="p-2 text-left bg-[#f5f5f7] border border-[#e0e0e0]">Color</th>
-                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">11-inch</th>
-                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">16-inch</th>
-                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Total</th>
-                              <th className="p-2 text-center bg-[#f5f5f7] border border-[#e0e0e0]">Clusters</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(balloonCounts.colorCounts).map(([colorName, counts], idx) => (
-                              <tr key={idx}>
-                                <td className="p-2 border border-[#e0e0e0] flex items-center">
-                                  <div className="w-5 h-5 rounded-full mr-2" style={{ backgroundColor: colorOptions.find(c => c.name === colorName)?.value || '#ccc' }}></div>
-                                  {colorName}
-                                </td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.small}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.large}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.total}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{counts.clusters}</td>
-                              </tr>
-                            ))}
-                            {elements.length > 0 && (
-                              <tr className="bg-[#f5f5f7] font-bold">
-                                <td className="p-2 border border-[#e0e0e0]">TOTAL</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalSmall}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalLarge}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalBalloons}</td>
-                                <td className="p-2 text-center border border-[#e0e0e0]">{balloonCounts.totalClusters}</td>
-                              </tr>
-                            )}
-                            {elements.length === 0 && (
-                              <tr>
-                                <td colSpan={5} className="p-4 text-center text-gray-500">
-                                  No balloon clusters added yet. Use the panel on the left to add clusters.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                      
-                      {/* Project Information */}
-                      <h3 className="font-bold text-[#333333] mt-6 mb-3">Project Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="mb-3">
-                          <label className="block text-sm text-[#777777] mb-1">Client Name</label>
-                          <input
-                            type="text"
-                            value={clientName}
-                            onChange={(e) => setClientName(e.target.value)}
-                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                            placeholder="Enter client name"
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="block text-sm text-[#777777] mb-1">Event Date</label>
-                          <input
-                            type="date"
-                            value={eventDate}
-                            onChange={(e) => setEventDate(e.target.value)}
-                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                          />
-                        </div>
-                        <div className="mb-3">
-                          <label className="block text-sm text-[#777777] mb-1">Event Type</label>
-                          <input
-                            type="text"
-                            value={eventType}
-                            onChange={(e) => setEventType(e.target.value)}
-                            className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                            placeholder="Birthday, Wedding, etc."
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex flex-wrap justify-center gap-4 mt-4">
-                        <button 
-                          className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
-                          onClick={handleCheckInventory}
-                          disabled={isCheckingInventory || !activeDesign}
-                        >
-                          {isCheckingInventory ? (
-                            <>
-                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                              Checking...
-                            </>
-                          ) : (
-                            'Check Inventory'
-                          )}
-                        </button>
-                        <button 
-                          className="px-6 py-2.5 border border-[#5568FE] text-[#5568FE] hover:bg-[#5568FE] hover:bg-opacity-10 rounded-md font-medium flex items-center justify-center"
-                          onClick={handleSaveToInventory}
-                          disabled={isSavingToInventory || !activeDesign}
-                        >
-                          {isSavingToInventory ? (
-                            <>
-                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
-                              Saving...
-                            </>
-                          ) : (
-                            'Save to Inventory'
-                          )}
-                        </button>
-                      </div>
+                    <div className="mb-3">
+                      <label className="block text-sm text-[#777777] mb-1">Client Name</label>
+                      <input 
+                        type="text" 
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                        placeholder="Client name"
+                      />
                     </div>
+                    <div className="mb-3">
+                      <label className="block text-sm text-[#777777] mb-1">Event Date</label>
+                      <input 
+                        type="date" 
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="block text-sm text-[#777777] mb-1">Event Type</label>
+                      <input 
+                        type="text" 
+                        value={eventType}
+                        onChange={(e) => setEventType(e.target.value)}
+                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
+                        placeholder="Birthday, Wedding, etc."
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    <button
+                      className="w-full flex justify-center items-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
+                      onClick={handleCheckInventory}
+                      disabled={isCheckingInventory}
+                    >
+                      {isCheckingInventory ? (
+                        <>
+                          <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Checking...
+                        </>
+                      ) : (
+                        'Check Inventory'
+                      )}
+                    </button>
+                    <button
+                      className="w-full flex justify-center items-center py-2 px-4 border border-[#5568FE] text-[#5568FE] hover:bg-blue-50 rounded-md text-sm font-medium"
+                      onClick={handleSaveToInventory}
+                      disabled={isSavingToInventory}
+                    >
+                      {isSavingToInventory ? (
+                        <>
+                          <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save to Inventory'
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
-            </DndProvider>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </DndProvider>
+        </div>
+      </div>
+      
+      {/* Material Requirements Section */}
+      <div className="px-6 py-4">
+        <MaterialRequirementsPanel balloonCounts={balloonCounts} />
       </div>
     </div>
   );
