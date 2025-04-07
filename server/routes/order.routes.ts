@@ -259,7 +259,15 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
  */
 router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    console.log('New balloon order request:', {
+      body: req.body,
+      userId: req.userId,
+      session: req.session,
+      userRole: req.userRole
+    });
+
     if (!req.userId) {
+      console.error('No userId in authenticated request');
       return res.status(401).json({ message: 'Authentication required' });
     }
     

@@ -13,21 +13,39 @@ export interface AuthenticatedRequest extends Request {
  * Authentication middleware that checks if a user is logged in
  * Sets userId and userRole on request if authenticated
  */
-export const isAuthenticated = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (req.session && req.session.userId) {
-    // Cast to the right type
-    req.userId = req.session.userId;
-    
-    // The session.userRole is a string, make sure it's a valid role type
+export const isAuthenticated = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.session) {
+      console.error('No session found');
+      return res.status(401).json({ message: 'No session found' });
+    }
+
+    if (!req.session.userId) {
+      console.error('No userId in session');
+      return res.status(401).json({ message: 'Session expired' });
+    }
+
+    // Verify user still exists in database
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      console.error(`User ${req.session.userId} not found in database`);
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Set user info on request
+    req.userId = user.id;
     const role = req.session.userRole;
     if (role === 'admin' || role === 'designer' || role === 'inventory_manager') {
       req.userRole = role;
     }
-    
+
+    // Refresh session
+    req.session.touch();
     return next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({ message: 'Authentication error' });
   }
-  
-  return res.status(401).json({ message: 'Authentication required' });
 };
 
 /**

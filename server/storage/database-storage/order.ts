@@ -17,8 +17,29 @@ export class OrderDatabaseStorage {
   }
   
   async createOrder(order: InsertOrder): Promise<Order> {
-    const result = await db.insert(orders).values(order).returning();
-    return result[0];
+    try {
+      // Normalize and validate color values
+      if (order.items) {
+        order.items = order.items.map(item => ({
+          ...item,
+          color: item.color.toLowerCase(),
+          quantity: Math.abs(parseInt(item.quantity.toString())),
+        }));
+      }
+
+      // Ensure dates are properly formatted
+      if (order.expectedDeliveryDate) {
+        order.expectedDeliveryDate = new Date(order.expectedDeliveryDate);
+      }
+
+      console.log('Creating order with validated data:', order);
+      
+      const result = await db.insert(orders).values(order).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Order creation error:', error);
+      throw error;
+    }
   }
   
   async updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined> {
