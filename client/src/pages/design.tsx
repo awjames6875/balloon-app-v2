@@ -336,15 +336,15 @@ const Design = () => {
         { materialCounts }
       );
       
-      // Process response if needed
-      await response.json();
+      // Process response and get message
+      const result = await response.json();
       
       // Refresh inventory data
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       
       toast({
         title: 'Saved to inventory',
-        description: 'The balloon requirements have been added to your inventory',
+        description: result.message || 'The balloon requirements have been added to your inventory',
       });
     } catch (error) {
       console.error('Save to inventory error:', error);
