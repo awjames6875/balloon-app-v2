@@ -40,7 +40,6 @@ const Design = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
-  const [isGeneratingForm, setIsGeneratingForm] = useState(false);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   
   // For Design Uploader
@@ -198,52 +197,6 @@ const Design = () => {
   };
   
   // Function to save balloon requirements to inventory
-  
-  // Function to generate production form
-  const handleGenerateProductionForm = async () => {
-    try {
-      if (!activeDesign) {
-        toast({
-          title: 'No active design',
-          description: 'Please save the design first before generating a production form',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      setIsGeneratingForm(true);
-      
-      // Call the API to generate a production form
-      const response = await apiRequest(
-        'POST', 
-        `/api/designs/${activeDesign.id}/generate-production`,
-        { 
-          clientName,
-          eventDate,
-          eventType,
-          balloonCounts: balloonCounts.colorCounts
-        }
-      );
-      
-      toast({
-        title: 'Production Form Generated',
-        description: 'The production form has been successfully created',
-      });
-      
-      // Navigate to the production page
-      navigate('/production');
-      
-    } catch (error) {
-      console.error('Production form generation error:', error);
-      toast({
-        title: 'Generation failed',
-        description: 'There was an error generating the production form',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGeneratingForm(false);
-    }
-  };
   
   // Function to check inventory availability
   const handleCheckInventory = async () => {
@@ -611,20 +564,6 @@ const Design = () => {
                             </>
                           ) : (
                             'Save to Inventory'
-                          )}
-                        </button>
-                        <button 
-                          className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium flex items-center justify-center"
-                          onClick={handleGenerateProductionForm}
-                          disabled={isGeneratingForm || !activeDesign}
-                        >
-                          {isGeneratingForm ? (
-                            <>
-                              <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                              Generating...
-                            </>
-                          ) : (
-                            'Generate Production Form'
                           )}
                         </button>
                       </div>
