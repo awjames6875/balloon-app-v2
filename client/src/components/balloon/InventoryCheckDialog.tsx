@@ -1,52 +1,35 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { BalloonOrderDialog } from "./BalloonOrderDialog";
 
-// Type definitions
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
 interface InventoryCheckDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  inventoryResult?: {
-    available: boolean;
-    availableItems: Array<{
-      color: string;
-      size: string;
-      required: number;
-      available: number;
-      status: string;
-    }>;
-    unavailableItems: Array<{
-      color: string;
-      size: string;
-      required: number;
-      available: number;
-      status: string;
-    }>;
-    kidFriendly: {
-      success: boolean;
-      message: string;
-      emoji: string;
-      unavailableColors?: string[];
-    };
-  };
+  inventoryResult: any;
   designId?: number;
   onInventoryChecked?: () => void;
 }
-
-// Helper function to get emoji for inventory status
-const getStatusEmoji = (status: string) => {
-  switch (status) {
-    case "available":
-      return "✅";
-    case "low":
-      return "⚠️";
-    case "unavailable":
-      return "❌";
-    default:
-      return "❓";
-  }
-};
 
 export function InventoryCheckDialog({
   open,
@@ -55,22 +38,43 @@ export function InventoryCheckDialog({
   designId,
   onInventoryChecked,
 }: InventoryCheckDialogProps) {
-  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const { toast } = useToast();
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<"11inch" | "16inch" | null>(null);
 
-  // Handle opening the order dialog
-  const handleOpenOrderDialog = () => {
-    setShowOrderDialog(true);
+  // Function to handle opening the order dialog
+  const handleOpenOrderDialog = (color: string, size: "11inch" | "16inch") => {
+    setSelectedColor(color);
+    setSelectedSize(size);
+    setOrderDialogOpen(true);
   };
 
-  // Handle closing the order dialog
-  const handleCloseOrderDialog = () => {
-    setShowOrderDialog(false);
+  // Helper function to get status emoji
+  const getStatusEmoji = (status: string) => {
+    switch (status) {
+      case "in_stock":
+        return "✅";
+      case "low_stock":
+        return "⚠️";
+      case "out_of_stock":
+        return "❌";
+      default:
+        return "ℹ️";
+    }
   };
 
-  // Handle completion of order
-  const handleOrderComplete = () => {
-    if (onInventoryChecked) {
-      onInventoryChecked();
+  // Helper function to get friendly status text
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "in_stock":
+        return "Available";
+      case "low_stock":
+        return "Low Stock";
+      case "out_of_stock":
+        return "Unavailable";
+      default:
+        return "Unknown";
     }
   };
 
@@ -78,111 +82,213 @@ export function InventoryCheckDialog({
     return null;
   }
 
-  const { available, availableItems, unavailableItems, kidFriendly } = inventoryResult;
-
   return (
     <>
-      <Dialog open={open && !showOrderDialog} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-xl">{kidFriendly.emoji}</span>
-              {available ? "Balloon Check" : "We Need More Balloons!"}
+            <DialogTitle className="text-xl flex items-center gap-2">
+              Balloon Inventory Check <span className="text-2xl">🎈</span>
             </DialogTitle>
             <DialogDescription>
-              {kidFriendly.message}
+              Here's what we have in stock for your balloon design.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            {/* Display available items first */}
-            {availableItems.length > 0 && (
-              <div className="mb-4">
-                <h3 className="font-medium mb-2">Balloons Available:</h3>
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="py-2 px-3 text-left">Status</th>
-                        <th className="py-2 px-3 text-left">Color</th>
-                        <th className="py-2 px-3 text-left">Size</th>
-                        <th className="py-2 px-3 text-right">Need</th>
-                        <th className="py-2 px-3 text-right">Have</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {availableItems.map((item, index) => (
-                        <tr key={index} className="border-t">
-                          <td className="py-2 px-3">{getStatusEmoji(item.status)}</td>
-                          <td className="py-2 px-3 capitalize">{item.color}</td>
-                          <td className="py-2 px-3">
-                            {item.size === "11inch" ? "Small" : "Large"}
-                          </td>
-                          <td className="py-2 px-3 text-right">{item.required}</td>
-                          <td className="py-2 px-3 text-right">{item.available}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+          {/* Show different summary messages based on the response format */}
+          {inventoryResult.summary && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                {inventoryResult.summary}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {inventoryResult.message && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                {inventoryResult.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {inventoryResult.kidFriendly && inventoryResult.kidFriendly.message && (
+            <Alert className="mb-4">
+              <AlertDescription className="flex items-center gap-2">
+                <span className="text-xl">{inventoryResult.kidFriendly.emoji}</span>
+                <span>{inventoryResult.kidFriendly.message}</span>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!inventoryResult.summary && !inventoryResult.message && !inventoryResult.kidFriendly && inventoryResult.status && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                {inventoryResult.status === "available" 
+                  ? "Yay! We have all the balloons you need! 🎈" 
+                  : inventoryResult.status === "low"
+                  ? "Some balloons are running low. You might want to order more soon! 🎈"
+                  : "Oops! We need to get some more balloons. Do you want to order them? 🎈"}
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {/* Display unavailable items */}
-            {unavailableItems.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-2">Balloons Needed:</h3>
-                <div className="border rounded-md overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="py-2 px-3 text-left">Status</th>
-                        <th className="py-2 px-3 text-left">Color</th>
-                        <th className="py-2 px-3 text-left">Size</th>
-                        <th className="py-2 px-3 text-right">Need</th>
-                        <th className="py-2 px-3 text-right">Have</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {unavailableItems.map((item, index) => (
-                        <tr key={index} className="border-t bg-red-50">
-                          <td className="py-2 px-3">{getStatusEmoji(item.status)}</td>
-                          <td className="py-2 px-3 capitalize">{item.color}</td>
-                          <td className="py-2 px-3">
-                            {item.size === "11inch" ? "Small" : "Large"}
-                          </td>
-                          <td className="py-2 px-3 text-right">{item.required}</td>
-                          <td className="py-2 px-3 text-right">{item.available}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+          <div className="max-h-[300px] overflow-y-auto">
+            <Table>
+              <TableCaption>Balloon inventory status</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Color</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right">Needed</TableHead>
+                  <TableHead className="text-right">Available</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* Handle different response formats */}
+                {/* Case 1: If we have unavailableItems array (from design-specific endpoint) */}
+                {inventoryResult.unavailableItems && 
+                  [...(inventoryResult.unavailableItems || []), ...(inventoryResult.availableItems || [])].map((item: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell className="capitalize">{item.color}</TableCell>
+                      <TableCell>
+                        {item.size === "11inch" ? "Small" : "Large"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span title={getStatusText(item.status)} className="text-xl">
+                          {getStatusEmoji(item.status === "available" ? "in_stock" : 
+                                          item.status === "low" ? "low_stock" : "out_of_stock")}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">{item.required || 0}</TableCell>
+                      <TableCell className="text-right">{item.available || 0}</TableCell>
+                      <TableCell>
+                        {(item.status === "low" || item.status === "unavailable") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="whitespace-nowrap"
+                            onClick={() => handleOpenOrderDialog(item.color, item.size)}
+                          >
+                            Order More
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                
+                {/* Case 2: If we have inventoryStatus object (from general check-availability endpoint) */}
+                {inventoryResult.inventoryStatus && 
+                  Object.entries(inventoryResult.inventoryStatus).flatMap(([color, items]: [string, any[]]) => 
+                    items.map((item: any, itemIndex: number) => (
+                      <TableRow key={`${color}-${itemIndex}`}>
+                        <TableCell className="capitalize">{color}</TableCell>
+                        <TableCell>
+                          {item.size === "11inch" ? "Small" : "Large"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span title={getStatusText(item.status === "available" ? "in_stock" : 
+                                                     item.status === "low" ? "low_stock" : "out_of_stock")} 
+                                className="text-xl">
+                            {getStatusEmoji(item.status === "available" ? "in_stock" : 
+                                           item.status === "low" ? "low_stock" : "out_of_stock")}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">{item.required || 0}</TableCell>
+                        <TableCell className="text-right">{item.available || 0}</TableCell>
+                        <TableCell>
+                          {(item.status === "low" || item.status === "unavailable") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="whitespace-nowrap"
+                              onClick={() => handleOpenOrderDialog(color, item.size)}
+                            >
+                              Order More
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                
+                {/* Case 3: Simple status response (for backward compatibility) */}
+                {!inventoryResult.unavailableItems && !inventoryResult.inventoryStatus && inventoryResult.status && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-2xl">
+                          {getStatusEmoji(inventoryResult.status === "available" ? "in_stock" : 
+                                      inventoryResult.status === "low" ? "low_stock" : "out_of_stock")}
+                        </span>
+                        <p>
+                          {inventoryResult.status === "available" 
+                            ? "All balloons are available!" 
+                            : inventoryResult.status === "low"
+                            ? "Some balloons are running low"
+                            : "Some balloons are unavailable"}
+                        </p>
+                        {inventoryResult.status !== "available" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setOrderDialogOpen(true)}
+                          >
+                            Order Balloons
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-            {unavailableItems.length > 0 && (
-              <Button onClick={handleOpenOrderDialog}>
-                Order Missing Balloons 🎈
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            {onInventoryChecked && (
+              <Button
+                type="button"
+                onClick={() => {
+                  onInventoryChecked();
+                  onOpenChange(false);
+                }}
+                className="w-full sm:w-auto"
+              >
+                Continue with Design
               </Button>
             )}
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Order dialog */}
-      <BalloonOrderDialog
-        open={showOrderDialog}
-        onOpenChange={handleCloseOrderDialog}
-        unavailableItems={unavailableItems}
-        designId={designId}
-        onOrderComplete={handleOrderComplete}
-      />
+      {/* Order Dialog for specific color/size */}
+      {selectedColor && selectedSize && (
+        <BalloonOrderDialog
+          open={orderDialogOpen}
+          onOpenChange={(open) => {
+            setOrderDialogOpen(open);
+            if (!open) {
+              setSelectedColor(null);
+              setSelectedSize(null);
+            }
+          }}
+          designId={designId}
+          initialColor={selectedColor}
+          initialSize={selectedSize}
+        />
+      )}
     </>
   );
 }

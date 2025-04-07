@@ -22,6 +22,7 @@ import Production from "@/pages/production";
 import Analytics from "@/pages/analytics";
 import Payments from "@/pages/payments";
 import DesignEditor from "@/pages/design-editor";
+import BalloonOrderDemo from "@/pages/BalloonOrderDemo";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -97,6 +98,11 @@ function Router() {
       <Route path="/design-editor/:id?">
         <ProtectedRoute>
           <DesignEditor />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/balloon-order-demo">
+        <ProtectedRoute>
+          <BalloonOrderDemo />
         </ProtectedRoute>
       </Route>
 
