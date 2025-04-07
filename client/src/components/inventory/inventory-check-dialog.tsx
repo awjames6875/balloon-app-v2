@@ -110,7 +110,7 @@ export function InventoryCheckDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl">Do I Have Enough Balloons?</DialogTitle>
             <DialogDescription className="text-base">

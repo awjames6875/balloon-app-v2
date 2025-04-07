@@ -169,7 +169,7 @@ export function OrderBalloonDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         {orderPlaced ? (
           // Order confirmation view
           <>
