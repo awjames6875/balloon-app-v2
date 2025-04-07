@@ -1,0 +1,5 @@
+Host cursor-ssh
+  HostName cursor-ssh.replit.com
+  User repl
+  IdentityFile ~/.ssh/id_rsa
+  StrictHostKeyChecking no
