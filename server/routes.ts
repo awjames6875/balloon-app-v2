@@ -395,6 +395,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to check inventory' });
     }
   });
+  
+  // Generate a production form from a design
+  app.post('/api/designs/:id/generate-production', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      if (isNaN(designId)) {
+        return res.status(400).json({ message: 'Invalid design ID' });
+      }
+      
+      const design = await storage.getDesign(designId);
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      const { clientName, eventDate, eventType, balloonCounts } = req.body;
+      
+      if (!balloonCounts) {
+        return res.status(400).json({ message: 'Balloon counts are required for production' });
+      }
+      
+      // Format the notes field with balloon requirements
+      let notes = `Event Type: ${eventType || 'N/A'}\n\nBalloon Requirements:\n`;
+      
+      for (const [color, counts] of Object.entries(balloonCounts)) {
+        const colorCounts = counts as { small: number, large: number, total: number };
+        notes += `- ${color}: ${colorCounts.total} balloons (${colorCounts.small} small, ${colorCounts.large} large)\n`;
+      }
+      
+      // Create a production record
+      const productionData = {
+        designId: designId,
+        status: 'pending',
+        startDate: new Date(),
+        estimatedCompletionDate: eventDate ? new Date(eventDate) : null,
+        notes: notes
+      };
+      
+      const production = await storage.createProduction(productionData);
+      
+      return res.status(201).json(production);
+    } catch (error) {
+      console.error('Generate production error:', error);
+      return res.status(500).json({ message: 'Failed to generate production form' });
+    }
+  });
 
   app.get('/api/designs/:id', isAuthenticated, async (req, res) => {
     try {

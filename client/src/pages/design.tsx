@@ -558,7 +558,7 @@ const Design = () => {
                 </div>
                 
                 {/* Action Buttons */}
-                <div className="flex justify-center gap-4 mt-4">
+                <div className="flex flex-wrap justify-center gap-4 mt-4">
                   <button 
                     className="px-6 py-2.5 bg-[#5568FE] hover:bg-opacity-90 text-white rounded-md font-medium flex items-center justify-center"
                     onClick={handleCheckInventory}
@@ -585,6 +585,20 @@ const Design = () => {
                       </>
                     ) : (
                       'Save to Inventory'
+                    )}
+                  </button>
+                  <button 
+                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium flex items-center justify-center"
+                    onClick={handleGenerateProductionForm}
+                    disabled={isGeneratingForm || !activeDesign}
+                  >
+                    {isGeneratingForm ? (
+                      <>
+                        <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      'Generate Production Form'
                     )}
                   </button>
                 </div>
