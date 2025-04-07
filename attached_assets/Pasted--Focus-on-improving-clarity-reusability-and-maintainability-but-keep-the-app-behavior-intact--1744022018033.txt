@@ -1,0 +1,52 @@
+
+
+Focus on improving clarity, reusability, and maintainability — but keep the app behavior intact.
+
+Here is the code:
+
+Replit identified the following files as too long or needing cleanup:
+
+Server-side Files:
+
+./server/routes.ts (1314 lines) - This is by far the longest file and should be split into separate route modules.
+
+./server/storage.ts (639 lines) - This file handles all storage operations and should be modularized by entity type.
+
+./server/routes/design.routes.ts (426 lines) - This route file is quite long and could benefit from further modularization.
+
+./server/routes/order.routes.ts (385 lines) - Similar to the design routes, this could be split into more focused modules.
+
+./server/routes/inventory.routes.ts (240 lines) - Might benefit from refactoring into smaller units.
+
+Client-side Files:
+
+./client/src/components/ui/sidebar.tsx (762 lines) - This UI component is very large and should be broken down into smaller, reusable components.
+
+./client/src/pages/design.tsx (624 lines) - This page component is quite large and could benefit from extracting some functionality.
+
+./client/src/pages/inventory.tsx (587 lines) - Similar to the design page, this could be simplified by moving logic to custom hooks.
+
+./client/src/pages/production.tsx (455 lines) - Another large page component that should be refactored.
+
+./client/src/components/order/order-balloon-dialog.tsx (437 lines) - This dialog component is complex and could be broken down.
+
+./client/src/components/ui/chart.tsx (363 lines) - This visualization component should be modularized for better maintainability.
+
+./client/src/components/canvas/canvas-element.tsx (347 lines) - A complex component that handles canvas interactions, could be split into smaller pieces.
+
+./client/src/components/inventory/inventory-check-dialog.tsx (332 lines) - This dialog component could be simplified.Please review these files one at a time using the following rules: Please analyze this TypeScript/React project that powers a Canva-style balloon design app.
+
+This app includes:
+- A drag-and-drop canvas with predefined balloon clusters (React DnD)
+- A real-time data table showing balloon inventory by size and color
+- SVG or Canvas-based rendering of balloons
+- Supabase backend for real-time sync and auth
+- Role-based user accounts (Designer, Admin, Inventory Manager)
+- Inventory and production planning modules
+
+Without changing any app behavior or breaking functionality, give me:
+1. A refactored file/module structure based on project concerns (e.g., components, hooks, inventory logic, auth, rendering, etc.)
+2. Suggestions to split large files into smaller reusable pieces
+3. Any functions or React components that should be broken down
+4. Naming, readability, and structure improvements that follow best practices
+5. Optional: lightweight test scaffolds or sanity checks to validate changes

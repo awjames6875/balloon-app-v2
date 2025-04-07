@@ -1,141 +1,112 @@
-import { Request, Response, NextFunction } from 'express';
-import { storage } from '../storage';
+import { NextFunction, Request, Response } from 'express';
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import bcryptjs from 'bcryptjs';
+import { Express } from 'express';
 
-/**
- * Extended Request interface that includes user authentication information
- */
-export interface AuthenticatedRequest extends Request {
-  userId?: number;
-  userRole?: 'admin' | 'designer' | 'inventory_manager';
+import { RepositoryFactory } from '../repositories';
+import { AuthenticatedRequest } from '../types';
+
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      email: string;
+      role: string;
+    }
+  }
 }
 
 /**
- * Authentication middleware that checks if a user is logged in
- * Sets userId and userRole on request if authenticated
+ * Configure passport authentication
+ * @param app Express application instance
  */
-export const isAuthenticated = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    if (!req.session) {
-      console.error('No session found');
-      return res.status(401).json({ message: 'No session found' });
+export function configurePassport(app: Express): void {
+  // Initialize passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Configure local strategy for username/password authentication
+  passport.use(
+    new LocalStrategy(
+      {
+        usernameField: 'username',
+        passwordField: 'password',
+      },
+      async (username, password, done) => {
+        try {
+          const userRepository = RepositoryFactory.getUserRepository();
+          const user = await userRepository.findByUsername(username);
+          
+          if (!user) {
+            return done(null, false, { message: 'Invalid username or password' });
+          }
+          
+          const isMatch = await bcryptjs.compare(password, user.password);
+          
+          if (!isMatch) {
+            return done(null, false, { message: 'Invalid username or password' });
+          }
+          
+          // Don't include password in the user object
+          const { password: _, ...userWithoutPassword } = user;
+          return done(null, userWithoutPassword);
+        } catch (error) {
+          return done(error);
+        }
+      }
+    )
+  );
+  
+  // Serialize user to the session
+  passport.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+  
+  // Deserialize user from the session
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const userRepository = RepositoryFactory.getUserRepository();
+      const user = await userRepository.findById(id);
+      
+      if (!user) {
+        return done(null, false);
+      }
+      
+      // Don't include password in the user object
+      const { password: _, ...userWithoutPassword } = user;
+      done(null, userWithoutPassword);
+    } catch (error) {
+      done(error);
     }
+  });
+}
 
-    if (!req.session.userId) {
-      console.error('No userId in session');
-      return res.status(401).json({ message: 'Session expired' });
-    }
-
-    // Verify user still exists in database
-    const user = await storage.getUser(req.session.userId);
-    if (!user) {
-      console.error(`User ${req.session.userId} not found in database`);
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    // Set user info on request
-    req.userId = user.id;
-    
-    // Ensure session always has correct role
-    if (!req.session.userRole || req.session.userRole !== user.role) {
-      req.session.userRole = user.role;
-    }
-    
-    // Set role on request
-    req.userRole = user.role;
-
-    // Refresh session
-    req.session.touch();
+/**
+ * Middleware to check if user is authenticated
+ */
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
     return next();
-  } catch (error) {
-    console.error('Auth middleware error:', error);
-    return res.status(500).json({ message: 'Authentication error' });
   }
-};
+  res.status(401).json({ message: 'Unauthorized' });
+}
 
 /**
- * Authorization middleware that checks if a user has admin role
- * Must be used after isAuthenticated
+ * Middleware to check if user has a specific role
+ * @param roles Array of allowed roles
  */
-export const isAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
-  }
-  
-  next();
-};
-
-/**
- * Authorization middleware that checks if a user has inventory manager role
- * Must be used after isAuthenticated
- */
-export const isInventoryManager = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (req.userRole !== 'inventory_manager' && req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Inventory manager access required' });
-  }
-  
-  next();
-};
-
-/**
- * Authorization middleware that checks if a user has designer role
- * Must be used after isAuthenticated
- */
-export const isDesigner = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (req.userRole !== 'designer' && req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Designer access required' });
-  }
-  
-  next();
-};
-
-/**
- * Middleware to check if a user owns a design or has admin role
- * Must be used after isAuthenticated
- */
-export const isDesignOwnerOrAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  
-  const designId = parseInt(req.params.designId);
-  if (isNaN(designId)) {
-    return res.status(400).json({ message: 'Invalid design ID' });
-  }
-  
-  const design = await storage.getDesign(designId);
-  if (!design) {
-    return res.status(404).json({ message: 'Design not found' });
-  }
-  
-  if (design.userId !== req.userId && req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Access denied' });
-  }
-  
-  next();
-};
-
-/**
- * Middleware to check if a user owns an order or has admin role
- * Must be used after isAuthenticated
- */
-export const isOrderOwnerOrAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
-  
-  const orderId = parseInt(req.params.orderId || req.params.id);
-  if (isNaN(orderId)) {
-    return res.status(400).json({ message: 'Invalid order ID' });
-  }
-  
-  const order = await storage.getOrder(orderId);
-  if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
-  }
-  
-  if (order.userId !== req.userId && req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Access denied' });
-  }
-  
-  next();
-};
+export function hasRole(roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    
+    next();
+  };
+}

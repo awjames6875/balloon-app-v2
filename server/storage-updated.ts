@@ -1,12 +1,12 @@
-import {
-  User, InsertUser,
-  Design, InsertDesign,
-  Inventory, InsertInventory,
-  Accessory, InsertAccessory,
-  Production, InsertProduction,
-  Order, InsertOrder,
+import { 
+  User, InsertUser, 
+  Design, InsertDesign, 
+  Inventory, InsertInventory, 
+  Accessory, InsertAccessory, 
+  Production, InsertProduction, 
+  Order, InsertOrder, 
   OrderItem, InsertOrderItem
-} from "@shared/schema";
+} from '@shared/schema';
 
 import { RepositoryFactory } from './repositories';
 
@@ -70,138 +70,142 @@ export interface IStorage {
  * @deprecated Use individual repositories instead
  */
 export class DatabaseStorage implements IStorage {
+  constructor() {
+    console.log('DatabaseStorage initialized - Consider using repositories directly');
+  }
+  
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findById(id);
+    return await RepositoryFactory.getUserRepository().findById(id);
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findByUsername(username);
+    return await RepositoryFactory.getUserRepository().findByUsername(username);
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findByEmail(email);
+    return await RepositoryFactory.getUserRepository().findByEmail(email);
   }
   
   async createUser(user: InsertUser): Promise<User> {
-    return RepositoryFactory.getUserRepository().create(user);
+    return await RepositoryFactory.getUserRepository().create(user);
   }
   
   // Design operations
   async getDesign(id: number): Promise<Design | undefined> {
-    return RepositoryFactory.getDesignRepository().findById(id);
+    return await RepositoryFactory.getDesignRepository().findById(id);
   }
   
   async getDesignsByUser(userId: number): Promise<Design[]> {
-    return RepositoryFactory.getDesignRepository().findByUser(userId);
+    return await RepositoryFactory.getDesignRepository().findByUser(userId);
   }
   
   async createDesign(design: InsertDesign): Promise<Design> {
-    return RepositoryFactory.getDesignRepository().create(design);
+    return await RepositoryFactory.getDesignRepository().create(design);
   }
   
   async updateDesign(id: number, design: Partial<Design>): Promise<Design | undefined> {
-    return RepositoryFactory.getDesignRepository().update(id, design);
+    return await RepositoryFactory.getDesignRepository().update(id, design);
   }
   
   async deleteDesign(id: number): Promise<boolean> {
-    return RepositoryFactory.getDesignRepository().delete(id);
+    return await RepositoryFactory.getDesignRepository().delete(id);
   }
   
   // Inventory operations
   async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    return RepositoryFactory.getInventoryRepository().findById(id);
+    return await RepositoryFactory.getInventoryRepository().findById(id);
   }
   
   async getAllInventory(): Promise<Inventory[]> {
-    return RepositoryFactory.getInventoryRepository().findAll();
+    return await RepositoryFactory.getInventoryRepository().findAll();
   }
   
   async getInventoryByColor(color: string): Promise<Inventory[]> {
-    return RepositoryFactory.getInventoryRepository().findByColor(color);
+    return await RepositoryFactory.getInventoryRepository().findByColor(color);
   }
   
   async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    return RepositoryFactory.getInventoryRepository().create(item);
+    return await RepositoryFactory.getInventoryRepository().create(item);
   }
   
   async updateInventoryItem(id: number, item: Partial<Inventory>): Promise<Inventory | undefined> {
-    return RepositoryFactory.getInventoryRepository().update(id, item);
+    return await RepositoryFactory.getInventoryRepository().update(id, item);
   }
   
   // Accessory operations
   async getAccessory(id: number): Promise<Accessory | undefined> {
-    return RepositoryFactory.getAccessoryRepository().findById(id);
+    return await RepositoryFactory.getAccessoryRepository().findById(id);
   }
   
   async getAllAccessories(): Promise<Accessory[]> {
-    return RepositoryFactory.getAccessoryRepository().findAll();
+    return await RepositoryFactory.getAccessoryRepository().findAll();
   }
   
   async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
-    return RepositoryFactory.getAccessoryRepository().create(accessory);
+    return await RepositoryFactory.getAccessoryRepository().create(accessory);
   }
   
   async updateAccessory(id: number, accessory: Partial<Accessory>): Promise<Accessory | undefined> {
-    return RepositoryFactory.getAccessoryRepository().update(id, accessory);
+    return await RepositoryFactory.getAccessoryRepository().update(id, accessory);
   }
   
   // Production operations
   async getProduction(id: number): Promise<Production | undefined> {
-    return RepositoryFactory.getProductionRepository().findById(id);
+    return await RepositoryFactory.getProductionRepository().findById(id);
   }
   
   async getProductionsByDesign(designId: number): Promise<Production[]> {
-    return RepositoryFactory.getProductionRepository().findByDesign(designId);
+    return await RepositoryFactory.getProductionRepository().findByDesign(designId);
   }
   
   async createProduction(production: InsertProduction): Promise<Production> {
-    return RepositoryFactory.getProductionRepository().create(production);
+    return await RepositoryFactory.getProductionRepository().create(production);
   }
   
   async updateProduction(id: number, production: Partial<Production>): Promise<Production | undefined> {
-    return RepositoryFactory.getProductionRepository().update(id, production);
+    return await RepositoryFactory.getProductionRepository().update(id, production);
   }
   
   // Design accessories operations
   async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    return RepositoryFactory.getDesignRepository().addAccessory(designId, accessoryId, quantity);
+    await RepositoryFactory.getDesignRepository().addAccessory(designId, accessoryId, quantity);
   }
   
   async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    return RepositoryFactory.getDesignRepository().getAccessories(designId);
+    return await RepositoryFactory.getDesignRepository().getAccessories(designId);
   }
   
   // Order operations
   async getOrder(id: number): Promise<Order | undefined> {
-    return RepositoryFactory.getOrderRepository().findById(id);
+    return await RepositoryFactory.getOrderRepository().findById(id);
   }
   
   async getOrdersByUser(userId: number): Promise<Order[]> {
-    return RepositoryFactory.getOrderRepository().findByUser(userId);
+    return await RepositoryFactory.getOrderRepository().findByUser(userId);
   }
   
   async getOrdersByDesign(designId: number): Promise<Order[]> {
-    return RepositoryFactory.getOrderRepository().findByDesign(designId);
+    return await RepositoryFactory.getOrderRepository().findByDesign(designId);
   }
   
   async createOrder(order: InsertOrder): Promise<Order> {
-    return RepositoryFactory.getOrderRepository().create(order);
+    return await RepositoryFactory.getOrderRepository().create(order);
   }
   
   async updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined> {
-    return RepositoryFactory.getOrderRepository().update(id, order);
+    return await RepositoryFactory.getOrderRepository().update(id, order);
   }
   
   // Order items operations
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return RepositoryFactory.getOrderRepository().getOrderItems(orderId);
+    return await RepositoryFactory.getOrderRepository().getOrderItems(orderId);
   }
   
   async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    return RepositoryFactory.getOrderRepository().addOrderItem(orderItem);
+    return await RepositoryFactory.getOrderRepository().addOrderItem(orderItem);
   }
 }
 
-// Create a single instance of the storage implementation
+// Create a singleton instance for backward compatibility
 export const storage = new DatabaseStorage();
