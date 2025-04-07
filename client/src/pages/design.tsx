@@ -448,14 +448,10 @@ const Design = () => {
       {/* Design Mode Tabs */}
       <div className="bg-white border-b border-[#e0e0e0] px-6 py-2">
         <Tabs defaultValue="canvas" className="w-full">
-          <TabsList className="grid w-[400px] grid-cols-2">
+          <TabsList className="grid w-[400px] grid-cols-1">
             <TabsTrigger value="canvas" className="flex items-center gap-2">
               <PlusCircle className="h-4 w-4" />
               Canvas Designer
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              Upload Design Image
             </TabsTrigger>
           </TabsList>
           
@@ -633,14 +629,6 @@ const Design = () => {
                 </div>
               </div>
             </DndProvider>
-          </TabsContent>
-          
-          {/* Upload Design Tab */}
-          <TabsContent value="upload">
-            <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <DesignUploader onAnalysisStart={handleAnalysisStart} />
-              <DesignAnalysis loading={isAnalyzing} />
-            </div>
           </TabsContent>
         </Tabs>
       </div>
