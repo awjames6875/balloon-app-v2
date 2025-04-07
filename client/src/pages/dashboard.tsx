@@ -7,7 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ChevronRight, BarChart3, LineChart, FileText, Calendar, Package, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/auth-context";
-import { Design } from "@/types";
+import { Design } from "@shared/schema";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -198,10 +198,8 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Recent Projects</CardTitle>
-              <Link href="/design">
-                <a className="text-sm text-primary-600 hover:text-primary-700 flex items-center">
-                  View all <ChevronRight className="h-4 w-4 ml-1" />
-                </a>
+              <Link href="/design" className="text-sm text-primary-600 hover:text-primary-700 flex items-center">
+                View all <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
           </CardHeader>
@@ -240,10 +238,8 @@ const Dashboard = () => {
             ) : (
               <div className="text-center py-6">
                 <p className="text-secondary-500">No projects yet</p>
-                <Link href="/design">
-                  <a className="mt-2 inline-flex items-center text-primary-600 hover:text-primary-700">
-                    Upload your first design
-                  </a>
+                <Link href="/design" className="mt-2 inline-flex items-center text-primary-600 hover:text-primary-700">
+                  Upload your first design
                 </Link>
               </div>
             )}
@@ -255,10 +251,8 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Inventory Alerts</CardTitle>
-              <Link href="/inventory">
-                <a className="text-sm text-primary-600 hover:text-primary-700 flex items-center">
-                  View inventory <ChevronRight className="h-4 w-4 ml-1" />
-                </a>
+              <Link href="/inventory" className="text-sm text-primary-600 hover:text-primary-700 flex items-center">
+                View inventory <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
           </CardHeader>
