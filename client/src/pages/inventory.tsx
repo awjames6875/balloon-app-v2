@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check } from "lucide-react";
+import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ const Inventory = () => {
   const [inventoryType, setInventoryType] = useState("balloons");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // New inventory form state
   const [newItem, setNewItem] = useState({
@@ -170,6 +171,31 @@ const Inventory = () => {
     }
   };
 
+  // Handle refreshing inventory data
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+      
+      // Invalidate both queries to force a refresh
+      await queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
+      
+      toast({
+        title: "Inventory refreshed",
+        description: "The inventory data has been refreshed successfully."
+      });
+    } catch (error) {
+      console.error("Error refreshing inventory:", error);
+      toast({
+        title: "Error refreshing data",
+        description: "There was a problem refreshing the inventory data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Check if user has required permission to modify inventory
   const canModifyInventory = user?.role === 'admin' || user?.role === 'inventory_manager';
 
@@ -265,15 +291,27 @@ const Inventory = () => {
               <CardDescription>Manage your balloon and accessory inventory</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-secondary-400" />
-                <Input
-                  type="search"
-                  placeholder="Search inventory..."
-                  className="pl-8 w-full sm:w-[200px] lg:w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-secondary-400" />
+                  <Input
+                    type="search"
+                    placeholder="Search inventory..."
+                    className="pl-8 w-full sm:w-[200px] lg:w-[300px]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={handleRefresh} 
+                  disabled={isRefreshing || inventoryLoading || accessoriesLoading}
+                  className="h-10 w-10 flex-shrink-0"
+                  title="Refresh inventory"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
               </div>
               {canModifyInventory && (
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
