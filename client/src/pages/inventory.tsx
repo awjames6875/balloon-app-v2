@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw } from "lucide-react";
@@ -21,6 +21,8 @@ const Inventory = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Create reference for the refresh button icon
+  const refreshIconRef = useRef<SVGSVGElement>(null);
   
   // New inventory form state
   const [newItem, setNewItem] = useState({
@@ -311,22 +313,39 @@ const Inventory = () => {
                   size="icon" 
                   onClick={() => {
                     console.log("Refresh button clicked directly");
+                    // Set the rotating state
                     setIsRefreshing(true);
+                    
+                    // Force CSS animation refresh by adding a specific class
+                    if (refreshIconRef.current) {
+                      refreshIconRef.current.classList.add('animate-spin');
+                      refreshIconRef.current.style.transformOrigin = 'center';
+                    }
+                    
+                    // Invalidate both queries to force a refresh
                     queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
                     queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
+                    
+                    // Allow animation to continue for a moment 
                     setTimeout(() => {
                       setIsRefreshing(false);
+                      if (refreshIconRef.current) {
+                        refreshIconRef.current.classList.remove('animate-spin');
+                      }
                       toast({
                         title: "Inventory refreshed",
                         description: "The inventory data has been refreshed successfully."
                       });
-                    }, 800);
+                    }, 1000);
                   }} 
                   disabled={isRefreshing || inventoryLoading || accessoriesLoading}
                   className="h-10 w-10 flex-shrink-0"
                   title="Refresh inventory"
                 >
-                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw 
+                    ref={refreshIconRef}
+                    className="h-4 w-4" 
+                  />
                 </Button>
               </div>
               {canModifyInventory && (
