@@ -474,4 +474,110 @@ router.post('/create-with-analysis', isAuthenticated, createAuthHandler(async (r
   }
 }));
 
+/**
+ * Save design material requirements to inventory
+ * POST /api/designs/:id/save-to-inventory
+ * Requires authentication and ownership of the design or admin role
+ */
+router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, createAuthHandler(async (req, res) => {
+  try {
+    const designId = parseInt(req.params.id);
+    if (isNaN(designId)) {
+      return res.status(400).json({ message: 'Invalid design ID' });
+    }
+    
+    // Get the design
+    const design = await storage.getDesign(designId);
+    if (!design) {
+      return res.status(404).json({ message: 'Design not found' });
+    }
+    
+    // Get all inventory
+    const allInventory = await storage.getAllInventory();
+    
+    // Extract balloon counts from the design
+    const { materialCounts } = req.body;
+    
+    if (!materialCounts || typeof materialCounts !== 'object') {
+      return res.status(400).json({ message: 'No material counts provided' });
+    }
+    
+    console.log('Processing material counts:', JSON.stringify(materialCounts));
+    
+    // Process each color
+    for (const [colorName, counts] of Object.entries(materialCounts)) {
+      const { small, large } = counts as { small: number, large: number };
+      
+      // Map color name to database color (lowercase)
+      const dbColor = colorName.toLowerCase() as 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'pink' | 'orange' | 'white' | 'black' | 'silver' | 'gold';
+      
+      // Get inventory for this color
+      const colorInventory = allInventory.filter(item => 
+        item.color.toLowerCase() === dbColor
+      );
+      
+      // Update small balloons (11inch)
+      if (small > 0) {
+        const smallInventory = colorInventory.find(item => item.size === '11inch');
+        
+        if (smallInventory) {
+          // Update existing inventory
+          console.log(`Updating ${dbColor} 11inch inventory from ${smallInventory.quantity} to ${smallInventory.quantity + small}`);
+          
+          await storage.updateInventoryItem(smallInventory.id, {
+            quantity: smallInventory.quantity + small
+          });
+        } else {
+          // Create new inventory item
+          console.log(`Creating new ${dbColor} 11inch inventory with quantity ${small}`);
+          
+          await storage.createInventoryItem({
+            color: dbColor,
+            size: '11inch',
+            quantity: small,
+            threshold: 20 // Default threshold
+          });
+        }
+      }
+      
+      // Update large balloons (16inch)
+      if (large > 0) {
+        const largeInventory = colorInventory.find(item => item.size === '16inch');
+        
+        if (largeInventory) {
+          // Update existing inventory
+          console.log(`Updating ${dbColor} 16inch inventory from ${largeInventory.quantity} to ${largeInventory.quantity + large}`);
+          
+          await storage.updateInventoryItem(largeInventory.id, {
+            quantity: largeInventory.quantity + large
+          });
+        } else {
+          // Create new inventory item
+          console.log(`Creating new ${dbColor} 16inch inventory with quantity ${large}`);
+          
+          await storage.createInventoryItem({
+            color: dbColor,
+            size: '16inch',
+            quantity: large,
+            threshold: 20 // Default threshold
+          });
+        }
+      }
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Inventory successfully updated',
+      designId
+    });
+    
+  } catch (error) {
+    console.error('Save to inventory error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to update inventory'
+    });
+  }
+}));
+
 export default router;
