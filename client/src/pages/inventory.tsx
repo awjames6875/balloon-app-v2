@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw } from "lucide-react";
+import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ const Inventory = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   // Create reference for the refresh button icon
   const refreshIconRef = useRef<SVGSVGElement>(null);
-  
+
   // New inventory form state
   const [newItem, setNewItem] = useState({
     name: "",
@@ -37,7 +37,7 @@ const Inventory = () => {
   const { data: inventory, isLoading: inventoryLoading } = useQuery({
     queryKey: ["/api/inventory"],
   });
-  
+
   // Fetch accessories data
   const { data: accessories, isLoading: accessoriesLoading } = useQuery({
     queryKey: ["/api/accessories"],
@@ -47,16 +47,16 @@ const Inventory = () => {
   const filteredInventory = inventory?.filter(item => 
     item.color.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
-  
+
   // Filter accessories based on search term
   const filteredAccessories = accessories?.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
-  
+
   // Count items by status
   const getStatusCounts = (items) => {
     if (!items) return { total: 0, inStock: 0, lowStock: 0, outOfStock: 0 };
-    
+
     return {
       total: items.length,
       inStock: items.filter(item => item.status === 'in_stock').length,
@@ -64,7 +64,7 @@ const Inventory = () => {
       outOfStock: items.filter(item => item.status === 'out_of_stock').length
     };
   };
-  
+
   const balloonCounts = getStatusCounts(inventory);
   const accessoryCounts = getStatusCounts(accessories);
 
@@ -72,7 +72,7 @@ const Inventory = () => {
   const handleAddItem = async () => {
     try {
       setIsSubmitting(true);
-      
+
       if (inventoryType === "balloons") {
         if (newItem.quantity < 0 || newItem.threshold < 0) {
           toast({
@@ -82,16 +82,16 @@ const Inventory = () => {
           });
           return;
         }
-        
+
         await apiRequest("POST", "/api/inventory", {
           color: newItem.color,
           size: newItem.size,
           quantity: parseInt(newItem.quantity),
           threshold: parseInt(newItem.threshold)
         });
-        
+
         queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-        
+
         toast({
           title: "Inventory added",
           description: `Added ${newItem.quantity} ${newItem.color} ${newItem.size} balloons`,
@@ -102,15 +102,15 @@ const Inventory = () => {
           quantity: parseInt(newItem.quantity),
           threshold: parseInt(newItem.threshold)
         });
-        
+
         queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
-        
+
         toast({
           title: "Accessory added",
           description: `Added ${newItem.quantity} ${newItem.name}`,
         });
       }
-      
+
       // Reset form and close dialog
       setNewItem({
         name: "",
@@ -119,7 +119,7 @@ const Inventory = () => {
         quantity: 0,
         threshold: 20
       });
-      
+
       setShowAddDialog(false);
     } catch (error) {
       console.error("Error adding inventory:", error);
@@ -144,21 +144,21 @@ const Inventory = () => {
         });
         return;
       }
-      
+
       if (type === "balloons") {
         await apiRequest("PUT", `/api/inventory/${id}`, {
           quantity: parseInt(newQuantity)
         });
-        
+
         queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       } else {
         await apiRequest("PUT", `/api/accessories/${id}`, {
           quantity: parseInt(newQuantity)
         });
-        
+
         queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
       }
-      
+
       toast({
         title: "Item updated",
         description: "Inventory has been updated successfully",
@@ -178,11 +178,11 @@ const Inventory = () => {
     console.log("Refresh button clicked");
     try {
       setIsRefreshing(true);
-      
+
       // Invalidate both queries to force a refresh
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
-      
+
       // Set a timeout to show the refresh animation for a moment
       setTimeout(() => {
         setIsRefreshing(false);
@@ -204,6 +204,12 @@ const Inventory = () => {
 
   // Check if user has required permission to modify inventory
   const canModifyInventory = user?.role === 'admin' || user?.role === 'inventory_manager';
+
+  //Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Adjust as needed
+  const totalPages = Math.ceil((filteredInventory.length + filteredAccessories.length) / itemsPerPage);
+
 
   return (
     <div className="p-4 md:p-6 space-y-6 pb-16 md:pb-6">
@@ -308,45 +314,56 @@ const Inventory = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  onClick={() => {
-                    console.log("Refresh button clicked directly");
-                    // Set the rotating state
-                    setIsRefreshing(true);
-                    
-                    // Force CSS animation refresh by adding a specific class
-                    if (refreshIconRef.current) {
-                      refreshIconRef.current.classList.add('animate-spin');
-                      refreshIconRef.current.style.transformOrigin = 'center';
-                    }
-                    
-                    // Invalidate both queries to force a refresh
-                    queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
-                    
-                    // Allow animation to continue for a moment 
-                    setTimeout(() => {
-                      setIsRefreshing(false);
-                      if (refreshIconRef.current) {
-                        refreshIconRef.current.classList.remove('animate-spin');
-                      }
-                      toast({
-                        title: "Inventory refreshed",
-                        description: "The inventory data has been refreshed successfully."
-                      });
-                    }, 1000);
-                  }} 
-                  disabled={isRefreshing || inventoryLoading || accessoriesLoading}
-                  className="h-10 w-10 flex-shrink-0"
-                  title="Refresh inventory"
-                >
-                  <RefreshCw 
-                    ref={refreshIconRef}
-                    className="h-4 w-4" 
-                  />
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => {
+                      setIsRefreshing(true);
+
+                      // Invalidate queries to force refresh
+                      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
+
+                      setTimeout(() => {
+                        setIsRefreshing(false);
+                        toast({
+                          title: "Inventory refreshed",
+                          description: "The inventory data has been updated."
+                        });
+                      }, 1000);
+                    }}
+                    disabled={isRefreshing}
+                    className="relative"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+
+                  {/* Pagination Navigation */}
+                  <div className="flex items-center space-x-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
               {canModifyInventory && (
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -484,7 +501,7 @@ const Inventory = () => {
               <TabsTrigger value="balloons">Balloons</TabsTrigger>
               <TabsTrigger value="accessories">Accessories</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="balloons">
               {inventoryLoading ? (
                 <div className="flex justify-center p-6">
@@ -501,13 +518,13 @@ const Inventory = () => {
                     <div className="col-span-2">Status</div>
                     {canModifyInventory && <div className="col-span-1">Actions</div>}
                   </div>
-                  
-                  {filteredInventory.map((item, index) => (
+
+                  {filteredInventory.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
                     <div 
                       key={item.id} 
                       className="grid grid-cols-12 py-3 px-4 border-b last:border-b-0 items-center text-sm"
                     >
-                      <div className="col-span-1 text-secondary-500">{index + 1}</div>
+                      <div className="col-span-1 text-secondary-500">{index + 1 + (currentPage -1) * itemsPerPage}</div>
                       <div className="col-span-2 flex items-center space-x-2">
                         <div 
                           className="w-4 h-4 rounded-full" 
@@ -573,7 +590,7 @@ const Inventory = () => {
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="accessories">
               {accessoriesLoading ? (
                 <div className="flex justify-center p-6">
@@ -589,13 +606,13 @@ const Inventory = () => {
                     <div className="col-span-2">Status</div>
                     {canModifyInventory && <div className="col-span-1">Actions</div>}
                   </div>
-                  
-                  {filteredAccessories.map((item, index) => (
+
+                  {filteredAccessories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, index) => (
                     <div 
                       key={item.id} 
                       className="grid grid-cols-12 py-3 px-4 border-b last:border-b-0 items-center text-sm"
                     >
-                      <div className="col-span-1 text-secondary-500">{index + 1}</div>
+                      <div className="col-span-1 text-secondary-500">{index + 1 + (currentPage -1) * itemsPerPage}</div>
                       <div className="col-span-4">{item.name}</div>
                       <div className="col-span-2">
                         {canModifyInventory ? (
