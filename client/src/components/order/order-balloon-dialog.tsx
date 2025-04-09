@@ -89,6 +89,7 @@ export function OrderBalloonDialog({
       }));
       
       console.log("Sending order data:", {
+        designId,
         supplierName: orderForm.supplierName,
         expectedDeliveryDate: orderForm.expectedDeliveryDate,
         priority: orderForm.priority,
@@ -96,13 +97,17 @@ export function OrderBalloonDialog({
         items: convertedItems
       });
       
-      const response = await apiRequest('/api/designs/' + designId + '/order', 'POST', {
-        supplierName: orderForm.supplierName,
-        expectedDeliveryDate: orderForm.expectedDeliveryDate,
-        priority: orderForm.priority,
-        notes: orderForm.notes || `Order for design #${designId}`,
-        items: convertedItems // Pass the items with converted prices
-      });
+      const response = await apiRequest(
+        'POST',
+        '/api/designs/' + designId + '/order', 
+        {
+          supplierName: orderForm.supplierName,
+          expectedDeliveryDate: orderForm.expectedDeliveryDate,
+          priority: orderForm.priority,
+          notes: orderForm.notes || `Order for design #${designId}`,
+          items: convertedItems // Pass the items with converted prices
+        }
+      );
       
       return response;
     },
