@@ -111,14 +111,5 @@ export async function createApp(): Promise<{ app: Express, server: Server }> {
   // Create HTTP server
   const server = createServer(app);
 
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    console.log(`Server running at http://0.0.0.0:${port}`);
-  });
-
   return { app, server };
 }

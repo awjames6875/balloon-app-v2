@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
@@ -21,8 +21,7 @@ const Inventory = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Create reference for the refresh button icon
-  const refreshIconRef = useRef<SVGSVGElement>(null);
+
 
   // New inventory form state
   const [newItem, setNewItem] = useState({
