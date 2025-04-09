@@ -522,20 +522,40 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
         
         if (smallInventory) {
           // Update existing inventory
-          console.log(`Updating ${dbColor} 11inch inventory from ${smallInventory.quantity} to ${smallInventory.quantity + small}`);
+          const newQuantity = smallInventory.quantity + small;
+          console.log(`Updating ${dbColor} 11inch inventory from ${smallInventory.quantity} to ${newQuantity}`);
+          
+          // Calculate new status based on quantity and threshold
+          let status = 'in_stock';
+          if (newQuantity <= 0) {
+            status = 'out_of_stock';
+          } else if (newQuantity < smallInventory.threshold) {
+            status = 'low_stock';
+          }
           
           await storage.updateInventoryItem(smallInventory.id, {
-            quantity: smallInventory.quantity + small
+            quantity: newQuantity,
+            status: status
           });
         } else {
           // Create new inventory item
           console.log(`Creating new ${dbColor} 11inch inventory with quantity ${small}`);
           
+          // Set default status
+          let status = 'in_stock';
+          const threshold = 20; // Default threshold
+          if (small <= 0) {
+            status = 'out_of_stock';
+          } else if (small < threshold) {
+            status = 'low_stock';
+          }
+          
           await storage.createInventoryItem({
             color: dbColor,
             size: '11inch',
             quantity: small,
-            threshold: 20 // Default threshold
+            threshold: threshold,
+            status: status
           });
         }
       }
@@ -546,20 +566,40 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
         
         if (largeInventory) {
           // Update existing inventory
-          console.log(`Updating ${dbColor} 16inch inventory from ${largeInventory.quantity} to ${largeInventory.quantity + large}`);
+          const newQuantity = largeInventory.quantity + large;
+          console.log(`Updating ${dbColor} 16inch inventory from ${largeInventory.quantity} to ${newQuantity}`);
+          
+          // Calculate new status based on quantity and threshold
+          let status = 'in_stock';
+          if (newQuantity <= 0) {
+            status = 'out_of_stock';
+          } else if (newQuantity < largeInventory.threshold) {
+            status = 'low_stock';
+          }
           
           await storage.updateInventoryItem(largeInventory.id, {
-            quantity: largeInventory.quantity + large
+            quantity: newQuantity,
+            status: status
           });
         } else {
           // Create new inventory item
           console.log(`Creating new ${dbColor} 16inch inventory with quantity ${large}`);
           
+          // Set default status
+          let status = 'in_stock';
+          const threshold = 20; // Default threshold
+          if (large <= 0) {
+            status = 'out_of_stock';
+          } else if (large < threshold) {
+            status = 'low_stock';
+          }
+          
           await storage.createInventoryItem({
             color: dbColor,
             size: '16inch',
             quantity: large,
-            threshold: 20 // Default threshold
+            threshold: threshold,
+            status: status
           });
         }
       }
