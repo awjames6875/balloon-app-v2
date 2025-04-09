@@ -3,7 +3,7 @@ import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Share, Upload, PlusCircle, Image } from "lucide-react";
+import { Save, Share, Upload, PlusCircle, Image, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import DesignCanvas from '@/components/canvas/design-canvas';
@@ -437,6 +437,16 @@ const Design = () => {
                 Save
               </>
             )}
+          </button>
+          <button
+            className="flex items-center px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium shadow-sm"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/designs'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+            }}
+          >
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Refresh
           </button>
           <button className="flex items-center px-4 py-1.5 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md text-sm font-medium shadow-sm">
             <Share className="h-4 w-4 mr-1.5" />
