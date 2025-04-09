@@ -533,7 +533,7 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
 
     // Perform all updates
     for (const update of updates) {
-      await storage.updateInventory(update.id, { quantity: update.quantity });
+      await storage.updateInventoryItem(update.id, { quantity: update.quantity });
     }
 
     // Create production record
@@ -544,7 +544,7 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
       notes: 'Automatically created from inventory save'
     });
 
-    res.json({ 
+    return res.json({ 
       success: true,
       message: 'Inventory updated and production record created',
       productionId: production.id
@@ -552,7 +552,7 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
 
   } catch (error) {
     console.error('Save to inventory error:', error);
-    res.status(500).json({ message: 'Failed to update inventory' });
+    return res.status(500).json({ message: 'Failed to update inventory' });
   }
   try {
     const designId = parseInt(req.params.id);
