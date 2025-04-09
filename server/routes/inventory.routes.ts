@@ -31,12 +31,12 @@ router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
     if (isNaN(itemId)) {
       return res.status(400).json({ error: 'Invalid inventory item ID' });
     }
-    
+
     const item = await storage.getInventoryItem(itemId);
     if (!item) {
       return res.status(404).json({ error: 'Inventory item not found' });
     }
-    
+
     res.json(item);
   } catch (error) {
     console.error('Error getting inventory item:', error);
@@ -52,13 +52,13 @@ router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
 router.get('/color/:color', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const color = req.params.color;
-    
+
     // Validate that color is in the allowed list
     const validColors = ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'white', 'black', 'silver', 'gold'];
     if (!validColors.includes(color.toLowerCase())) {
       return res.status(400).json({ error: 'Invalid color' });
     }
-    
+
     const items = await storage.getInventoryByColor(color.toLowerCase() as any);
     res.json(items);
   } catch (error) {
@@ -78,7 +78,7 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
     if (req.userRole !== 'inventory_manager' && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
-    
+
     // Default status based on quantity and threshold
     let status = 'in_stock';
     if (req.body.quantity <= 0) {
@@ -86,19 +86,19 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
     } else if (req.body.quantity < req.body.threshold) {
       status = 'low_stock';
     }
-    
+
     // Create the inventory item with status calculation
     const itemData = {
       ...req.body,
       status
     };
-    
+
     // Validate inventory data
     const validatedItemData = insertInventorySchema.parse(itemData);
-    
+
     // Create the inventory item
     const item = await storage.createInventoryItem(validatedItemData);
-    
+
     res.status(201).json(item);
   } catch (error: any) {
     console.error('Error creating inventory item:', error);
@@ -120,39 +120,39 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
     if (req.userRole !== 'inventory_manager' && req.userRole !== 'admin') {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
-    
+
     const itemId = parseInt(req.params.id);
     if (isNaN(itemId)) {
       return res.status(400).json({ error: 'Invalid inventory item ID' });
     }
-    
+
     const existingItem = await storage.getInventoryItem(itemId);
     if (!existingItem) {
       return res.status(404).json({ error: 'Inventory item not found' });
     }
-    
+
     // If quantity or threshold changed, recalculate status
     let statusUpdate = {};
     if (req.body.quantity !== undefined || req.body.threshold !== undefined) {
       const quantity = req.body.quantity ?? existingItem.quantity;
       const threshold = req.body.threshold ?? existingItem.threshold;
-      
+
       let status = 'in_stock';
       if (quantity <= 0) {
         status = 'out_of_stock';
       } else if (quantity < threshold) {
         status = 'low_stock';
       }
-      
+
       statusUpdate = { status };
     }
-    
+
     // Update the inventory item
     const updatedItem = await storage.updateInventoryItem(itemId, {
       ...req.body,
       ...statusUpdate
     });
-    
+
     res.json(updatedItem);
   } catch (error) {
     console.error('Error updating inventory item:', error);
@@ -168,14 +168,14 @@ router.patch('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Res
 router.post('/check-availability', isAuthenticated, async (req: Request, res: Response) => {
   try {
     const { balloonCounts } = req.body;
-    
+
     if (!balloonCounts || typeof balloonCounts !== 'object') {
       return res.status(400).json({ error: 'Balloon counts are required' });
     }
-    
+
     // Get all inventory
     const inventory = await storage.getAllInventory();
-    
+
     // Check each balloon type/color against inventory
     const result = {
       available: true,
@@ -188,21 +188,21 @@ router.post('/check-availability', isAuthenticated, async (req: Request, res: Re
         status: 'available' | 'low' | 'unavailable';
       }[]>
     };
-    
+
     // Process each color
     for (const [color, sizes] of Object.entries(balloonCounts)) {
       const sizeData = sizes as Record<string, number>;
-      
+
       // Process each size
       for (const [size, count] of Object.entries(sizeData)) {
         if (size === 'total') continue; // Skip the total count
-        
+
         // Find matching inventory item
         const inventoryItem = inventory.find(item => 
           item.color.toLowerCase() === color.toLowerCase() && 
           item.size === (size === 'small' ? '11inch' : '16inch')
         );
-        
+
         // Create an entry for this balloon type
         const sizeLabel = size === 'small' ? '11inch' : '16inch';
         const entry = {
@@ -212,7 +212,7 @@ router.post('/check-availability', isAuthenticated, async (req: Request, res: Re
           available: inventoryItem?.quantity || 0,
           status: 'available' as 'available' | 'low' | 'unavailable'
         };
-        
+
         // Determine status based on availability
         if (!inventoryItem || inventoryItem.quantity < count) {
           entry.status = 'unavailable';
@@ -221,16 +221,16 @@ router.post('/check-availability', isAuthenticated, async (req: Request, res: Re
         } else if (inventoryItem.quantity < inventoryItem.threshold) {
           entry.status = 'low';
         }
-        
+
         // Add to inventory status
         if (!result.inventoryStatus[color]) {
           result.inventoryStatus[color] = [];
         }
-        
+
         result.inventoryStatus[color].push(entry);
       }
     }
-    
+
     res.json(result);
   } catch (error) {
     console.error('Error checking inventory availability:', error);

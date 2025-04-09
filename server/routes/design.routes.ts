@@ -485,6 +485,80 @@ router.post('/:id/save-to-inventory', isAuthenticated, isDesignOwnerOrAdmin, cre
     if (isNaN(designId)) {
       return res.status(400).json({ message: 'Invalid design ID' });
     }
+
+    const { materialCounts } = req.body;
+    if (!materialCounts) {
+      return res.status(400).json({ message: 'No material counts provided' });
+    }
+
+    // Check inventory first
+    const inventory = await storage.getAllInventory();
+    const updates = [];
+
+    for (const [color, counts] of Object.entries(materialCounts)) {
+      const colorInventory = inventory.filter(item => 
+        item.color.toLowerCase() === color.toLowerCase()
+      );
+
+      const { small = 0, large = 0 } = counts as { small: number; large: number };
+
+      // Update small balloons
+      const smallInventory = colorInventory.find(item => item.size === '11inch');
+      if (smallInventory) {
+        if (smallInventory.quantity < small) {
+          return res.status(400).json({ 
+            message: `Insufficient ${color} 11" balloons in inventory` 
+          });
+        }
+        updates.push({
+          id: smallInventory.id,
+          quantity: smallInventory.quantity - small
+        });
+      }
+
+      // Update large balloons
+      const largeInventory = colorInventory.find(item => item.size === '16inch');
+      if (largeInventory) {
+        if (largeInventory.quantity < large) {
+          return res.status(400).json({ 
+            message: `Insufficient ${color} 16" balloons in inventory` 
+          });
+        }
+        updates.push({
+          id: largeInventory.id,
+          quantity: largeInventory.quantity - large
+        });
+      }
+    }
+
+    // Perform all updates
+    for (const update of updates) {
+      await storage.updateInventory(update.id, { quantity: update.quantity });
+    }
+
+    // Create production record
+    const production = await storage.createProduction({
+      designId,
+      status: 'pending',
+      startDate: new Date(),
+      notes: 'Automatically created from inventory save'
+    });
+
+    res.json({ 
+      success: true,
+      message: 'Inventory updated and production record created',
+      productionId: production.id
+    });
+
+  } catch (error) {
+    console.error('Save to inventory error:', error);
+    res.status(500).json({ message: 'Failed to update inventory' });
+  }
+  try {
+    const designId = parseInt(req.params.id);
+    if (isNaN(designId)) {
+      return res.status(400).json({ message: 'Invalid design ID' });
+    }
     
     // Get the design
     const design = await storage.getDesign(designId);
