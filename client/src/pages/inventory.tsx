@@ -172,27 +172,31 @@ const Inventory = () => {
   };
 
   // Handle refreshing inventory data
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
+    console.log("Refresh button clicked");
     try {
       setIsRefreshing(true);
       
       // Invalidate both queries to force a refresh
-      await queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
       
-      toast({
-        title: "Inventory refreshed",
-        description: "The inventory data has been refreshed successfully."
-      });
+      // Set a timeout to show the refresh animation for a moment
+      setTimeout(() => {
+        setIsRefreshing(false);
+        toast({
+          title: "Inventory refreshed",
+          description: "The inventory data has been refreshed successfully."
+        });
+      }, 800);
     } catch (error) {
       console.error("Error refreshing inventory:", error);
+      setIsRefreshing(false);
       toast({
         title: "Error refreshing data",
         description: "There was a problem refreshing the inventory data.",
         variant: "destructive",
       });
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -305,7 +309,19 @@ const Inventory = () => {
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  onClick={handleRefresh} 
+                  onClick={() => {
+                    console.log("Refresh button clicked directly");
+                    setIsRefreshing(true);
+                    queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/accessories"] });
+                    setTimeout(() => {
+                      setIsRefreshing(false);
+                      toast({
+                        title: "Inventory refreshed",
+                        description: "The inventory data has been refreshed successfully."
+                      });
+                    }, 800);
+                  }} 
                   disabled={isRefreshing || inventoryLoading || accessoriesLoading}
                   className="h-10 w-10 flex-shrink-0"
                   title="Refresh inventory"
