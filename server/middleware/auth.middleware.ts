@@ -86,15 +86,29 @@ export function configurePassport(app: Express): void {
 /**
  * Middleware to check if user is authenticated
  * This middleware also adds userId and userRole to the request object
+ * Supports both passport authentication and session-based authentication
  */
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated()) {
+  // Check for passport authentication first
+  if (req.isAuthenticated() && req.user) {
     // Add user ID and role to the request for easier access in route handlers
     const authReq = req as AuthenticatedRequest;
     authReq.userId = req.user.id;
     authReq.userRole = req.user.role;
+    console.log('User authenticated via passport:', authReq.userId);
+    return next();
+  } 
+  // Fall back to session-based authentication
+  else if (req.session && req.session.userId) {
+    const authReq = req as AuthenticatedRequest;
+    authReq.userId = req.session.userId;
+    authReq.userRole = req.session.userRole as string;
+    console.log('User authenticated via session:', authReq.userId);
     return next();
   }
+  
+  // If we get here, the user is not authenticated
+  console.log('Authentication failed, no valid session or passport auth');
   res.status(401).json({ message: 'Unauthorized' });
 }
 
@@ -104,11 +118,22 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
  */
 export function hasRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    const authReq = req as AuthenticatedRequest;
+    
+    // Try to get role from passport or session
+    let userRole: string | undefined;
+    
+    if (req.isAuthenticated() && req.user) {
+      userRole = req.user.role;
+    } else if (req.session && req.session.userRole) {
+      userRole = req.session.userRole as string;
+    }
+    
+    if (!userRole) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(userRole)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     
@@ -122,7 +147,24 @@ export function hasRole(roles: string[]) {
 export async function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunction) {
   const authReq = req as AuthenticatedRequest;
   
-  if (!authReq.isAuthenticated() || !authReq.userId) {
+  // Get userId from either passport or session
+  let userId: number | undefined;
+  let userRole: string | undefined;
+  
+  if (req.isAuthenticated() && req.user) {
+    userId = req.user.id;
+    userRole = req.user.role;
+    authReq.userId = userId;
+    authReq.userRole = userRole;
+  } else if (req.session && req.session.userId) {
+    userId = req.session.userId;
+    userRole = req.session.userRole as string;
+    authReq.userId = userId;
+    authReq.userRole = userRole;
+  }
+  
+  if (!userId) {
+    console.log('Design owner check failed: User not authenticated');
     return res.status(401).json({ message: 'Unauthorized' });
   }
   
@@ -141,7 +183,8 @@ export async function isDesignOwnerOrAdmin(req: Request, res: Response, next: Ne
     }
     
     // Check if user is design owner or admin
-    if (design.userId !== authReq.userId && authReq.userRole !== 'admin') {
+    if (design.userId !== userId && userRole !== 'admin') {
+      console.log(`Access denied: User ${userId} with role ${userRole} attempted to access design ${designId} owned by ${design.userId}`);
       return res.status(403).json({ message: 'Access denied' });
     }
     

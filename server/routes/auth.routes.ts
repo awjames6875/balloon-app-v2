@@ -115,6 +115,46 @@ router.post('/login', async (req: Request, res: Response) => {
 
 /**
  * Get the current user's profile
+ * GET /api/auth/me
+ * Used by the frontend to check authentication status
+ */
+router.get('/me', async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  
+  // Get userId from either passport or session
+  let userId: number | undefined;
+  
+  if (req.isAuthenticated() && req.user) {
+    userId = req.user.id;
+  } else if (req.session && req.session.userId) {
+    userId = req.session.userId;
+  }
+  
+  if (!userId) {
+    console.log('Auth check failed: User not authenticated');
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+  
+  try {
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Remove password from response
+    const { password, ...userWithoutPassword } = user;
+    
+    console.log('User authenticated:', userId);
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Get the current user's profile
  * GET /api/auth/profile
  * Requires authentication
  */
