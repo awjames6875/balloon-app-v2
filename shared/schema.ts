@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, json, timestamp, pgEnum, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, timestamp, pgEnum, jsonb, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -120,7 +120,7 @@ export const orders = pgTable("orders", {
   priority: text("priority").notNull().default('normal'),
   notes: text("notes"),
   totalQuantity: integer("total_quantity").notNull().default(0),
-  totalCost: integer("total_cost").notNull().default(0),
+  totalCost: integer("total_cost").notNull().default(0), // Store as integer (cents)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -133,8 +133,8 @@ export const orderItems = pgTable("order_items", {
   color: colorEnum("color").notNull(),
   size: balloonSizeEnum("size").notNull(),
   quantity: integer("quantity").notNull(),
-  unitPrice: integer("unit_price").notNull(),
-  subtotal: integer("subtotal").notNull(),
+  unitPrice: integer("unit_price").notNull(), // Store as integer (cents)
+  subtotal: integer("subtotal").notNull(), // Store as integer (cents)
 });
 
 // Create Insert Schemas

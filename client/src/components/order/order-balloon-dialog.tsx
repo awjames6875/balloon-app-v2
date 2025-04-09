@@ -79,13 +79,21 @@ export function OrderBalloonDialog({
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async () => {
-      // 1. Create the order
+      // Convert prices to integers (cents) before sending to the server
+      const convertedItems = orderForm.items.map(item => ({
+        ...item,
+        // Convert floating point prices to integer cents
+        unitPrice: Math.round(item.unitPrice * 100), 
+        // Calculate subtotal in cents
+        subtotal: Math.round(item.quantity * item.unitPrice * 100)
+      }));
+      
       console.log("Sending order data:", {
         supplierName: orderForm.supplierName,
         expectedDeliveryDate: orderForm.expectedDeliveryDate,
         priority: orderForm.priority,
         notes: orderForm.notes || `Order for design #${designId}`,
-        items: orderForm.items
+        items: convertedItems
       });
       
       const response = await apiRequest('/api/designs/' + designId + '/order', 'POST', {
@@ -93,7 +101,7 @@ export function OrderBalloonDialog({
         expectedDeliveryDate: orderForm.expectedDeliveryDate,
         priority: orderForm.priority,
         notes: orderForm.notes || `Order for design #${designId}`,
-        items: orderForm.items // Pass the items to order
+        items: convertedItems // Pass the items with converted prices
       });
       
       return response;
@@ -213,7 +221,7 @@ export function OrderBalloonDialog({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Cost:</p>
-                  <p className="font-bold">${orderData?.totalCost || totalCost.toFixed(2)}</p>
+                  <p className="font-bold">${orderData ? (orderData.totalCost / 100).toFixed(2) : totalCost.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Priority:</p>

@@ -1232,14 +1232,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Using custom items for order:", items);
         
         for (const item of items) {
+          // Convert prices to cents (integers) to match the database schema
+          const unitPrice = Math.round((item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75)) * 100);
+          const subtotal = Math.round(item.quantity * unitPrice);
+          
           await storage.addOrderItem({
             orderId: order.id,
             inventoryType: 'balloon',
             color: item.color.toLowerCase() as any, // Cast to colorEnum type
             size: item.size,
             quantity: item.quantity,
-            unitPrice: item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75), // Use provided unit price or default
-            subtotal: item.quantity * (item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75)) // Calculate subtotal
+            unitPrice: unitPrice, 
+            subtotal: subtotal
           });
         }
       }
@@ -1250,27 +1254,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const [color, requirements] of Object.entries(design.materialRequirements)) {
           // Add small balloons as an order item
           if (requirements.small > 0) {
+            // Convert prices to cents (integers) to match the database schema
+            const unitPrice = Math.round(0.5 * 100); // 50 cents per small balloon
+            const subtotal = Math.round(requirements.small * unitPrice);
+            
             await storage.addOrderItem({
               orderId: order.id,
               inventoryType: 'balloon',
               color: color.toLowerCase() as any, // Cast to colorEnum type
               size: '11inch',
               quantity: requirements.small,
-              unitPrice: 0.5, // Default price, could be fetched from a price list
-              subtotal: requirements.small * 0.5 // Calculate subtotal
+              unitPrice: unitPrice,
+              subtotal: subtotal
             });
           }
           
           // Add large balloons as an order item
           if (requirements.large > 0) {
+            // Convert prices to cents (integers) to match the database schema
+            const unitPrice = Math.round(0.75 * 100); // 75 cents per large balloon
+            const subtotal = Math.round(requirements.large * unitPrice);
+            
             await storage.addOrderItem({
               orderId: order.id,
               inventoryType: 'balloon',
               color: color.toLowerCase() as any, // Cast to colorEnum type
               size: '16inch',
               quantity: requirements.large,
-              unitPrice: 0.75, // Default price, could be fetched from a price list
-              subtotal: requirements.large * 0.75 // Calculate subtotal
+              unitPrice: unitPrice,
+              subtotal: subtotal
             });
           }
         }
@@ -1279,8 +1291,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all order items
       const orderItems = await storage.getOrderItems(order.id);
       
-      // Calculate total cost
-      const totalCost = orderItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      // Calculate total cost (already in cents)
+      const totalCost = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
       
       // Update order with total cost
       const updatedOrder = await storage.updateOrder(order.id, {
