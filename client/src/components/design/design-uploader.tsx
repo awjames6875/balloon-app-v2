@@ -6,11 +6,11 @@ import { useDesign } from "@/context/design-context";
 import { queryClient } from "@/lib/queryClient";
 
 interface DesignUploaderProps {
-  onAnalysisStart: () => void;
-  onAnalysisComplete?: (result: any) => void;
+  onUploadStart?: () => void;
+  onUploadComplete?: (result: any) => void;
 }
 
-const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderProps) => {
+const DesignUploader = ({ onUploadStart, onUploadComplete }: DesignUploaderProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -67,7 +67,7 @@ const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderP
     }
   };
 
-  const handleStartAnalysis = async () => {
+  const handleUploadDesign = async () => {
     if (!file) {
       toast({
         title: "No image selected",
@@ -88,7 +88,9 @@ const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderP
 
     try {
       setUploading(true);
-      onAnalysisStart();
+      if (onUploadStart) {
+        onUploadStart();
+      }
 
       const formData = new FormData();
       formData.append("image", file);
@@ -110,25 +112,16 @@ const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderP
       const design = await response.json();
       setActiveDesign(design);
       
-      // Analyze the uploaded design
-      const analysisResponse = await apiRequest(
-        "POST", 
-        `/api/designs/${design.id}/analyze`
-      );
-      
-      const analyzedDesign = await analysisResponse.json();
-      setActiveDesign(analyzedDesign);
-      
-      // Call onAnalysisComplete if provided
-      if (onAnalysisComplete) {
-        onAnalysisComplete(analyzedDesign);
+      // Call onUploadComplete if provided
+      if (onUploadComplete) {
+        onUploadComplete(design);
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/designs"] });
 
       toast({
         title: "Design uploaded successfully",
-        description: "Your design has been analyzed.",
+        description: "Your design has been uploaded and is ready for further editing.",
       });
     } catch (error) {
       console.error("Upload error:", error);
@@ -246,18 +239,18 @@ const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderP
             <button 
               type="button" 
               className={`w-full py-2 px-4 ${preview ? 'bg-primary-600 hover:bg-primary-700' : 'bg-secondary-300 cursor-not-allowed'} text-white font-medium rounded-md transition mt-4`}
-              onClick={handleStartAnalysis}
+              onClick={handleUploadDesign}
               disabled={!preview || uploading}
             >
               {uploading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  Analyzing...
+                  Uploading...
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload & Analyze Design
+                  Upload Design
                 </div>
               )}
             </button>

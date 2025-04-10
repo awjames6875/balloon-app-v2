@@ -12,7 +12,7 @@ import BackgroundUploader from '@/components/canvas/background-uploader';
 import { useToast } from '@/hooks/use-toast';
 import { DesignElement } from '@/types';
 import DesignUploader from '@/components/design/design-uploader';
-import DesignAnalysis from '@/components/design/design-analysis';
+// AI design analysis removed
 import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
 import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
