@@ -11,10 +11,68 @@ interface DesignCanvasProps {
 const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
-  const [draggedElement, setDraggedElement] = useState<{ id: string, startX: number, startY: number, offsetX: number, offsetY: number } | null>(null);
+  const [draggedElement, setDraggedElement] = useState<{ 
+    id: string, 
+    startX: number, 
+    startY: number, 
+    offsetX: number, 
+    offsetY: number,
+    originalPosition: { x: number, y: number }
+  } | null>(null);
+  
+  // Grid snap settings
+  const [gridSize] = useState(20);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  
+  // Canvas boundaries - will be set on canvas mount
+  const [canvasBounds, setCanvasBounds] = useState({ 
+    left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 
+  });
+  
+  // Set canvas boundaries on mount
+  useEffect(() => {
+    const updateCanvasBounds = () => {
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        setCanvasBounds({
+          left: 0,
+          top: 0,
+          right: rect.width,
+          bottom: rect.height,
+          width: rect.width,
+          height: rect.height
+        });
+      }
+    };
+    
+    updateCanvasBounds();
+    window.addEventListener('resize', updateCanvasBounds);
+    
+    return () => {
+      window.removeEventListener('resize', updateCanvasBounds);
+    };
+  }, []);
   
   // Find the selected element
   const selectedElement = elements.find(el => el.id === selectedElementId);
+  
+  // Helper function to snap coordinates to grid
+  const snapToGridFunc = (x: number, y: number) => {
+    if (!snapToGrid) return { x, y };
+    
+    return {
+      x: Math.round(x / gridSize) * gridSize,
+      y: Math.round(y / gridSize) * gridSize
+    };
+  };
+  
+  // Helper function to keep elements within canvas bounds
+  const keepWithinBounds = (x: number, y: number, width: number, height: number) => {
+    return {
+      x: Math.max(0, Math.min(x, canvasBounds.width - width)),
+      y: Math.max(0, Math.min(y, canvasBounds.height - height))
+    };
+  };
   
   // Set up drop target for templates
   const [{ isOver }, drop] = useDrop(() => ({
@@ -26,8 +84,22 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
       const dropPosition = monitor.getClientOffset();
       
       if (dropPosition) {
-        const x = dropPosition.x - canvasRect.left;
-        const y = dropPosition.y - canvasRect.top;
+        let x = dropPosition.x - canvasRect.left;
+        let y = dropPosition.y - canvasRect.top;
+        
+        // Snap to grid
+        if (snapToGrid) {
+          const snapped = snapToGridFunc(x, y);
+          x = snapped.x;
+          y = snapped.y;
+        }
+        
+        // Keep within bounds
+        const width = item.width || 150;
+        const height = item.height || 150;
+        const bounded = keepWithinBounds(x, y, width, height);
+        x = bounded.x;
+        y = bounded.y;
         
         // Get the SVG content and apply the correct colors
         let svgContent = item.svgContent;
@@ -51,19 +123,23 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
           }
         }
         
+        // Add animation class for smoother appearance
         const newElement: DesignElement = {
           id: `element-${Date.now()}`,
           type: 'balloon-cluster',
           x: x,
           y: y,
-          width: 150,
-          height: 150,
+          width: width,
+          height: height,
           rotation: 0,
           svgContent: svgContent,
           colors: item.defaultColors || ['#FF5757']
         };
         
         onElementsChange([...elements, newElement]);
+        
+        // Select the newly added element
+        setSelectedElementId(newElement.id);
       }
     },
     collect: (monitor) => ({
@@ -83,38 +159,18 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
     const element = elements.find(el => el.id === id);
     if (!element) return;
     
+    // Add original position to allow for cancellation
     setDraggedElement({
       id,
       startX: element.x,
       startY: element.y,
       offsetX: e.clientX - element.x,
-      offsetY: e.clientY - element.y
+      offsetY: e.clientY - element.y,
+      originalPosition: { x: element.x, y: element.y }
     });
     
+    // Bring element to front by selecting it
     setSelectedElementId(id);
-  };
-  
-  // Handle element drag
-  const handleDrag = (e: React.MouseEvent) => {
-    if (!draggedElement) return;
-    
-    const updatedElements = elements.map(el => {
-      if (el.id === draggedElement.id) {
-        return {
-          ...el,
-          x: e.clientX - draggedElement.offsetX,
-          y: e.clientY - draggedElement.offsetY
-        };
-      }
-      return el;
-    });
-    
-    onElementsChange(updatedElements);
-  };
-  
-  // Handle element drag end
-  const handleDragEnd = () => {
-    setDraggedElement(null);
   };
   
   // Handle canvas click to deselect elements
@@ -122,17 +178,38 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
     setSelectedElementId(null);
   };
   
-  // Handle mouse move for dragging
+  // Handle element drag
   useEffect(() => {
     if (!draggedElement) return;
     
     const handleMouseMove = (e: MouseEvent) => {
+      // Calculate new position
+      let newX = e.clientX - draggedElement.offsetX;
+      let newY = e.clientY - draggedElement.offsetY;
+      
+      // Get the element being dragged
+      const element = elements.find(el => el.id === draggedElement.id);
+      if (!element) return;
+      
+      // Snap to grid if enabled
+      if (snapToGrid) {
+        const snapped = snapToGridFunc(newX, newY);
+        newX = snapped.x;
+        newY = snapped.y;
+      }
+      
+      // Keep within canvas bounds
+      const bounded = keepWithinBounds(newX, newY, element.width, element.height);
+      newX = bounded.x;
+      newY = bounded.y;
+      
+      // Update element position
       const updatedElements = elements.map(el => {
         if (el.id === draggedElement.id) {
           return {
             ...el,
-            x: e.clientX - draggedElement.offsetX,
-            y: e.clientY - draggedElement.offsetY
+            x: newX,
+            y: newY
           };
         }
         return el;
@@ -141,23 +218,72 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
       onElementsChange(updatedElements);
     };
     
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      // Final position adjust with snap
+      if (snapToGrid && draggedElement) {
+        const element = elements.find(el => el.id === draggedElement.id);
+        if (element) {
+          const snapped = snapToGridFunc(element.x, element.y);
+          
+          // Only update if position would change
+          if (snapped.x !== element.x || snapped.y !== element.y) {
+            const updatedElements = elements.map(el => {
+              if (el.id === draggedElement.id) {
+                return {
+                  ...el,
+                  x: snapped.x,
+                  y: snapped.y
+                };
+              }
+              return el;
+            });
+            
+            onElementsChange(updatedElements);
+          }
+        }
+      }
+      
       setDraggedElement(null);
+    };
+    
+    // Handle escape key to cancel drag
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && draggedElement) {
+        const updatedElements = elements.map(el => {
+          if (el.id === draggedElement.id) {
+            return {
+              ...el,
+              x: draggedElement.originalPosition.x,
+              y: draggedElement.originalPosition.y
+            };
+          }
+          return el;
+        });
+        
+        onElementsChange(updatedElements);
+        setDraggedElement(null);
+      }
     };
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('keydown', handleKeyDown);
     
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [draggedElement, elements, onElementsChange]);
+  }, [draggedElement, elements, onElementsChange, snapToGrid, gridSize, canvasBounds]);
   
   return (
     <div 
-      ref={drop}
-      className={`relative w-full h-full bg-white overflow-hidden ${isOver ? 'bg-blue-50' : ''}`}
+      ref={(node) => {
+        // Combine the drop and canvasRef refs
+        drop(node);
+        canvasRef.current = node;
+      }}
+      className={`relative w-full h-full bg-white overflow-hidden transition-colors duration-150 ${isOver ? 'bg-blue-50' : ''}`}
       onClick={handleCanvasClick}
       style={{ 
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
@@ -166,17 +292,31 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
         backgroundRepeat: 'no-repeat'
       }}
     >
+      {/* Optional grid overlay */}
+      {snapToGrid && (
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="w-full h-full" style={{
+            backgroundImage: 'radial-gradient(circle, #00000010 1px, transparent 1px)',
+            backgroundSize: `${gridSize}px ${gridSize}px`
+          }} />
+        </div>
+      )}
+      
+      {/* Draggable elements */}
       {elements.map((element) => (
         <div
           key={element.id}
-          className={`absolute cursor-move ${selectedElementId === element.id ? 'ring-2 ring-blue-500' : ''}`}
+          className={`absolute cursor-move transition-transform duration-150 ease-in-out 
+                     ${selectedElementId === element.id ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:ring-1 hover:ring-blue-300'}
+                     ${draggedElement && draggedElement.id === element.id ? 'opacity-90' : 'opacity-100'}`}
           style={{
             left: `${element.x}px`,
             top: `${element.y}px`,
             width: `${element.width}px`,
             height: `${element.height}px`,
             transform: `rotate(${element.rotation}deg)`,
-            zIndex: selectedElementId === element.id ? 10 : 1
+            zIndex: selectedElementId === element.id ? 10 : 1,
+            willChange: draggedElement && draggedElement.id === element.id ? 'transform, left, top' : 'auto'
           }}
           onClick={(e) => {
             e.stopPropagation();
