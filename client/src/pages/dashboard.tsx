@@ -31,13 +31,13 @@ const Dashboard = () => {
   const [chartType, setChartType] = useState("sales");
 
   // Fetch user's recent designs
-  const { data: designs, isLoading: designsLoading } = useQuery({
+  const { data: designs, isLoading: designsLoading } = useQuery<Design[]>({
     queryKey: ["/api/designs"],
     enabled: !!user,
   });
 
   // Fetch inventory alerts
-  const { data: inventory, isLoading: inventoryLoading } = useQuery({
+  const { data: inventory, isLoading: inventoryLoading } = useQuery<any[]>({
     queryKey: ["/api/inventory"],
     enabled: !!user,
   });
@@ -46,6 +46,9 @@ const Dashboard = () => {
   const lowInventoryItems = Array.isArray(inventory) 
     ? inventory.filter(item => item.status === 'low_stock' || item.status === 'out_of_stock') 
     : [];
+    
+  // Safe access to designs data
+  const safeDesigns = Array.isArray(designs) ? designs : [];
 
   // Example data for charts
   const salesData = [
@@ -83,7 +86,7 @@ const Dashboard = () => {
               <div>
                 <p className="text-sm font-medium text-secondary-500">Total Projects</p>
                 <p className="text-2xl font-bold text-secondary-900 mt-1">
-                  {designsLoading ? "..." : designs?.length || 0}
+                  {designsLoading ? "..." : safeDesigns.length}
                 </p>
               </div>
               <div className="p-2 bg-primary-50 rounded-md">
@@ -222,7 +225,7 @@ const Dashboard = () => {
           <div className="flex justify-center py-6">
             <div className="w-8 h-8 border-4 border-purple-500 rounded-full border-t-transparent animate-spin"></div>
           </div>
-        ) : !designs || !Array.isArray(designs) || designs.length === 0 ? (
+        ) : safeDesigns.length === 0 ? (
           <Card className="text-center py-10 bg-purple-50 border-2 border-dashed border-purple-200">
             <CardContent>
               <Palette className="h-12 w-12 text-purple-400 mx-auto mb-4" />
@@ -239,7 +242,7 @@ const Dashboard = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {designs.slice(0, 4).map((design: any) => (
+            {safeDesigns.slice(0, 4).map((design: Design) => (
               <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow border-2 border-gray-100">
                 <div className="aspect-video bg-secondary-100 relative">
                   {design.imageUrl ? (
@@ -277,7 +280,7 @@ const Dashboard = () => {
                       <h3 className="font-medium text-secondary-900 text-sm">{design.clientName}</h3>
                       <div className="flex items-center text-xs text-secondary-500 mt-1">
                         <Clock className="h-3 w-3 mr-1" />
-                        <span>{new Date(design.createdAt).toLocaleDateString()}</span>
+                        <span>{design.createdAt ? new Date(design.createdAt).toLocaleDateString() : 'N/A'}</span>
                       </div>
                     </div>
                   </div>
@@ -323,9 +326,9 @@ const Dashboard = () => {
               <div className="flex justify-center py-6">
                 <div className="w-8 h-8 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
               </div>
-            ) : designs && designs.length > 0 ? (
+            ) : safeDesigns.length > 0 ? (
               <div className="space-y-4">
-                {designs.slice(0, 5).map((design: Design) => (
+                {safeDesigns.slice(0, 5).map((design: Design) => (
                   <div key={design.id} className="flex items-center p-3 bg-secondary-50 rounded-lg">
                     <div className="w-12 h-12 bg-primary-100 rounded overflow-hidden mr-4">
                       {design.imageUrl && (
@@ -339,7 +342,7 @@ const Dashboard = () => {
                     <div className="flex-1">
                       <p className="font-medium text-secondary-800">{design.clientName}</p>
                       <p className="text-xs text-secondary-500">
-                        {new Date(design.createdAt).toLocaleDateString()}
+                        {design.createdAt ? new Date(design.createdAt).toLocaleDateString() : 'N/A'}
                       </p>
                     </div>
                     <div>

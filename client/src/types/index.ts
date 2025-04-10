@@ -13,6 +13,37 @@ export interface User {
   createdAt: string;
 }
 
+export interface Design {
+  id: number;
+  userId: number;
+  clientName: string;
+  eventDate?: string | null;
+  dimensions?: string | null;
+  notes?: string | null;
+  imageUrl?: string | null;
+  backgroundUrl?: string | null;
+  elements: DesignElement[];
+  colorAnalysis?: {
+    colors: Array<{
+      name: string;
+      percentage: number;
+    }>;
+  } | null;
+  materialRequirements?: {
+    [color: string]: {
+      total: number;
+      small: number;
+      large: number;
+      clusters?: number;
+    };
+  } | null;
+  totalBalloons?: number | null;
+  estimatedClusters?: number | null;
+  productionTime?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
 // Balloon template type
 export interface BalloonClusterTemplate {
   id: string;
