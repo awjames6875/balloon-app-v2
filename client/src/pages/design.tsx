@@ -661,70 +661,64 @@ const Design = () => {
         <MaterialRequirementsPanel balloonCounts={balloonCounts} />
       </div>
       
-      {/* My Designs Dialog */}
+      {/* My Designs Dialog - Kid-friendly version */}
       <Dialog open={showMyDesignsModal} onOpenChange={setShowMyDesignsModal}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>My Saved Designs</DialogTitle>
-            <DialogDescription>
-              View and manage your saved balloon designs.
+        <DialogContent className="sm:max-w-4xl bg-blue-50 border-4 border-blue-200 rounded-xl">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold text-blue-700">My Balloon Designs</DialogTitle>
+            <DialogDescription className="text-lg font-medium text-blue-600">
+              Pick any balloon design to change or look at it!
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto p-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto p-2">
             {Array.isArray(designs) && designs.map((design: any) => (
-              <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                <div className="aspect-video bg-secondary-100 relative">
+              <Card key={design.id} className="overflow-hidden hover:shadow-xl transition-shadow border-2 border-purple-200 rounded-xl bg-white">
+                <div className="aspect-video bg-purple-50 relative">
                   {design.imageUrl ? (
                     <img 
                       src={design.imageUrl} 
                       alt={design.clientName} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-t-lg"
                     />
                   ) : design.backgroundUrl ? (
                     <img 
                       src={design.backgroundUrl} 
                       alt={design.clientName} 
-                      className="w-full h-full object-cover opacity-50"
+                      className="w-full h-full object-cover opacity-50 rounded-t-lg"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Palette className="h-12 w-12 text-secondary-300" />
+                      <Palette className="h-16 w-16 text-purple-300" />
                     </div>
                   )}
                 </div>
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-medium text-secondary-900 text-sm">{design.clientName}</h3>
-                      <p className="text-xs text-secondary-500">
-                        {design.eventDate ? new Date(design.eventDate).toLocaleDateString() : "No date set"}
-                      </p>
-                    </div>
+                <CardContent className="p-4">
+                  <div className="flex justify-center items-center mb-3">
+                    <h3 className="font-bold text-center text-purple-700 text-lg">{design.clientName}</h3>
                   </div>
                   
-                  <div className="flex justify-between mt-2">
+                  <div className="flex justify-center gap-4 mt-2">
                     <Button 
-                      size="sm" 
-                      variant="outline"
+                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full shadow-md"
                       onClick={() => {
                         setShowMyDesignsModal(false);
                         navigate(`/design-editor/${design.id}`);
                       }}
                     >
-                      <Edit className="h-3 w-3 mr-1" />
-                      Edit
+                      <Edit className="h-5 w-5 mr-2" />
+                      Change It
                     </Button>
                     <Button 
-                      size="sm"
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full shadow-md"
                       onClick={() => {
                         // View the design details
                         setActiveDesign(design);
                         setShowMyDesignsModal(false);
                       }}
                     >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
+                      <Eye className="h-5 w-5 mr-2" />
+                      Look at It
                     </Button>
                   </div>
                 </CardContent>
@@ -732,20 +726,21 @@ const Design = () => {
             ))}
           </div>
           
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between pt-4 border-t-2 border-blue-200 mt-4">
             <Button 
-              variant="outline" 
+              className="bg-gray-500 hover:bg-gray-600 text-white text-lg px-8 py-2 rounded-full shadow-md"
               onClick={() => setShowMyDesignsModal(false)}
             >
               Close
             </Button>
             <Button 
+              className="bg-pink-500 hover:bg-pink-600 text-white text-lg px-8 py-2 rounded-full shadow-md"
               onClick={() => {
                 setShowMyDesignsModal(false);
                 navigate('/design-editor');
               }}
             >
-              Create New Design
+              Make a New Design
             </Button>
           </DialogFooter>
         </DialogContent>
