@@ -16,7 +16,8 @@ import {
   Eye,
   Edit,
   Grid,
-  Clock
+  Clock,
+  PlusCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/auth-context";
