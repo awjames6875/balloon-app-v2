@@ -252,6 +252,28 @@ const DesignEditor = () => {
                         const canvasWidth = 500; // Approximate canvas width
                         const canvasHeight = 400; // Approximate canvas height
                         
+                        // Get the SVG content and apply the correct colors
+                        let svgContent = template.svgContent;
+                        
+                        // Replace color placeholders with actual colors from the template
+                        if (template.defaultColors && template.defaultColors.length > 0) {
+                          // Apply primary color
+                          svgContent = svgContent.replace(/var\(--color-primary\)/g, template.defaultColors[0]);
+                          
+                          // Apply secondary color
+                          if (template.defaultColors.length > 1) {
+                            svgContent = svgContent.replace(/var\(--color-secondary\)/g, template.defaultColors[1]);
+                          }
+                          
+                          // Apply accent colors
+                          for (let i = 2; i < template.defaultColors.length && i < 13; i++) {
+                            svgContent = svgContent.replace(
+                              new RegExp(`var\\(--color-accent-${i-1}\\)`, 'g'), 
+                              template.defaultColors[i]
+                            );
+                          }
+                        }
+                        
                         const newElement: DesignElement = {
                           id: `element-${Date.now()}`,
                           type: 'balloon-cluster',
@@ -260,7 +282,7 @@ const DesignEditor = () => {
                           width: 150,
                           height: 150,
                           rotation: 0,
-                          svgContent: template.svgContent,
+                          svgContent: svgContent,
                           colors: template.defaultColors || ['#FF5757'],
                         };
                         

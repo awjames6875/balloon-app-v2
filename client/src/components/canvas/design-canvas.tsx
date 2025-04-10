@@ -29,6 +29,28 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
         const x = dropPosition.x - canvasRect.left;
         const y = dropPosition.y - canvasRect.top;
         
+        // Get the SVG content and apply the correct colors
+        let svgContent = item.svgContent;
+        
+        // Replace color placeholders with actual colors from the template
+        if (item.defaultColors && item.defaultColors.length > 0) {
+          // Apply primary color
+          svgContent = svgContent.replace(/var\(--color-primary\)/g, item.defaultColors[0]);
+          
+          // Apply secondary color
+          if (item.defaultColors.length > 1) {
+            svgContent = svgContent.replace(/var\(--color-secondary\)/g, item.defaultColors[1]);
+          }
+          
+          // Apply accent colors
+          for (let i = 2; i < item.defaultColors.length && i < 13; i++) {
+            svgContent = svgContent.replace(
+              new RegExp(`var\\(--color-accent-${i-1}\\)`, 'g'), 
+              item.defaultColors[i]
+            );
+          }
+        }
+        
         const newElement: DesignElement = {
           id: `element-${Date.now()}`,
           type: 'balloon-cluster',
@@ -37,7 +59,7 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
           width: 150,
           height: 150,
           rotation: 0,
-          svgContent: item.svgContent,
+          svgContent: svgContent,
           colors: item.defaultColors || ['#FF5757']
         };
         
