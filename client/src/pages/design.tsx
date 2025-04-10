@@ -543,28 +543,15 @@ const Design = () => {
                 Clear Canvas
               </Button>
             </div>
-            
-            {/* Customer Image Upload Control */}
-            <div className="absolute top-4 left-4 w-64">
-              <div className="bg-white/95 p-3 rounded-lg shadow border border-gray-200">
-                <h3 className="text-sm font-medium mb-2">Upload Customer Image</h3>
-                <BackgroundUploader 
-                  onBackgroundChange={setBackgroundImage}
-                  currentBackground={backgroundImage}
-                  buttonText="Upload Customer Photo"
-                />
-              </div>
-            </div>
           </div>
         </div>
         
         {/* Sidebar */}
         <div className="w-[350px] bg-white border-l-2 border-[#f0f0f0] overflow-y-auto">
           <Tabs defaultValue="template" className="p-4">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="template">Template</TabsTrigger>
-              <TabsTrigger value="element">Element</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="upload">Upload</TabsTrigger>
             </TabsList>
             
             {/* Template Tab */}
@@ -694,105 +681,21 @@ const Design = () => {
               </div>
             </TabsContent>
             
-            {/* Element Tab */}
-            <TabsContent value="element">
-              {selectedElement ? (
-                <Card className="mb-4">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg font-semibold mb-4">Element Properties</h3>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <Button variant="outline" size="sm" onClick={handleElementDuplicate}>
-                        <Copy className="h-4 w-4 mr-1" />
-                        Duplicate
-                      </Button>
-                      
-                      <Button variant="outline" size="sm" onClick={() => handleElementRotate(-15)}>
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Rotate Left
-                      </Button>
-                      
-                      <Button variant="outline" size="sm" onClick={() => handleElementRotate(15)}>
-                        <RotateCw className="h-4 w-4 mr-1" />
-                        Rotate Right
-                      </Button>
-                      
-                      <Button variant="destructive" size="sm" onClick={handleElementDelete}>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                    
-                    {selectedElement.colors && selectedElement.colors.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Colors</h4>
-                        {selectedElement.colors.map((color, index) => (
-                          <div key={index} className="mb-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs">Color {index + 1}</span>
-                              <div 
-                                className="w-6 h-6 rounded-full border"
-                                style={{ backgroundColor: color }}
-                              ></div>
-                            </div>
-                            <div className="flex flex-wrap gap-2 max-w-md">
-                              {colorOptions.map((colorOption) => (
-                                <button
-                                  key={colorOption.value}
-                                  className={`w-6 h-6 rounded-full border ${
-                                    color === colorOption.value ? 'border-black shadow-md' : 'border-gray-200'
-                                  }`}
-                                  style={{ backgroundColor: colorOption.value }}
-                                  onClick={() => handleElementColorChange(index, colorOption.value)}
-                                  title={colorOption.name}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="mb-4">
-                  <CardContent className="p-4 text-center text-gray-500">
-                    Select an element to edit its properties
-                  </CardContent>
-                </Card>
-              )}
-              
-              <MaterialRequirementsPanel design={{ elements }} />
-            </TabsContent>
-            
-            {/* Settings Tab */}
-            <TabsContent value="settings">
+            {/* Upload Tab */}
+            <TabsContent value="upload">
               <Card className="mb-4">
                 <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Design Settings</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setIsEditing(!isEditing)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      {isEditing ? 'Done' : 'Edit'}
-                    </Button>
-                  </div>
+                  <h3 className="text-lg font-semibold mb-4">Upload Customer Image</h3>
                   
-                  {isEditing ? (
+                  <BackgroundUploader 
+                    onBackgroundChange={setBackgroundImage}
+                    currentBackground={backgroundImage}
+                    buttonText="Upload Customer Photo"
+                  />
+                  
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium mb-2">Design Information</h4>
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Design Name</label>
-                        <input 
-                          type="text" 
-                          value={designName} 
-                          onChange={(e) => setDesignName(e.target.value)}
-                          className="w-full p-2 border rounded mt-1"
-                        />
-                      </div>
-                      
                       <div>
                         <label className="text-sm font-medium">Client Name</label>
                         <input 
@@ -800,6 +703,7 @@ const Design = () => {
                           value={clientName} 
                           onChange={(e) => setClientName(e.target.value)}
                           className="w-full p-2 border rounded mt-1"
+                          placeholder="Enter client name"
                         />
                       </div>
                       
@@ -812,77 +716,10 @@ const Design = () => {
                           className="w-full p-2 border rounded mt-1"
                         />
                       </div>
-                      
-                      <div>
-                        <label className="text-sm font-medium">Event Type</label>
-                        <Select 
-                          value={eventType} 
-                          onValueChange={setEventType}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select event type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="wedding">Wedding</SelectItem>
-                            <SelectItem value="birthday">Birthday</SelectItem>
-                            <SelectItem value="corporate">Corporate</SelectItem>
-                            <SelectItem value="holiday">Holiday</SelectItem>
-                            <SelectItem value="graduation">Graduation</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <Tag className="h-4 w-4 mr-2" />
-                        <span className="font-medium mr-2">Design:</span>
-                        <span>{designName || 'Untitled'}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-sm">
-                        <User className="h-4 w-4 mr-2" />
-                        <span className="font-medium mr-2">Client:</span>
-                        <span>{clientName || 'None'}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        <span className="font-medium mr-2">Event Date:</span>
-                        <span>{eventDate || 'Not set'}</span>
-                      </div>
-                      
-                      <div className="flex items-center text-sm">
-                        <Clock className="h-4 w-4 mr-2" />
-                        <span className="font-medium mr-2">Event Type:</span>
-                        <span className="capitalize">{eventType || 'None'}</span>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
-              
-              <BackgroundUploader 
-                onBackgroundChange={setBackgroundImage}
-                currentBackground={backgroundImage}
-              />
-              
-              <DesignUploader 
-                onAnalysisStart={handleAnalysisStart}
-                onAnalysisComplete={(result) => {
-                  setIsAnalyzing(false);
-                  // Handle analysis result if needed
-                }}
-              />
-              
-              {isAnalyzing && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                  <p className="text-sm text-blue-600">
-                    Analyzing design image... This may take a moment.
-                  </p>
-                </div>
-              )}
             </TabsContent>
           </Tabs>
         </div>
