@@ -258,7 +258,13 @@ const DesignEditor = () => {
                 currentBackground={backgroundImage} 
               />
               
-              <MaterialRequirementsPanel elements={elements} />
+              <MaterialRequirementsPanel balloonCounts={{
+                colorCounts: {},
+                totalSmall: 0,
+                totalLarge: 0,
+                totalBalloons: 0,
+                totalClusters: 0
+              }} />
             </div>
           </div>
         </div>

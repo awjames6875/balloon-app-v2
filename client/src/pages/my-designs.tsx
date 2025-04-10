@@ -24,7 +24,7 @@ const MyDesignsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch user's designs
-  const { data: designs, isLoading: designsLoading } = useQuery<Design[]>({
+  const { data: designs, isLoading: designsLoading } = useQuery<any[]>({
     queryKey: ["/api/designs"],
   });
 
@@ -97,7 +97,7 @@ const MyDesignsPage = () => {
       {/* Designs grid */}
       {!designsLoading && filteredDesigns.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDesigns.map((design: Design) => (
+          {filteredDesigns.map((design: any) => (
             <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow border-2 border-gray-100">
               <div className="aspect-video bg-secondary-100 relative">
                 {design.imageUrl ? (
