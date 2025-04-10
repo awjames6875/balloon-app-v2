@@ -57,7 +57,7 @@ const Design = () => {
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   
   // For Design Uploader
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery<any[]>({
@@ -378,9 +378,9 @@ const Design = () => {
 
   const balloonCounts = calculateBalloonCounts();
   
-  // Handler for when analysis starts
-  const handleAnalysisStart = () => {
-    setIsAnalyzing(true);
+  // Handler for when upload starts
+  const handleUploadStart = () => {
+    setIsUploading(true);
   };
   
   // Get material counts for the dialog
