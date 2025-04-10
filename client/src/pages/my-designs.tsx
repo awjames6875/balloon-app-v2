@@ -24,7 +24,7 @@ const MyDesignsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch user's designs
-  const { data: designs, isLoading: designsLoading } = useQuery<any[]>({
+  const { data: designs, isLoading: designsLoading } = useQuery({
     queryKey: ["/api/designs"],
   });
 
@@ -33,8 +33,8 @@ const MyDesignsPage = () => {
   
   // Filter designs based on search query
   const filteredDesigns = safeDesigns.filter(design => 
-    (design.clientName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-    (design.notes?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+    (design.clientName?.toLowerCase?.() || '').includes(searchQuery.toLowerCase()) ||
+    (design.notes?.toLowerCase?.() || '').includes(searchQuery.toLowerCase())
   );
 
   return (
