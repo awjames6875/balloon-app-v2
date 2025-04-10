@@ -358,14 +358,14 @@ const Design = () => {
         colorCounts[colorName] = {small: 0, large: 0, total: 0, clusters: 0};
       }
       
-      // Each standard cluster has 11 small balloons and 2 large balloons
-      colorCounts[colorName].small += 11;
-      colorCounts[colorName].large += 2;
+      // Each standard cluster has 11 balloons of 11inch and 2 balloons of 16inch
+      colorCounts[colorName].small += 11; // 11inch balloons
+      colorCounts[colorName].large += 2;  // 16inch balloons
       colorCounts[colorName].total += 13;
       colorCounts[colorName].clusters += 1;
       
-      totalSmall += 11;
-      totalLarge += 2;
+      totalSmall += 11; // 11inch balloons
+      totalLarge += 2;  // 16inch balloons
       totalClusters += 1;
     });
 
@@ -618,11 +618,11 @@ const Design = () => {
                   
                   <div className="space-y-1 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Small Balloons:</span>
+                      <span className="text-gray-500">11inch Balloons:</span>
                       <span className="font-semibold">{balloonCounts.totalSmall}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Large Balloons:</span>
+                      <span className="text-gray-500">16inch Balloons:</span>
                       <span className="font-semibold">{balloonCounts.totalLarge}</span>
                     </div>
                   </div>
@@ -641,11 +641,11 @@ const Design = () => {
                         
                         <div className="grid grid-cols-3 text-xs">
                           <div>
-                            <div className="text-gray-500">Small</div>
+                            <div className="text-gray-500">11inch</div>
                             <div className="font-semibold">{counts.small}</div>
                           </div>
                           <div>
-                            <div className="text-gray-500">Large</div>
+                            <div className="text-gray-500">16inch</div>
                             <div className="font-semibold">{counts.large}</div>
                           </div>
                           <div>
