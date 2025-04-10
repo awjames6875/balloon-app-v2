@@ -17,6 +17,7 @@ import Login from "@/pages/auth/login";
 import Register from "@/pages/auth/register";
 import Dashboard from "@/pages/dashboard";
 import Design from "@/pages/design";
+import MyDesigns from "@/pages/my-designs";
 import Inventory from "@/pages/inventory";
 import Production from "@/pages/production";
 import Analytics from "@/pages/analytics";
@@ -73,6 +74,11 @@ function Router() {
       <Route path="/design">
         <ProtectedRoute>
           <Design />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/my-designs">
+        <ProtectedRoute>
+          <MyDesigns />
         </ProtectedRoute>
       </Route>
       <Route path="/inventory">

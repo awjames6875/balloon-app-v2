@@ -9,7 +9,9 @@ import {
   Settings, 
   HelpCircle, 
   LogOut,
-  CreditCard
+  CreditCard,
+  Palette,
+  Grid
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -41,6 +43,12 @@ const Sidebar = () => {
   const navLinks = [
     { name: "Dashboard", path: "/dashboard", icon: <Home className="h-5 w-5 mr-3" /> },
     { name: "Design Upload", path: "/design", icon: <Image className="h-5 w-5 mr-3" /> },
+    { 
+      name: "My Designs", 
+      path: "/my-designs", 
+      icon: <Palette className="h-5 w-5 mr-3" />,
+      highlight: true  // This will be used to highlight this item
+    },
     { name: "Inventory", path: "/inventory", icon: <Package className="h-5 w-5 mr-3" /> },
     { name: "Production", path: "/production", icon: <Clipboard className="h-5 w-5 mr-3" /> },
     { name: "Analytics", path: "/analytics", icon: <BarChart3 className="h-5 w-5 mr-3" /> },
@@ -77,11 +85,16 @@ const Sidebar = () => {
                 className={`flex items-center p-2 rounded-md ${
                   location === link.path
                     ? "bg-primary-50 text-primary-700 font-medium"
-                    : "text-secondary-500 hover:bg-secondary-100"
+                    : link.highlight
+                      ? "text-purple-600 font-medium bg-purple-50 hover:bg-purple-100 border border-purple-200"
+                      : "text-secondary-500 hover:bg-secondary-100"
                 }`}
               >
                 {link.icon}
                 {link.name}
+                {link.highlight && (
+                  <span className="ml-2 bg-purple-600 text-white text-xs rounded-full px-2 py-0.5">New</span>
+                )}
               </Link>
             </li>
           ))}
