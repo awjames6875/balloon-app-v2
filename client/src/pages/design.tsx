@@ -3,7 +3,7 @@ import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Share, Upload, PlusCircle, Image, RefreshCw, Edit, Grid, Palette, Clock, Eye } from "lucide-react";
+import { Save, Share, Upload, PlusCircle, Image, RefreshCw, Edit, Grid, Palette, Clock, Eye, Tag, User, Calendar, Copy, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import DesignCanvas from '@/components/canvas/design-canvas';
