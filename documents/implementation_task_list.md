@@ -18,7 +18,7 @@
 - [x] Remove design-assistant.tsx component (moved to backup folder for reference)
 
 ### Server-side
-- [ ] Remove AI analysis API endpoints from server/routes.ts
+- [x] Remove AI analysis API endpoints from server/routes.ts
 - [ ] Remove OpenAI integration from server/ai.ts or repurpose it
 - [ ] Update database logic to reflect the removal of analysis features
 

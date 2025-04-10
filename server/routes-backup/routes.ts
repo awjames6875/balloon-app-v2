@@ -15,7 +15,7 @@ import {
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import session from "express-session";
-// AI import removed
+import { analyzeDesignImage } from "./ai";
 import { pool } from "./db";
 import connectPg from "connect-pg-simple";
 
@@ -499,9 +499,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI analysis endpoint removed
+  app.post('/api/designs/:id/analyze', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      const design = await storage.getDesign(designId);
+      
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      if (!design.imageUrl) {
+        return res.status(400).json({ message: 'Design has no image to analyze' });
+      }
+      
+      // Check if user owns this design or is admin
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Analyze image using AI
+      const imagePath = path.join(process.cwd(), design.imageUrl.replace(/^\//, ''));
+      const analysis = await analyzeDesignImage(imagePath);
+      
+      // Update design with analysis results
+      const updatedDesign = await storage.updateDesign(designId, {
+        colorAnalysis: analysis.colorAnalysis,
+        materialRequirements: analysis.materialRequirements,
+        totalBalloons: analysis.totalBalloons,
+        estimatedClusters: analysis.estimatedClusters,
+        productionTime: analysis.productionTime
+      });
+      
+      res.json(updatedDesign);
+    } catch (error) {
+      console.error('Design analysis error:', error);
+      res.status(500).json({ message: 'Failed to analyze design' });
+    }
+  });
   
-  // AI design modification endpoint removed
+  app.post('/api/designs/:id/modify', isAuthenticated, async (req, res) => {
+    try {
+      const designId = parseInt(req.params.id);
+      const { command } = req.body;
+      
+      if (!command) {
+        return res.status(400).json({ message: 'Command is required' });
+      }
+      
+      const design = await storage.getDesign(designId);
+      
+      if (!design) {
+        return res.status(404).json({ message: 'Design not found' });
+      }
+      
+      // Check if user owns this design or is admin
+      if (design.userId !== req.session.userId && req.session.userRole !== 'admin') {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      // Process command using AI
+      const { processDesignCommand } = await import('./ai');
+      const modifiedDesign = await processDesignCommand(designId, command, design);
+      
+      // Update design with new analysis results
+      const updatedDesign = await storage.updateDesign(designId, {
+        colorAnalysis: modifiedDesign.colorAnalysis,
+        materialRequirements: modifiedDesign.materialRequirements,
+        totalBalloons: modifiedDesign.totalBalloons,
+        estimatedClusters: modifiedDesign.estimatedClusters,
+        productionTime: modifiedDesign.productionTime
+      });
+      
+      res.json(updatedDesign);
+    } catch (error) {
+      console.error('Design modification error:', error);
+      res.status(500).json({ message: 'Failed to modify design' });
+    }
+  });
 
   app.put('/api/designs/:id', isAuthenticated, async (req, res) => {
     try {
