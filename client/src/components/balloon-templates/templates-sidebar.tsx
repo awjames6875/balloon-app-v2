@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { balloonClusterTemplates } from './balloon-templates-data';
+import { balloonClusterTemplates, BalloonClusterTemplate } from './balloon-templates-data';
 import BalloonTemplate from './balloon-template';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
 
-const TemplatesSidebar = () => {
+interface TemplatesSidebarProps {
+  onTemplateSelect?: (template: BalloonClusterTemplate) => void;
+}
+
+const TemplatesSidebar = ({ onTemplateSelect }: TemplatesSidebarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const savedTemplates = JSON.parse(localStorage.getItem('savedTemplates') || '[]');
@@ -13,6 +17,12 @@ const TemplatesSidebar = () => {
   const filteredTemplates = allTemplates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleTemplateClick = (template: BalloonClusterTemplate) => {
+    if (onTemplateSelect) {
+      onTemplateSelect(template);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -29,7 +39,11 @@ const TemplatesSidebar = () => {
 
       <div className="flex-1 overflow-y-auto">
         {filteredTemplates.map((template) => (
-          <BalloonTemplate key={template.id} template={template} />
+          <BalloonTemplate 
+            key={template.id} 
+            template={template} 
+            onTemplateClick={handleTemplateClick}
+          />
         ))}
       </div>
     </div>

@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { BalloonClusterTemplate } from '@/types';
+import { BalloonClusterTemplate } from './balloon-templates-data';
+import { useToast } from '@/hooks/use-toast';
 
 interface BalloonTemplateProps {
   template: BalloonClusterTemplate;
+  onTemplateClick?: (template: BalloonClusterTemplate) => void;
 }
 
-const BalloonTemplate = ({ template }: BalloonTemplateProps) => {
+const BalloonTemplate = ({ template, onTemplateClick }: BalloonTemplateProps) => {
   const [expanded, setExpanded] = useState(false);
+  const { toast } = useToast();
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'BALLOON_TEMPLATE',
@@ -23,13 +26,28 @@ const BalloonTemplate = ({ template }: BalloonTemplateProps) => {
     }),
   }));
 
+  const handleTemplateClick = (e: React.MouseEvent) => {
+    // Only capture the double-click
+    if (e.detail === 2 && onTemplateClick) {
+      e.stopPropagation();
+      onTemplateClick(template);
+      toast({
+        title: "Template Added",
+        description: `${template.name} has been added to your canvas`,
+      });
+    } else {
+      // Single click expands
+      setExpanded(!expanded);
+    }
+  };
+
   return (
     <div
       ref={drag}
-      className={`balloon-template p-2 mb-2 border rounded-md cursor-grab transition-all ${
+      className={`balloon-template p-2 mb-2 border rounded-md cursor-pointer transition-all ${
         isDragging ? 'opacity-50' : 'opacity-100'
-      } ${expanded ? 'h-auto' : 'h-24'} overflow-hidden`}
-      onClick={() => setExpanded(!expanded)}
+      } ${expanded ? 'h-auto' : 'h-24'} overflow-hidden hover:bg-primary-50`}
+      onClick={handleTemplateClick}
       style={{ touchAction: 'none' }}
     >
       <div className="flex items-center mb-2">
@@ -41,6 +59,7 @@ const BalloonTemplate = ({ template }: BalloonTemplateProps) => {
           <p className="text-xs text-secondary-500">
             {template.largeBalloonCount} large, {template.smallBalloonCount} small
           </p>
+          <p className="text-xs font-medium text-primary-700 mt-1">Double-click to add</p>
         </div>
       </div>
       

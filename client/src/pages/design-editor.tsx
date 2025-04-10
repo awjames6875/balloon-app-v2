@@ -11,6 +11,7 @@ import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
+import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-templates-data';
 
 const DesignEditor = () => {
   const [, params] = useRoute('/design-editor/:id?');
@@ -245,7 +246,27 @@ const DesignEditor = () => {
                     </button>
                   </div>
                   <div className="p-3">
-                    <TemplatesSidebar />
+                    <TemplatesSidebar 
+                      onTemplateSelect={(template) => {
+                        // Add template to canvas at center position
+                        const canvasWidth = 500; // Approximate canvas width
+                        const canvasHeight = 400; // Approximate canvas height
+                        
+                        const newElement: DesignElement = {
+                          id: `element-${Date.now()}`,
+                          type: 'balloon-cluster',
+                          x: canvasWidth / 2 - 75, // Center x (template width is ~150)
+                          y: canvasHeight / 2 - 75, // Center y (template height is ~150)
+                          width: 150,
+                          height: 150,
+                          rotation: 0,
+                          svgContent: template.svgContent,
+                          colors: template.defaultColors || ['#FF5757'],
+                        };
+                        
+                        setElements([...elements, newElement]);
+                      }}
+                    />
                   </div>
                 </>
               )}

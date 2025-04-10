@@ -1,4 +1,17 @@
-import { BalloonClusterTemplate } from '@/types';
+export interface BalloonClusterTemplate {
+  id: string;
+  name: string;
+  svgContent: string;
+  defaultColors: string[];
+  width?: number;
+  height?: number;
+  category?: string;
+  type?: string;
+  smallBalloonCount?: number;
+  largeBalloonCount?: number;
+  thumbnail?: string;
+  elements?: any[];
+}
 import { v4 as uuid } from 'uuid';
 
 // Standard balloon cluster (13 balloons: 2 x 16-inch and 11 x 11-inch)
