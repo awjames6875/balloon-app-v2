@@ -179,7 +179,7 @@ const MyDesignsPage = () => {
   );
 
   // Helper function to render designs grid
-  function renderDesignsGrid(designs) {
+  function renderDesignsGrid(designs: any[]) {
     if (designs.length === 0) return null;
     
     return (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { DesignElement } from '@/types';
 
@@ -9,7 +9,7 @@ interface DesignCanvasProps {
 }
 
 const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCanvasProps) => {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [draggedElement, setDraggedElement] = useState<{ id: string, startX: number, startY: number, offsetX: number, offsetY: number } | null>(null);
   
@@ -134,10 +134,7 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
   
   return (
     <div 
-      ref={(node) => {
-        drop(node);
-        canvasRef.current = node;
-      }}
+      ref={drop}
       className={`relative w-full h-full bg-white overflow-hidden ${isOver ? 'bg-blue-50' : ''}`}
       onClick={handleCanvasClick}
       style={{ 

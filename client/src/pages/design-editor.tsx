@@ -201,6 +201,19 @@ const DesignEditor = () => {
             >
               Save as Template
             </button>
+            <button
+              className="flex items-center px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium"
+              onClick={() => {
+                // Clear all elements from the canvas
+                setElements([]);
+                toast({
+                  title: 'Canvas Cleared',
+                  description: 'All elements have been removed from the canvas',
+                });
+              }}
+            >
+              Clear Canvas
+            </button>
           </div>
         </header>
         
