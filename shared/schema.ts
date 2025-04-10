@@ -224,3 +224,27 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+
+// Interface definitions for design-related types
+export type ColorAnalysis = {
+  colors: Array<{
+    name: string;
+    percentage: number;
+  }>;
+};
+
+export type MaterialRequirements = {
+  [color: string]: {
+    total: number;
+    small: number;
+    large: number;
+  };
+};
+
+export type DesignAnalysis = {
+  colorAnalysis?: ColorAnalysis;
+  materialRequirements?: MaterialRequirements;
+  totalBalloons?: number;
+  estimatedClusters?: number;
+  productionTime?: string;
+};

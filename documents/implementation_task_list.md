@@ -19,8 +19,9 @@
 
 ### Server-side
 - [x] Remove AI analysis API endpoints from server/routes.ts
-- [ ] Remove OpenAI integration from server/ai.ts or repurpose it
-- [ ] Update database logic to reflect the removal of analysis features
+- [x] Back up server/ai.ts to server/backup folder for reference
+- [x] Repurpose server/ai.ts to provide utility functions without AI analysis
+- [x] Update schema definitions to maintain compatibility with removed AI features
 
 ## Features to Implement
 
