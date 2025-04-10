@@ -1,6 +1,37 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { calculateRequiredMaterials } from '@/lib/design-utils';
+
+// Moved here from design-utils to prevent import issues
+function calculateRequiredMaterials(elements: any[]): Record<string, { small: number; large: number }> {
+  const balloonCounts: Record<string, { small: number; large: number }> = {};
+  
+  elements.forEach(element => {
+    // Only process balloon elements
+    if (element.type === 'balloon') {
+      const size = element.width >= 40 ? 'large' : 'small'; // Determine size based on width
+      
+      // Process each color in the balloon
+      element.colors.forEach((color: string) => {
+        if (!color) return; // Skip empty colors
+        
+        const colorKey = color.toLowerCase();
+        
+        if (!balloonCounts[colorKey]) {
+          balloonCounts[colorKey] = { small: 0, large: 0 };
+        }
+        
+        // Increment the appropriate size count
+        if (size === 'small') {
+          balloonCounts[colorKey].small += 1;
+        } else {
+          balloonCounts[colorKey].large += 1;
+        }
+      });
+    }
+  });
+  
+  return balloonCounts;
+}
 
 export interface MaterialRequirementsPanelProps {
   design: {

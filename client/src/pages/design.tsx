@@ -543,6 +543,18 @@ const Design = () => {
                 Clear Canvas
               </Button>
             </div>
+            
+            {/* Customer Image Upload Control */}
+            <div className="absolute top-4 left-4 w-64">
+              <div className="bg-white/95 p-3 rounded-lg shadow border border-gray-200">
+                <h3 className="text-sm font-medium mb-2">Upload Customer Image</h3>
+                <BackgroundUploader 
+                  onBackgroundChange={setBackgroundImage}
+                  currentBackground={backgroundImage}
+                  buttonText="Upload Customer Photo"
+                />
+              </div>
+            </div>
           </div>
         </div>
         
