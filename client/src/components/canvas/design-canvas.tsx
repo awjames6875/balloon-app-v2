@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { DesignElement } from '@/types';
+import { RotateCw, Maximize2, Move } from 'lucide-react';
 
 interface DesignCanvasProps {
   backgroundImage: string | null;
@@ -26,6 +27,28 @@ const DesignCanvas = ({
     offsetX: number, 
     offsetY: number,
     originalPosition: { x: number, y: number }
+  } | null>(null);
+  
+  // For resize operations
+  const [resizingElement, setResizingElement] = useState<{
+    id: string,
+    startWidth: number,
+    startHeight: number,
+    startX: number,
+    startY: number,
+    startMouseX: number,
+    startMouseY: number,
+    originalSize: { width: number, height: number }
+  } | null>(null);
+  
+  // For rotation operations
+  const [rotatingElement, setRotatingElement] = useState<{
+    id: string,
+    centerX: number,
+    centerY: number,
+    startRotation: number,
+    startAngle: number,
+    originalRotation: number
   } | null>(null);
   
   // Canvas boundaries - will be set on canvas mount
@@ -341,8 +364,76 @@ const DesignCanvas = ({
             handleElementSelect(element.id);
           }}
           onMouseDown={(e) => handleDragStart(e, element.id)}
-          dangerouslySetInnerHTML={{ __html: element.svgContent }}
-        />
+        >
+          <div 
+            className="w-full h-full relative"
+            dangerouslySetInnerHTML={{ __html: element.svgContent }}
+          />
+          
+          {/* Resize and rotation controls - only shown when element is selected */}
+          {selectedElementId === element.id && (
+            <>
+              {/* Resize handle - bottom right corner */}
+              <div 
+                className="absolute bottom-0 right-0 w-6 h-6 bg-white rounded-full border-2 border-blue-400 shadow-md flex items-center justify-center cursor-se-resize"
+                style={{ 
+                  transform: 'translate(30%, 30%)',
+                  zIndex: 20
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation(); // Prevent element movement
+                  
+                  const element = elements.find(el => el.id === selectedElementId);
+                  if (!element) return;
+                  
+                  // Initialize resize operation
+                  setResizingElement({
+                    id: element.id,
+                    startWidth: element.width,
+                    startHeight: element.height,
+                    startX: element.x,
+                    startY: element.y,
+                    startMouseX: e.clientX,
+                    startMouseY: e.clientY,
+                    originalSize: { width: element.width, height: element.height }
+                  });
+                }}
+              >
+                <Maximize2 className="w-3 h-3 text-blue-600" />
+              </div>
+              
+              {/* Rotation handle - top right corner */}
+              <div 
+                className="absolute top-0 right-0 w-6 h-6 bg-white rounded-full border-2 border-blue-400 shadow-md flex items-center justify-center cursor-crosshair"
+                style={{ 
+                  transform: 'translate(30%, -30%)',
+                  zIndex: 20
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation(); // Prevent element movement
+                  // Rotation logic will be implemented here
+                }}
+              >
+                <RotateCw className="w-3 h-3 text-blue-600" />
+              </div>
+              
+              {/* Move handle - center */}
+              <div 
+                className="absolute top-0 left-0 w-6 h-6 bg-white rounded-full border-2 border-blue-400 shadow-md flex items-center justify-center cursor-move"
+                style={{ 
+                  transform: 'translate(-30%, -30%)',
+                  zIndex: 20
+                }}
+                onMouseDown={(e) => {
+                  // Use the existing drag logic
+                  handleDragStart(e, element.id);
+                }}
+              >
+                <Move className="w-3 h-3 text-blue-600" />
+              </div>
+            </>
+          )}
+        </div>
       ))}
     </div>
   );
