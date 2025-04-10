@@ -567,7 +567,7 @@ const Design = () => {
               />
               
               <DesignUploader 
-                onAnalysisStart={handleAnalysisStart}
+                onAnalysisStart={() => setIsAnalyzing(true)}
                 onAnalysisComplete={(result) => {
                   setIsAnalyzing(false);
                   // Handle analysis result if needed
