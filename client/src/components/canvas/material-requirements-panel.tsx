@@ -23,12 +23,22 @@ interface MaterialRequirementsPanelProps {
 
 const MaterialRequirementsPanel = ({ balloonCounts }: MaterialRequirementsPanelProps) => {
   const [copied, setCopied] = useState(false);
-  const colorCounts = balloonCounts.colorCounts || {};
+  
+  // Add safeguards against undefined or null balloonCounts
+  const safeballoonCounts = balloonCounts || {
+    colorCounts: {},
+    totalSmall: 0,
+    totalLarge: 0,
+    totalBalloons: 0,
+    totalClusters: 0
+  };
+  
+  const colorCounts = safeballoonCounts.colorCounts || {};
   const totalCounts = {
-    totalSmall: balloonCounts.totalSmall || 0,
-    totalLarge: balloonCounts.totalLarge || 0,
-    totalBalloons: balloonCounts.totalBalloons || 0,
-    totalClusters: balloonCounts.totalClusters || 0,
+    totalSmall: safeballoonCounts.totalSmall || 0,
+    totalLarge: safeballoonCounts.totalLarge || 0,
+    totalBalloons: safeballoonCounts.totalBalloons || 0,
+    totalClusters: safeballoonCounts.totalClusters || 0,
   };
 
   const handleCopyToClipboard = () => {
