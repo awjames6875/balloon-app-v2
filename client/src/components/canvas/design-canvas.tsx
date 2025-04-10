@@ -206,11 +206,15 @@ const DesignCanvas = ({
     setSelectedElementId(null);
   };
   
-  // Handle element drag
+  // Handle element transformations (dragging, resizing, rotating)
   useEffect(() => {
-    if (!draggedElement) return;
+    // If no transformation is in progress, exit early
+    if (!draggedElement && !resizingElement && !rotatingElement) return;
     
-    const handleMouseMove = (e: MouseEvent) => {
+    // --- DRAGGING LOGIC ---
+    const handleDrag = (e: MouseEvent) => {
+      if (!draggedElement) return;
+      
       // Calculate new position
       let newX = e.clientX - draggedElement.offsetX;
       let newY = e.clientY - draggedElement.offsetY;
@@ -246,36 +250,153 @@ const DesignCanvas = ({
       onElementsChange(updatedElements);
     };
     
-    const handleMouseUp = (e: MouseEvent) => {
-      // Final position adjust with snap
-      if (snapToGrid && draggedElement) {
-        const element = elements.find(el => el.id === draggedElement.id);
-        if (element) {
-          const snapped = snapToGridFunc(element.x, element.y);
-          
-          // Only update if position would change
-          if (snapped.x !== element.x || snapped.y !== element.y) {
-            const updatedElements = elements.map(el => {
-              if (el.id === draggedElement.id) {
-                return {
-                  ...el,
-                  x: snapped.x,
-                  y: snapped.y
-                };
-              }
-              return el;
-            });
-            
-            onElementsChange(updatedElements);
-          }
-        }
+    // --- RESIZING LOGIC ---
+    const handleResize = (e: MouseEvent) => {
+      if (!resizingElement) return;
+      
+      // Find the element
+      const element = elements.find(el => el.id === resizingElement.id);
+      if (!element) return;
+      
+      // Calculate the width and height change
+      const deltaX = e.clientX - resizingElement.startMouseX;
+      const deltaY = e.clientY - resizingElement.startMouseY;
+      
+      // Calculate new width and height with aspect ratio preservation
+      // Use the greater of the two to maintain proportions
+      const aspectRatio = resizingElement.startWidth / resizingElement.startHeight;
+      let newWidth, newHeight;
+      
+      if (Math.abs(deltaX / resizingElement.startWidth) > Math.abs(deltaY / resizingElement.startHeight)) {
+        // Width change is more significant
+        newWidth = Math.max(40, resizingElement.startWidth + deltaX);
+        newHeight = newWidth / aspectRatio;
+      } else {
+        // Height change is more significant
+        newHeight = Math.max(40, resizingElement.startHeight + deltaY);
+        newWidth = newHeight * aspectRatio;
       }
       
-      setDraggedElement(null);
+      // Snap sizes to grid if enabled
+      if (snapToGrid) {
+        newWidth = Math.floor(newWidth / gridSize) * gridSize;
+        newHeight = Math.floor(newHeight / gridSize) * gridSize;
+        
+        // Ensure minimum size
+        newWidth = Math.max(gridSize, newWidth);
+        newHeight = Math.max(gridSize, newHeight);
+      }
+      
+      // Prevent from going out of bounds
+      const bounded = keepWithinBounds(element.x, element.y, newWidth, newHeight);
+      
+      // Update element dimensions
+      const updatedElements = elements.map(el => {
+        if (el.id === resizingElement.id) {
+          return {
+            ...el,
+            width: newWidth,
+            height: newHeight,
+            x: bounded.x,
+            y: bounded.y
+          };
+        }
+        return el;
+      });
+      
+      onElementsChange(updatedElements);
     };
     
-    // Handle escape key to cancel drag
+    // --- ROTATION LOGIC ---
+    const handleRotation = (e: MouseEvent) => {
+      if (!rotatingElement) return;
+      
+      // Find the element
+      const element = elements.find(el => el.id === rotatingElement.id);
+      if (!element) return;
+      
+      // Calculate current angle from center to mouse
+      const currentAngle = Math.atan2(
+        e.clientY - rotatingElement.centerY, 
+        e.clientX - rotatingElement.centerX
+      ) * (180 / Math.PI);
+      
+      // Calculate the rotation change
+      let rotationChange = currentAngle - rotatingElement.startAngle;
+      
+      // Apply the rotation change to the start rotation
+      let newRotation = rotatingElement.startRotation + rotationChange;
+      
+      // Snap to 15 degree increments when shift key is pressed
+      if (e.shiftKey) {
+        newRotation = Math.round(newRotation / 15) * 15;
+      }
+      
+      // Normalize rotation to 0-360 degrees
+      newRotation = ((newRotation % 360) + 360) % 360;
+      
+      // Update element rotation
+      const updatedElements = elements.map(el => {
+        if (el.id === rotatingElement.id) {
+          return { ...el, rotation: newRotation };
+        }
+        return el;
+      });
+      
+      onElementsChange(updatedElements);
+    };
+    
+    // --- MOUSE MOVE HANDLER ---
+    const handleMouseMove = (e: MouseEvent) => {
+      if (draggedElement) handleDrag(e);
+      if (resizingElement) handleResize(e);
+      if (rotatingElement) handleRotation(e);
+    };
+    
+    // --- MOUSE UP HANDLER ---
+    const handleMouseUp = (e: MouseEvent) => {
+      // Handle dragging completion
+      if (draggedElement) {
+        // Final position adjust with snap
+        if (snapToGrid) {
+          const element = elements.find(el => el.id === draggedElement.id);
+          if (element) {
+            const snapped = snapToGridFunc(element.x, element.y);
+            
+            // Only update if position would change
+            if (snapped.x !== element.x || snapped.y !== element.y) {
+              const updatedElements = elements.map(el => {
+                if (el.id === draggedElement.id) {
+                  return {
+                    ...el,
+                    x: snapped.x,
+                    y: snapped.y
+                  };
+                }
+                return el;
+              });
+              
+              onElementsChange(updatedElements);
+            }
+          }
+        }
+        setDraggedElement(null);
+      }
+      
+      // Handle resizing completion
+      if (resizingElement) {
+        setResizingElement(null);
+      }
+      
+      // Handle rotation completion (will be implemented later)
+      if (rotatingElement) {
+        setRotatingElement(null);
+      }
+    };
+    
+    // --- KEYBOARD HANDLER ---
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cancel drag operation
       if (e.key === 'Escape' && draggedElement) {
         const updatedElements = elements.map(el => {
           if (el.id === draggedElement.id) {
@@ -291,18 +412,53 @@ const DesignCanvas = ({
         onElementsChange(updatedElements);
         setDraggedElement(null);
       }
+      
+      // Cancel resize operation
+      if (e.key === 'Escape' && resizingElement) {
+        const updatedElements = elements.map(el => {
+          if (el.id === resizingElement.id) {
+            return {
+              ...el,
+              width: resizingElement.originalSize.width,
+              height: resizingElement.originalSize.height
+            };
+          }
+          return el;
+        });
+        
+        onElementsChange(updatedElements);
+        setResizingElement(null);
+      }
+      
+      // Cancel rotation operation
+      if (e.key === 'Escape' && rotatingElement) {
+        const updatedElements = elements.map(el => {
+          if (el.id === rotatingElement.id) {
+            return {
+              ...el,
+              rotation: rotatingElement.originalRotation
+            };
+          }
+          return el;
+        });
+        
+        onElementsChange(updatedElements);
+        setRotatingElement(null);
+      }
     };
     
+    // Add event listeners
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('keydown', handleKeyDown);
     
+    // Cleanup
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [draggedElement, elements, onElementsChange, snapToGrid, gridSize, canvasBounds]);
+  }, [draggedElement, resizingElement, rotatingElement, elements, onElementsChange, snapToGrid, gridSize, canvasBounds]);
   
   return (
     <div 
@@ -411,7 +567,29 @@ const DesignCanvas = ({
                 }}
                 onMouseDown={(e) => {
                   e.stopPropagation(); // Prevent element movement
-                  // Rotation logic will be implemented here
+                  
+                  const element = elements.find(el => el.id === selectedElementId);
+                  if (!element) return;
+                  
+                  // Calculate the center of the element
+                  const centerX = element.x + element.width / 2;
+                  const centerY = element.y + element.height / 2;
+                  
+                  // Calculate initial angle from center to mouse
+                  const startAngle = Math.atan2(
+                    e.clientY - centerY,
+                    e.clientX - centerX
+                  ) * (180 / Math.PI);
+                  
+                  // Initialize rotation
+                  setRotatingElement({
+                    id: element.id,
+                    centerX,
+                    centerY,
+                    startRotation: element.rotation,
+                    startAngle,
+                    originalRotation: element.rotation
+                  });
                 }}
               >
                 <RotateCw className="w-3 h-3 text-blue-600" />
