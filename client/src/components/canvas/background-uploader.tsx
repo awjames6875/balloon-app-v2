@@ -42,14 +42,27 @@ const BackgroundUploader = ({ onUpload, buttonText = "Upload Background", curren
       
       // Create a URL for the file
       const backgroundUrl = URL.createObjectURL(file);
-      onUpload(backgroundUrl);
+      
+      // Make sure onUpload is a function before calling it
+      if (typeof onUpload === 'function') {
+        onUpload(backgroundUrl);
+      } else {
+        console.error('onUpload is not a function');
+      }
       
       setIsUploading(false);
     }
   };
 
   const handleRemoveBackground = () => {
-    onUpload(null);
+    // Make sure onUpload is a function before calling it
+    if (typeof onUpload === 'function') {
+      onUpload(null);
+    } else {
+      console.error('onUpload is not a function');
+    }
+    
+    // Clear the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

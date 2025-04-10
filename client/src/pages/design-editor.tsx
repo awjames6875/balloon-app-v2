@@ -254,7 +254,7 @@ const DesignEditor = () => {
           <div className="w-80 bg-white border-l border-secondary-200 overflow-y-auto">
             <div className="p-4 space-y-6">
               <BackgroundUploader 
-                onBackgroundChange={setBackgroundImage} 
+                onUpload={setBackgroundImage} 
                 currentBackground={backgroundImage} 
               />
               
