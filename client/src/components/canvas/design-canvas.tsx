@@ -6,9 +6,17 @@ interface DesignCanvasProps {
   backgroundImage: string | null;
   elements: DesignElement[];
   onElementsChange: (elements: DesignElement[]) => void;
+  snapToGrid?: boolean;
+  gridSize?: number;
 }
 
-const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCanvasProps) => {
+const DesignCanvas = ({ 
+  backgroundImage, 
+  elements, 
+  onElementsChange,
+  snapToGrid = true,
+  gridSize = 20
+}: DesignCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [draggedElement, setDraggedElement] = useState<{ 
@@ -19,10 +27,6 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
     offsetY: number,
     originalPosition: { x: number, y: number }
   } | null>(null);
-  
-  // Grid snap settings
-  const [gridSize] = useState(20);
-  const [snapToGrid, setSnapToGrid] = useState(true);
   
   // Canvas boundaries - will be set on canvas mount
   const [canvasBounds, setCanvasBounds] = useState({ 

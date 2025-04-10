@@ -80,6 +80,10 @@ const Design = () => {
   const [clientName, setClientName] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [eventType, setEventType] = useState('');
+  
+  // Canvas settings
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(20);
 
   // Standard balloon cluster template with configurable color
   const [currentTemplate, setCurrentTemplate] = useState({
@@ -531,11 +535,28 @@ const Design = () => {
                 elements={elements}
                 onElementsChange={handleElementsChange}
                 backgroundImage={backgroundImage}
+                snapToGrid={snapToGrid}
+                gridSize={gridSize}
               />
             </DndProvider>
             
             {/* Canvas Controls */}
             <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
+              {/* Snap to Grid Toggle */}
+              <div className="bg-white/90 p-2 rounded-lg border border-gray-300 shadow flex items-center space-x-2">
+                <AlignCenter className="h-4 w-4 text-gray-600" />
+                <div className="flex-1">
+                  <Label htmlFor="snap-to-grid" className="text-xs font-medium">
+                    Snap to Grid
+                  </Label>
+                </div>
+                <Switch
+                  id="snap-to-grid"
+                  checked={snapToGrid}
+                  onCheckedChange={setSnapToGrid}
+                />
+              </div>
+              
               <Button 
                 className="bg-white/90 text-black hover:bg-white/100 border border-gray-300 shadow"
                 onClick={handleClearCanvas}
