@@ -11,6 +11,7 @@ import {
   Calendar,
   Loader2
 } from "lucide-react";
+import { Design } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,17 +25,18 @@ const MyDesignsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch user's designs
-  const { data: designs, isLoading: designsLoading } = useQuery({
+  const { data: designs, isLoading: designsLoading } = useQuery<Design[]>({
     queryKey: ["/api/designs"],
   });
 
+  // Create a safe array to avoid undefined/null errors
+  const safeDesigns = Array.isArray(designs) ? designs : [];
+  
   // Filter designs based on search query
-  const filteredDesigns = Array.isArray(designs) 
-    ? designs.filter(design => 
-        design.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        design.notes?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  const filteredDesigns = safeDesigns.filter(design => 
+    (design.clientName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (design.notes?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -96,7 +98,7 @@ const MyDesignsPage = () => {
       {/* Designs grid */}
       {!designsLoading && filteredDesigns.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDesigns.map((design: any) => (
+          {filteredDesigns.map((design: Design) => (
             <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow border-2 border-gray-100">
               <div className="aspect-video bg-secondary-100 relative">
                 {design.imageUrl ? (
@@ -154,7 +156,7 @@ const MyDesignsPage = () => {
                   </div>
                   <div className="flex items-center space-x-1 text-xs font-medium text-secondary-500">
                     <Clock className="h-3 w-3" />
-                    <span>{new Date(design.createdAt).toLocaleDateString()}</span>
+                    <span>{design.createdAt ? new Date(design.createdAt).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </div>
                 
