@@ -13,7 +13,7 @@
 - [x] Rename handleAnalysisStart to handleUploadStart
 - [x] Change button text from "Upload & Analyze Design" to "Upload Design"
 - [x] Update loading text from "Analyzing..." to "Uploading..."
-- [ ] Update the reference to DesignUploader in design.tsx component with new props
+- [x] Remove unused DesignUploader reference from design.tsx as it's been replaced by BackgroundUploader
 - [ ] Remove design-analysis.tsx component or repurpose it
 - [ ] Remove analysis API endpoints from the server routes
 

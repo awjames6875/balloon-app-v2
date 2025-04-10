@@ -11,7 +11,7 @@ import MaterialRequirementsPanel from '@/components/canvas/material-requirements
 import BackgroundUploader from '@/components/canvas/background-uploader';
 import { useToast } from '@/hooks/use-toast';
 import { DesignElement } from '@/types';
-import DesignUploader from '@/components/design/design-uploader';
+// DesignUploader removed as it's not being used
 // AI design analysis removed
 import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
 import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
