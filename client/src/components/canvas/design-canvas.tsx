@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDrop } from 'react-dnd';
 import { DesignElement } from '@/types';
 
 interface DesignCanvasProps {
@@ -14,6 +15,39 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
   
   // Find the selected element
   const selectedElement = elements.find(el => el.id === selectedElementId);
+  
+  // Set up drop target for templates
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'BALLOON_TEMPLATE',
+    drop: (item: any, monitor) => {
+      const canvasRect = canvasRef.current?.getBoundingClientRect();
+      if (!canvasRect) return;
+      
+      const dropPosition = monitor.getClientOffset();
+      
+      if (dropPosition) {
+        const x = dropPosition.x - canvasRect.left;
+        const y = dropPosition.y - canvasRect.top;
+        
+        const newElement: DesignElement = {
+          id: `element-${Date.now()}`,
+          type: 'balloon-cluster',
+          x: x,
+          y: y,
+          width: 150,
+          height: 150,
+          rotation: 0,
+          svgContent: item.svgContent,
+          colors: item.defaultColors || ['#FF5757']
+        };
+        
+        onElementsChange([...elements, newElement]);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }));
   
   // Handle element selection
   const handleElementSelect = (id: string) => {
@@ -100,8 +134,11 @@ const DesignCanvas = ({ backgroundImage, elements, onElementsChange }: DesignCan
   
   return (
     <div 
-      ref={canvasRef}
-      className="relative w-full h-full bg-white overflow-hidden"
+      ref={(node) => {
+        drop(node);
+        canvasRef.current = node;
+      }}
+      className={`relative w-full h-full bg-white overflow-hidden ${isOver ? 'bg-blue-50' : ''}`}
       onClick={handleCanvasClick}
       style={{ 
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
