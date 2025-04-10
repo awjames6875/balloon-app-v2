@@ -1,63 +1,50 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Share, Upload, PlusCircle, Image, RefreshCw, Edit, Grid, Palette, Clock, Eye } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { DesignElement } from '@/types';
+
+// Custom components
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
-import { useToast } from '@/hooks/use-toast';
-import { DesignElement } from '@/types';
 import DesignUploader from '@/components/design/design-uploader';
 import DesignAnalysis from '@/components/design/design-analysis';
-import { InventoryComparisonDialog } from "@/components/inventory/inventory-comparison-dialog";
-import { InventoryCheckDialog } from "@/components/inventory/inventory-check-dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import DesignToolbar from '@/components/design/DesignToolbar';
+import DesignSettingsPanel from '@/components/design/DesignSettingsPanel';
+import ElementEditingPanel from '@/components/design/ElementEditingPanel';
+import BalloonRequirementsPanel from '@/components/design/BalloonRequirementsPanel';
+import BalloonTemplateCreator from '@/components/design/BalloonTemplateCreator';
+import DesignDialogs from '@/components/design/DesignDialogs';
+
+// UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-// Color palette for the balloon clusters
-const colorOptions = [
-  { name: 'Red', value: '#FF5252' },
-  { name: 'Pink', value: '#E91E63' },
-  { name: 'Purple', value: '#9C27B0' },
-  { name: 'Deep Purple', value: '#673AB7' },
-  { name: 'Indigo', value: '#3F51B5' },
-  { name: 'Blue', value: '#2196F3' },
-  { name: 'Light Blue', value: '#00BCD4' },
-  { name: 'Teal', value: '#009688' },
-  { name: 'Green', value: '#4CAF50' },
-  { name: 'Light Green', value: '#8BC34A' },
-  { name: 'Lime', value: '#CDDC39' },
-  { name: 'Yellow', value: '#FFEB3B' },
-  { name: 'Amber', value: '#FFC107' },
-  { name: 'Orange', value: '#FF9800' },
-  { name: 'Deep Orange', value: '#FF5722' },
-  { name: 'Brown', value: '#795548' },
-];
-
+/**
+ * Design page component for creating and editing balloon designs
+ */
 const Design = () => {
   const { activeDesign, setActiveDesign } = useDesign();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // State for inventory operations
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
+  const [showInventoryCheckDialog, setShowInventoryCheckDialog] = useState(false);
+  const [inventoryCheckData, setInventoryCheckData] = useState<Record<string, { small: number, large: number }>>({});
   
-  // For Design Uploader
+  // State for design uploader
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // State for my designs modal
+  const [showMyDesignsModal, setShowMyDesignsModal] = useState(false);
   
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery({
@@ -69,87 +56,31 @@ const Design = () => {
     queryKey: ["/api/inventory"],
   });
 
-  // State for the editor
+  // Design state
   const [designName, setDesignName] = useState('New Balloon Design');
   const [elements, setElements] = useState<DesignElement[]>([]);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [eventType, setEventType] = useState('');
-
-  // Standard balloon cluster template with configurable color
-  const [currentTemplate, setCurrentTemplate] = useState({
-    id: 'standard-cluster',
-    name: 'Standard Cluster',
-    type: 'balloon-cluster',
-    svgContent: `<svg viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="20" fill="${selectedColor.value}" opacity="0.9" />
-      <circle cx="65" cy="40" r="15" fill="${selectedColor.value}" opacity="0.8" />
-      <circle cx="35" cy="62" r="15" fill="${selectedColor.value}" opacity="0.8" />
-      <circle cx="60" cy="68" r="12" fill="${selectedColor.value}" opacity="0.7" />
-      <circle cx="30" cy="40" r="12" fill="${selectedColor.value}" opacity="0.7" />
-      <circle cx="75" cy="55" r="10" fill="${selectedColor.value}" opacity="0.7" />
-      <circle cx="45" cy="25" r="10" fill="${selectedColor.value}" opacity="0.7" />
-      <circle cx="25" cy="68" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      <circle cx="65" cy="27" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      <circle cx="80" cy="38" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      <circle cx="50" cy="80" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      <circle cx="20" cy="45" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      <circle cx="78" cy="70" r="8" fill="${selectedColor.value}" opacity="0.6" />
-    </svg>`,
-    defaultColors: [selectedColor.value],
-    smallBalloonCount: 11, 
-    largeBalloonCount: 2,
-    width: 150,
-    height: 150,
-    category: 'standard'
-  });
-
-  // Update template when color changes
-  useEffect(() => {
-    setCurrentTemplate(prev => ({
-      ...prev,
-      svgContent: `<svg viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="20" fill="${selectedColor.value}" opacity="0.9" />
-        <circle cx="65" cy="40" r="15" fill="${selectedColor.value}" opacity="0.8" />
-        <circle cx="35" cy="62" r="15" fill="${selectedColor.value}" opacity="0.8" />
-        <circle cx="60" cy="68" r="12" fill="${selectedColor.value}" opacity="0.7" />
-        <circle cx="30" cy="40" r="12" fill="${selectedColor.value}" opacity="0.7" />
-        <circle cx="75" cy="55" r="10" fill="${selectedColor.value}" opacity="0.7" />
-        <circle cx="45" cy="25" r="10" fill="${selectedColor.value}" opacity="0.7" />
-        <circle cx="25" cy="68" r="8" fill="${selectedColor.value}" opacity="0.6" />
-        <circle cx="65" cy="27" r="8" fill="${selectedColor.value}" opacity="0.6" />
-        <circle cx="80" cy="38" r="8" fill="${selectedColor.value}" opacity="0.6" />
-        <circle cx="50" cy="80" r="8" fill="${selectedColor.value}" opacity="0.6" />
-        <circle cx="20" cy="45" r="8" fill="${selectedColor.value}" opacity="0.6" />
-        <circle cx="78" cy="70" r="8" fill="${selectedColor.value}" opacity="0.6" />
-      </svg>`,
-      defaultColors: [selectedColor.value]
-    }));
-  }, [selectedColor]);
-
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Get the selected element
+  const selectedElement = elements.find(el => el.id === selectedElementId) || null;
+  
+  // Change handler for the canvas elements
   const handleElementsChange = (newElements: DesignElement[]) => {
     setElements(newElements);
   };
 
-  const addClusterToCanvas = () => {
-    const newElement: DesignElement = {
-      id: `element-${Date.now()}`,
-      type: 'balloon-cluster',
-      x: 100 + (Math.random() * 100),
-      y: 100 + (Math.random() * 100),
-      width: currentTemplate.width,
-      height: currentTemplate.height,
-      rotation: 0,
-      svgContent: currentTemplate.svgContent,
-      colors: [selectedColor.value],
-    };
-    
-    setElements([...elements, newElement]);
+  // Add a template to the canvas
+  const addTemplateToCanvas = (element: DesignElement) => {
+    setElements([...elements, element]);
   };
-
+  
+  // Save the design
   const handleSaveDesign = async () => {
     try {
       setIsSaving(true);
@@ -195,9 +126,6 @@ const Design = () => {
         description: 'Your design has been saved',
       });
       
-      // Redirect to production page with the new design
-      // navigate(`/production/${design.id}`);
-      
     } catch (error) {
       console.error('Save error:', error);
       toast({
@@ -210,17 +138,16 @@ const Design = () => {
     }
   };
   
-  // Function to save balloon requirements to inventory
-  
-  // State for inventory check dialog
-  const [showInventoryCheckDialog, setShowInventoryCheckDialog] = useState(false);
-  const [inventoryCheckData, setInventoryCheckData] = useState<Record<string, { small: number, large: number }>>({});
-  
-  // State for the designs modal
-  const [showMyDesignsModal, setShowMyDesignsModal] = useState(false);
+  // Clear the canvas
+  const handleClearCanvas = () => {
+    if (confirm('Are you sure you want to clear the canvas? This will remove all elements.')) {
+      setElements([]);
+      setSelectedElementId(null);
+    }
+  };
   
   // Function to check inventory availability
-  const handleCheckInventory = async () => {
+  const handleCheckInventory = () => {
     try {
       if (!activeDesign) {
         toast({
@@ -246,7 +173,7 @@ const Design = () => {
       // Store material counts for the dialog
       setInventoryCheckData(materialCounts);
       
-      // Show the inventory check dialog instead of API call
+      // Show the inventory check dialog
       setShowInventoryCheckDialog(true);
       
     } catch (error) {
@@ -261,7 +188,17 @@ const Design = () => {
     }
   };
   
-  const handleSaveToInventory = async () => {
+  // Handle share dialog
+  const handleShareDesign = () => {
+    // Implement sharing functionality
+    toast({
+      title: 'Share functionality',
+      description: 'Sharing is not implemented yet',
+    });
+  };
+  
+  // Function to prepare and show inventory dialog
+  const handleSaveToInventory = () => {
     try {
       if (!activeDesign) {
         toast({
@@ -272,17 +209,7 @@ const Design = () => {
         return;
       }
       
-      // Format data for API
-      const materialCounts: Record<string, { small: number, large: number }> = {};
-      
-      Object.entries(balloonCounts.colorCounts).forEach(([colorName, counts]) => {
-        materialCounts[colorName] = {
-          small: counts.small,
-          large: counts.large
-        };
-      });
-      
-      // Show the inventory comparison dialog instead of immediately saving
+      // Show the inventory comparison dialog
       setShowInventoryDialog(true);
     } catch (error) {
       console.error('Preparation error:', error);
@@ -294,7 +221,7 @@ const Design = () => {
     }
   };
   
-  // This function is called from the dialog when the user confirms saving to inventory
+  // Process the save to inventory action from the dialog
   const processSaveToInventory = async () => {
     try {
       if (!activeDesign) return;
@@ -344,15 +271,30 @@ const Design = () => {
   };
 
   // Calculate balloon counts based on elements
-  const calculateBalloonCounts = () => {
+  const calculateBalloonCounts = useCallback(() => {
     const colorCounts: {[color: string]: {small: number, large: number, total: number, clusters: number}} = {};
     let totalSmall = 0;
     let totalLarge = 0;
     let totalClusters = 0;
 
     elements.forEach(element => {
+      if (!element.colors?.[0]) return;
+      
       const color = element.colors[0];
-      const colorName = colorOptions.find(c => c.value === color)?.name || color;
+      // Try to get a friendly name for the color
+      let colorName = color;
+      try {
+        // Test if color is a valid hex color
+        if (/^#[0-9A-F]{6}$/i.test(color)) {
+          // Find a friendly name in our color options if available
+          const colorOption = colorOptions.find(c => c.value === color);
+          if (colorOption) {
+            colorName = colorOption.name;
+          }
+        }
+      } catch (error) {
+        console.warn('Error processing color name:', error);
+      }
       
       if (!colorCounts[colorName]) {
         colorCounts[colorName] = {small: 0, large: 0, total: 0, clusters: 0};
@@ -376,16 +318,86 @@ const Design = () => {
       totalBalloons: totalSmall + totalLarge,
       totalClusters
     };
-  };
+  }, [elements]);
 
   const balloonCounts = calculateBalloonCounts();
   
-  // Handler for when analysis starts
-  const handleAnalysisStart = () => {
-    setIsAnalyzing(true);
+  // Element editing functions
+  const handleElementDuplicate = () => {
+    if (!selectedElementId) return;
+    
+    const elementToDuplicate = elements.find(el => el.id === selectedElementId);
+    if (!elementToDuplicate) return;
+    
+    const newElement: DesignElement = {
+      ...elementToDuplicate,
+      id: `element-${Date.now()}`,
+      x: elementToDuplicate.x + 20,
+      y: elementToDuplicate.y + 20
+    };
+    
+    setElements([...elements, newElement]);
+    setSelectedElementId(newElement.id);
   };
   
-  // Get material counts for the dialog
+  const handleElementDelete = () => {
+    if (!selectedElementId) return;
+    setElements(prev => prev.filter(el => el.id !== selectedElementId));
+    setSelectedElementId(null);
+  };
+  
+  const handleElementRotate = (amount: number) => {
+    if (!selectedElementId) return;
+    
+    setElements(prev => prev.map(el => {
+      if (el.id !== selectedElementId) return el;
+      const newRotation = (el.rotation || 0) + amount;
+      return { ...el, rotation: newRotation };
+    }));
+  };
+  
+  const handleElementMove = (direction: 'up' | 'down' | 'left' | 'right', amount: number) => {
+    if (!selectedElementId) return;
+    
+    setElements(prev => prev.map(el => {
+      if (el.id !== selectedElementId) return el;
+      
+      let newX = el.x;
+      let newY = el.y;
+      
+      switch (direction) {
+        case 'up':
+          newY -= amount;
+          break;
+        case 'down':
+          newY += amount;
+          break;
+        case 'left':
+          newX -= amount;
+          break;
+        case 'right':
+          newX += amount;
+          break;
+      }
+      
+      return { ...el, x: newX, y: newY };
+    }));
+  };
+  
+  const handleElementColorChange = (colorIndex: number, newColor: string) => {
+    if (!selectedElementId) return;
+    
+    setElements(prev => prev.map(el => {
+      if (el.id !== selectedElementId) return el;
+      
+      const updatedColors = [...(el.colors || [])];
+      updatedColors[colorIndex] = newColor;
+      
+      return { ...el, colors: updatedColors };
+    }));
+  };
+  
+  // Get material counts for dialogs
   const getMaterialCounts = () => {
     const materialCounts: Record<string, { small: number, large: number }> = {};
     
@@ -401,352 +413,200 @@ const Design = () => {
   
   return (
     <div className="bg-[#f5f5f7] min-h-screen">
-      {/* Inventory Comparison Dialog */}
-      {activeDesign && (
-        <InventoryComparisonDialog
-          open={showInventoryDialog}
-          onOpenChange={setShowInventoryDialog}
-          designId={activeDesign.id}
-          materialCounts={getMaterialCounts()}
-          onSaveToInventory={processSaveToInventory}
-          onNavigateToInventory={() => {
-            setShowInventoryDialog(false);
-            navigate('/inventory');
-          }}
-        />
-      )}
-      
-      {/* Inventory Check Dialog - Our new kid-friendly comparison dialog */}
-      {activeDesign && (
-        <InventoryCheckDialog
-          open={showInventoryCheckDialog}
-          onOpenChange={setShowInventoryCheckDialog}
-          designId={activeDesign.id}
-          materialCounts={inventoryCheckData}
-          onNavigateToInventory={() => {
-            setShowInventoryCheckDialog(false);
-            navigate('/inventory');
-          }}
-        />
-      )}
+      {/* Dialogs */}
+      <DesignDialogs 
+        activeDesignId={activeDesign?.id || null}
+        showInventoryDialog={showInventoryDialog}
+        setShowInventoryDialog={setShowInventoryDialog}
+        materialCounts={getMaterialCounts()}
+        onSaveToInventory={processSaveToInventory}
+        onNavigateToInventory={() => {
+          setShowInventoryDialog(false);
+          navigate('/inventory');
+        }}
+        showInventoryCheckDialog={showInventoryCheckDialog}
+        setShowInventoryCheckDialog={setShowInventoryCheckDialog}
+        inventoryCheckData={inventoryCheckData}
+        showMyDesignsModal={showMyDesignsModal}
+        setShowMyDesignsModal={setShowMyDesignsModal}
+        designs={designs || []}
+        onSelectDesign={(design) => {
+          setActiveDesign(design);
+          if (design.elements && Array.isArray(design.elements)) {
+            setElements(design.elements);
+          }
+          setBackgroundImage(design.backgroundUrl);
+          setDesignName(design.clientName || 'Untitled Design');
+          setClientName(design.clientName || '');
+          setEventDate(design.eventDate || '');
+          setEventType(design.notes || '');
+        }}
+      />
     
-      {/* Header Bar */}
-      <div className="bg-white border-b border-[#e0e0e0] px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-[#333333]">Balloon Designer</h1>
-        <div className="flex gap-2">
-          <button
-            className="flex items-center px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium shadow-sm disabled:opacity-50 z-10"
-            onClick={handleSaveDesign}
-            disabled={isSaving}
-            style={{ position: 'relative' }}
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1.5" />
-                Save
-              </>
-            )}
-          </button>
-          <button
-            className="flex items-center px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium shadow-sm"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/designs'] });
-              queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
-            }}
-          >
-            <RefreshCw className="h-4 w-4 mr-1.5" />
-            Refresh
-          </button>
-          <button
-            onClick={() => {
-              // Show my designs in a modal
-              if (designs && Array.isArray(designs) && designs.length > 0) {
-                setShowMyDesignsModal(true);
-              } else {
-                toast({
-                  title: "No saved designs",
-                  description: "You haven't saved any designs yet.",
-                  variant: "default"
-                });
-              }
-            }}
-            className="flex items-center px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium shadow-sm"
-          >
-            <Grid className="h-4 w-4 mr-1.5" />
-            My Designs
-          </button>
-          <button className="flex items-center px-4 py-1.5 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md text-sm font-medium shadow-sm">
-            <Share className="h-4 w-4 mr-1.5" />
-            Share
-          </button>
-        </div>
-      </div>
-
-      {/* Design Canvas */}
-      <div className="bg-white border-b border-[#e0e0e0] px-6 py-2">
-        <div className="w-full">
-          {/* Canvas Design Content */}
+      {/* Toolbar */}
+      <DesignToolbar 
+        designName={designName}
+        onSave={handleSaveDesign}
+        onShare={handleShareDesign}
+        onUpload={() => setShowMyDesignsModal(true)}
+        onNewTemplate={() => {
+          // Show template creator panel
+          const tabsElement = document.getElementById('sidebar-tabs');
+          if (tabsElement) {
+            const tabsInstance = (tabsElement as any).__tabsInstance;
+            if (tabsInstance) {
+              tabsInstance.setSelectedTab('template');
+            }
+          }
+        }}
+        onBackgroundChange={() => {
+          // Show background uploader
+          const tabsElement = document.getElementById('sidebar-tabs');
+          if (tabsElement) {
+            const tabsInstance = (tabsElement as any).__tabsInstance;
+            if (tabsInstance) {
+              tabsInstance.setSelectedTab('settings');
+            }
+          }
+        }}
+        onInventoryCheck={handleCheckInventory}
+        isSaving={isSaving}
+      />
+      
+      {/* Main Content */}
+      <div className="flex">
+        {/* Design Canvas */}
+        <div className="flex-1 p-4">
           <DndProvider backend={HTML5Backend}>
-            <div className="flex gap-6">
-              <div className="w-4/5">
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-800">Design Canvas</h2>
-                      <p className="text-sm text-gray-500">
-                        Drag and drop balloon clusters onto the canvas
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-sm text-gray-500">Balloon Color:</label>
-                        <Select value={selectedColor.name} onValueChange={(value) => {
-                          const newColor = colorOptions.find(c => c.name === value);
-                          if (newColor) setSelectedColor(newColor);
-                        }}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Color" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {colorOptions.map(color => (
-                              <SelectItem key={color.name} value={color.name}>
-                                <div className="flex items-center">
-                                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: color.value }} />
-                                  <span className="ml-2">{color.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <button 
-                        className="flex items-center px-3 py-1 bg-[#5568FE] text-white rounded-md text-sm"
-                        onClick={addClusterToCanvas}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-1" />
-                        Add Cluster
-                      </button>
-                      <label 
-                        className="flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm border border-gray-300 cursor-pointer"
-                        onClick={() => {
-                          const fileInput = document.getElementById('background-file-input');
-                          if (fileInput) {
-                            fileInput.click();
-                          }
-                        }}
-                      >
-                        <Image className="h-4 w-4 mr-1" />
-                        Background
-                        <input 
-                          id="background-file-input" 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              const file = e.target.files[0];
-                              const url = URL.createObjectURL(file);
-                              setBackgroundImage(url);
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div className="relative bg-[#F8F9FA] border-2 border-dashed border-gray-300 rounded-lg h-[500px] overflow-hidden">
-                    <DesignCanvas 
-                      elements={elements}
-                      onElementsChange={handleElementsChange}
-                      backgroundImage={backgroundImage}
-                    />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <BackgroundUploader
-                    onUpload={(url) => setBackgroundImage(url)}
-                    buttonText="Upload Background Image"
-                  />
-                </div>
-              </div>
-              <div className="w-1/5">
-                <div className="bg-[#F8F9FA] border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-md font-medium text-gray-800 mb-3">Design Information</h3>
-                  <div className="space-y-3 mb-6">
-                    <div className="mb-3">
-                      <label className="block text-sm text-[#777777] mb-1">Design Name</label>
-                      <input 
-                        type="text" 
-                        value={designName}
-                        onChange={(e) => setDesignName(e.target.value)}
-                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                        placeholder="Enter design name"
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="block text-sm text-[#777777] mb-1">Client Name</label>
-                      <input 
-                        type="text" 
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                        placeholder="Client name"
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="block text-sm text-[#777777] mb-1">Event Date</label>
-                      <input 
-                        type="date" 
-                        value={eventDate}
-                        onChange={(e) => setEventDate(e.target.value)}
-                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                      />
-                    </div>
-                    <div className="mb-3">
-                      <label className="block text-sm text-[#777777] mb-1">Event Type</label>
-                      <input 
-                        type="text" 
-                        value={eventType}
-                        onChange={(e) => setEventType(e.target.value)}
-                        className="w-full p-2 border border-[#e0e0e0] rounded-md"
-                        placeholder="Birthday, Wedding, etc."
-                      />
-                    </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    <button
-                      className="w-full flex justify-center items-center py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium"
-                      onClick={handleCheckInventory}
-                      disabled={isCheckingInventory}
-                    >
-                      {isCheckingInventory ? (
-                        <>
-                          <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                          Checking...
-                        </>
-                      ) : (
-                        'Check Inventory'
-                      )}
-                    </button>
-                    <button
-                      className="w-full flex justify-center items-center py-2 px-4 border border-[#5568FE] text-[#5568FE] hover:bg-blue-50 rounded-md text-sm font-medium"
-                      onClick={handleSaveToInventory}
-                      disabled={isSavingToInventory}
-                    >
-                      {isSavingToInventory ? (
-                        <>
-                          <div className="animate-spin mr-1.5 h-4 w-4 border-2 border-[#5568FE] border-t-transparent rounded-full"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        'Save to Inventory'
-                      )}
-                    </button>
-                  </div>
-                </div>
+            <div className="relative">
+              <DesignCanvas 
+                elements={elements}
+                onElementsChange={handleElementsChange}
+                backgroundImage={backgroundImage}
+                onSelectedElementChange={setSelectedElementId}
+                selectedElementId={selectedElementId}
+              />
+              
+              <div className="absolute bottom-4 right-4 flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleClearCanvas}
+                  className="bg-white"
+                >
+                  Clear Canvas
+                </Button>
               </div>
             </div>
           </DndProvider>
         </div>
-      </div>
-      
-      {/* Material Requirements Section */}
-      <div className="px-6 py-4">
-        <MaterialRequirementsPanel balloonCounts={balloonCounts} />
-      </div>
-      
-      {/* My Designs Dialog - Kid-friendly version */}
-      <Dialog open={showMyDesignsModal} onOpenChange={setShowMyDesignsModal}>
-        <DialogContent className="sm:max-w-4xl bg-blue-50 border-4 border-blue-200 rounded-xl">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-2xl font-bold text-blue-700">My Balloon Designs</DialogTitle>
-            <DialogDescription className="text-lg font-medium text-blue-600">
-              Pick any balloon design to change or look at it!
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto p-2">
-            {Array.isArray(designs) && designs.map((design: any) => (
-              <Card key={design.id} className="overflow-hidden hover:shadow-xl transition-shadow border-2 border-purple-200 rounded-xl bg-white">
-                <div className="aspect-video bg-purple-50 relative">
-                  {design.imageUrl ? (
-                    <img 
-                      src={design.imageUrl} 
-                      alt={design.clientName} 
-                      className="w-full h-full object-cover rounded-t-lg"
-                    />
-                  ) : design.backgroundUrl ? (
-                    <img 
-                      src={design.backgroundUrl} 
-                      alt={design.clientName} 
-                      className="w-full h-full object-cover opacity-50 rounded-t-lg"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Palette className="h-16 w-16 text-purple-300" />
-                    </div>
-                  )}
+        
+        {/* Sidebar */}
+        <div className="w-[320px] bg-white p-4 border-l overflow-y-auto h-[calc(100vh-64px)]">
+          <Tabs defaultValue="template" id="sidebar-tabs">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="template">Template</TabsTrigger>
+              <TabsTrigger value="element">Element</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="template" className="space-y-4">
+              <BalloonTemplateCreator onAddTemplate={addTemplateToCanvas} />
+              <BalloonRequirementsPanel balloonCounts={balloonCounts} />
+              
+              <div className="flex space-x-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={handleCheckInventory}
+                  disabled={!activeDesign || isCheckingInventory}
+                >
+                  Check Inventory
+                </Button>
+                
+                <Button 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={handleSaveToInventory}
+                  disabled={!activeDesign || isSavingToInventory}
+                >
+                  {isSavingToInventory ? 'Saving...' : 'Save to Inventory'}
+                </Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="element">
+              <ElementEditingPanel 
+                selectedElement={selectedElement}
+                onDuplicate={handleElementDuplicate}
+                onDelete={handleElementDelete}
+                onRotate={handleElementRotate}
+                onMove={handleElementMove}
+                onColorChange={handleElementColorChange}
+              />
+              
+              <MaterialRequirementsPanel design={{ elements }} />
+            </TabsContent>
+            
+            <TabsContent value="settings">
+              <DesignSettingsPanel 
+                designName={designName}
+                clientName={clientName}
+                eventDate={eventDate}
+                eventType={eventType}
+                onDesignNameChange={setDesignName}
+                onClientNameChange={setClientName}
+                onEventDateChange={setEventDate}
+                onEventTypeChange={setEventType}
+                isEditing={isEditing}
+                setIsEditing={setIsEditing}
+              />
+              
+              <BackgroundUploader 
+                onBackgroundChange={setBackgroundImage}
+                currentBackground={backgroundImage}
+              />
+              
+              <DesignUploader 
+                onAnalysisStart={handleAnalysisStart}
+                onAnalysisComplete={(result) => {
+                  setIsAnalyzing(false);
+                  // Handle analysis result if needed
+                }}
+              />
+              
+              {isAnalyzing && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                  <p className="text-sm text-blue-600">
+                    Analyzing design image... This may take a moment.
+                  </p>
                 </div>
-                <CardContent className="p-4">
-                  <div className="flex justify-center items-center mb-3">
-                    <h3 className="font-bold text-center text-purple-700 text-lg">{design.clientName}</h3>
-                  </div>
-                  
-                  <div className="flex justify-center gap-4 mt-2">
-                    <Button 
-                      className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full shadow-md"
-                      onClick={() => {
-                        setShowMyDesignsModal(false);
-                        navigate(`/design-editor/${design.id}`);
-                      }}
-                    >
-                      <Edit className="h-5 w-5 mr-2" />
-                      Change It
-                    </Button>
-                    <Button 
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full shadow-md"
-                      onClick={() => {
-                        // View the design details
-                        setActiveDesign(design);
-                        setShowMyDesignsModal(false);
-                      }}
-                    >
-                      <Eye className="h-5 w-5 mr-2" />
-                      Look at It
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <DialogFooter className="flex justify-between pt-4 border-t-2 border-blue-200 mt-4">
-            <Button 
-              className="bg-gray-500 hover:bg-gray-600 text-white text-lg px-8 py-2 rounded-full shadow-md"
-              onClick={() => setShowMyDesignsModal(false)}
-            >
-              Close
-            </Button>
-            <Button 
-              className="bg-pink-500 hover:bg-pink-600 text-white text-lg px-8 py-2 rounded-full shadow-md"
-              onClick={() => {
-                setShowMyDesignsModal(false);
-                navigate('/design-editor');
-              }}
-            >
-              Make a New Design
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
+
+// For ColorPalette component reference
+const colorOptions = [
+  { name: 'Red', value: '#FF5252' },
+  { name: 'Pink', value: '#E91E63' },
+  { name: 'Purple', value: '#9C27B0' },
+  { name: 'Deep Purple', value: '#673AB7' },
+  { name: 'Indigo', value: '#3F51B5' },
+  { name: 'Blue', value: '#2196F3' },
+  { name: 'Light Blue', value: '#00BCD4' },
+  { name: 'Teal', value: '#009688' },
+  { name: 'Green', value: '#4CAF50' },
+  { name: 'Light Green', value: '#8BC34A' },
+  { name: 'Lime', value: '#CDDC39' },
+  { name: 'Yellow', value: '#FFEB3B' },
+  { name: 'Amber', value: '#FFC107' },
+  { name: 'Orange', value: '#FF9800' },
+  { name: 'Deep Orange', value: '#FF5722' },
+  { name: 'Brown', value: '#795548' },
+];
 
 export default Design;
