@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
@@ -209,8 +209,6 @@ const Design = () => {
       setIsSaving(false);
     }
   };
-  
-  // Function to save balloon requirements to inventory
   
   // State for inventory check dialog
   const [showInventoryCheckDialog, setShowInventoryCheckDialog] = useState(false);
@@ -723,7 +721,7 @@ const Design = () => {
           <div className="max-h-[60vh] overflow-y-auto p-1">
             {designs && designs.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                {designs.map((design) => (
+                {designs.map((design: any) => (
                   <div 
                     key={design.id} 
                     className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50"
