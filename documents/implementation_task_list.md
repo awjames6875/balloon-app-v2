@@ -14,8 +14,8 @@
 - [x] Change button text from "Upload & Analyze Design" to "Upload Design"
 - [x] Update loading text from "Analyzing..." to "Uploading..."
 - [x] Remove unused DesignUploader reference from design.tsx as it's been replaced by BackgroundUploader
-- [ ] Remove design-analysis.tsx component or repurpose it
-- [ ] Remove analysis API endpoints from the server routes
+- [x] Remove design-analysis.tsx component (moved to backup folder for reference)
+- [x] Remove design-assistant.tsx component (moved to backup folder for reference)
 
 ### Server-side
 - [ ] Remove AI analysis API endpoints from server/routes.ts
