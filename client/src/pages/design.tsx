@@ -60,12 +60,12 @@ const Design = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   // Fetch user's designs
-  const { data: designs, isLoading: designsLoading } = useQuery({
+  const { data: designs, isLoading: designsLoading } = useQuery<any[]>({
     queryKey: ["/api/designs"],
   });
 
   // Fetch inventory for checking stock
-  const { data: inventory, isLoading: inventoryLoading } = useQuery({
+  const { data: inventory, isLoading: inventoryLoading } = useQuery<any[]>({
     queryKey: ["/api/inventory"],
   });
 
@@ -548,180 +548,168 @@ const Design = () => {
         
         {/* Sidebar */}
         <div className="w-[350px] bg-white border-l-2 border-[#f0f0f0] overflow-y-auto">
-          <Tabs defaultValue="template" className="p-4">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="template">Template</TabsTrigger>
-              <TabsTrigger value="upload">Upload</TabsTrigger>
-            </TabsList>
-            
-            {/* Template Tab */}
-            <TabsContent value="template" className="space-y-4">
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">Create New Balloon Cluster</h3>
-                  
-                  {/* Preview */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Preview</h4>
-                    <div 
-                      className="flex items-center justify-center p-4 border rounded-md"
-                      style={{ height: '150px' }}
-                      dangerouslySetInnerHTML={{ __html: currentTemplate.svgContent }}
-                    />
-                  </div>
-                  
-                  {/* Color Selection */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium mb-2">Select Color</h4>
-                    <div className="flex flex-wrap gap-2 max-w-md">
-                      {colorOptions.map((color) => (
-                        <button
-                          key={color.value}
-                          className={`w-8 h-8 rounded-full border-2 ${
-                            selectedColor.value === color.value ? 'border-black shadow-md' : 'border-gray-200'
-                          }`}
-                          style={{ backgroundColor: color.value }}
-                          onClick={() => setSelectedColor(color)}
-                          title={color.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    variant="default" 
-                    className="w-full"
-                    onClick={addClusterToCanvas}
-                  >
-                    Add Cluster to Canvas
-                  </Button>
-                </CardContent>
-              </Card>
+          {/* Upload Customer Image - Always Visible */}
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold mb-2">Upload Customer Image</h3>
+            <BackgroundUploader 
+              onBackgroundChange={setBackgroundImage}
+              currentBackground={backgroundImage}
+              buttonText="Upload Customer Photo"
+            />
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium">Client Name</label>
+                <input 
+                  type="text" 
+                  value={clientName} 
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                  placeholder="Enter client name"
+                />
+              </div>
               
-              {/* Balloon Requirements */}
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">Balloon Requirements</h3>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="px-3 py-2 bg-blue-50 rounded-md">
-                      <p className="text-xs text-blue-500 font-medium">Total Clusters</p>
-                      <p className="text-2xl font-bold text-blue-700">{balloonCounts.totalClusters}</p>
-                    </div>
-                    
-                    <div className="px-3 py-2 bg-purple-50 rounded-md">
-                      <p className="text-xs text-purple-500 font-medium">Total Balloons</p>
-                      <p className="text-2xl font-bold text-purple-700">{balloonCounts.totalBalloons}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">11inch Balloons:</span>
-                      <span className="font-semibold">{balloonCounts.totalSmall}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">16inch Balloons:</span>
-                      <span className="font-semibold">{balloonCounts.totalLarge}</span>
-                    </div>
-                  </div>
-                  
-                  <h4 className="text-sm font-semibold mb-2 border-b pb-1">Balloons by Color</h4>
-                  
-                  <div className="space-y-3">
-                    {Object.entries(balloonCounts.colorCounts).map(([colorName, counts]) => (
-                      <div key={colorName} className="border-b pb-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium">{colorName}</span>
-                          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                            {counts.clusters} cluster{counts.clusters !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 text-xs">
-                          <div>
-                            <div className="text-gray-500">11inch</div>
-                            <div className="font-semibold">{counts.small}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">16inch</div>
-                            <div className="font-semibold">{counts.large}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">Total</div>
-                            <div className="font-semibold">{counts.total}</div>
-                          </div>
-                        </div>
-                      </div>
+              <div>
+                <label className="text-sm font-medium">Event Date</label>
+                <input 
+                  type="date" 
+                  value={eventDate} 
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full p-2 border rounded mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Balloon Templates */}
+          <div className="p-4 space-y-4">
+            <h3 className="text-lg font-semibold mb-4">Balloon Clusters</h3>
+            
+            {/* Create New Balloon Cluster */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold mb-4">Create New Balloon Cluster</h3>
+                
+                {/* Preview */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">Preview</h4>
+                  <div 
+                    className="flex items-center justify-center p-4 border rounded-md"
+                    style={{ height: '150px' }}
+                    dangerouslySetInnerHTML={{ __html: currentTemplate.svgContent }}
+                  />
+                </div>
+                
+                {/* Color Selection */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">Select Color</h4>
+                  <div className="flex flex-wrap gap-2 max-w-md">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value}
+                        className={`w-8 h-8 rounded-full border-2 ${
+                          selectedColor.value === color.value ? 'border-black shadow-md' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: color.value }}
+                        onClick={() => setSelectedColor(color)}
+                        title={color.name}
+                      />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-              
-              <div className="flex space-x-2">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={handleCheckInventory}
-                  disabled={!activeDesign || isCheckingInventory}
-                >
-                  <Clock className="h-4 w-4 mr-1" />
-                  Check Inventory
-                </Button>
+                </div>
                 
                 <Button 
                   variant="default" 
-                  className="flex-1"
-                  onClick={handleSaveToInventory}
-                  disabled={!activeDesign || isSavingToInventory}
+                  className="w-full"
+                  onClick={addClusterToCanvas}
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Save to Inventory
+                  Add Cluster to Canvas
                 </Button>
-              </div>
-            </TabsContent>
+              </CardContent>
+            </Card>
             
-            {/* Upload Tab */}
-            <TabsContent value="upload">
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold mb-4">Upload Customer Image</h3>
+            {/* Balloon Requirements */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="text-lg font-semibold mb-4">Balloon Requirements</h3>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="px-3 py-2 bg-blue-50 rounded-md">
+                    <p className="text-xs text-blue-500 font-medium">Total Clusters</p>
+                    <p className="text-2xl font-bold text-blue-700">{balloonCounts.totalClusters}</p>
+                  </div>
                   
-                  <BackgroundUploader 
-                    onBackgroundChange={setBackgroundImage}
-                    currentBackground={backgroundImage}
-                    buttonText="Upload Customer Photo"
-                  />
-                  
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium mb-2">Design Information</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium">Client Name</label>
-                        <input 
-                          type="text" 
-                          value={clientName} 
-                          onChange={(e) => setClientName(e.target.value)}
-                          className="w-full p-2 border rounded mt-1"
-                          placeholder="Enter client name"
-                        />
+                  <div className="px-3 py-2 bg-purple-50 rounded-md">
+                    <p className="text-xs text-purple-500 font-medium">Total Balloons</p>
+                    <p className="text-2xl font-bold text-purple-700">{balloonCounts.totalBalloons}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-1 mb-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">11inch Balloons:</span>
+                    <span className="font-semibold">{balloonCounts.totalSmall}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">16inch Balloons:</span>
+                    <span className="font-semibold">{balloonCounts.totalLarge}</span>
+                  </div>
+                </div>
+                
+                <h4 className="text-sm font-semibold mb-2 border-b pb-1">Balloons by Color</h4>
+                
+                <div className="space-y-3">
+                  {Object.entries(balloonCounts.colorCounts).map(([colorName, counts]) => (
+                    <div key={colorName} className="border-b pb-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium">{colorName}</span>
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                          {counts.clusters} cluster{counts.clusters !== 1 ? 's' : ''}
+                        </span>
                       </div>
                       
-                      <div>
-                        <label className="text-sm font-medium">Event Date</label>
-                        <input 
-                          type="date" 
-                          value={eventDate} 
-                          onChange={(e) => setEventDate(e.target.value)}
-                          className="w-full p-2 border rounded mt-1"
-                        />
+                      <div className="grid grid-cols-3 text-xs">
+                        <div>
+                          <div className="text-gray-500">11inch</div>
+                          <div className="font-semibold">{counts.small}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500">16inch</div>
+                          <div className="font-semibold">{counts.large}</div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500">Total</div>
+                          <div className="font-semibold">{counts.total}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleCheckInventory}
+                disabled={!activeDesign || isCheckingInventory}
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                Check Inventory
+              </Button>
+              
+              <Button 
+                variant="default" 
+                className="flex-1"
+                onClick={handleSaveToInventory}
+                disabled={!activeDesign || isSavingToInventory}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Save to Inventory
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
       
