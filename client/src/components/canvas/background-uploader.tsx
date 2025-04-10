@@ -3,12 +3,12 @@ import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface BackgroundUploaderProps {
-  onUpload: (url: string | null) => void;
+  onBackgroundChange: (url: string | null) => void;
   buttonText?: string;
   currentBackground?: string | null;
 }
 
-const BackgroundUploader = ({ onUpload, buttonText = "Upload Background", currentBackground }: BackgroundUploaderProps) => {
+const BackgroundUploader = ({ onBackgroundChange, buttonText = "Upload Background", currentBackground }: BackgroundUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -43,11 +43,11 @@ const BackgroundUploader = ({ onUpload, buttonText = "Upload Background", curren
       // Create a URL for the file
       const backgroundUrl = URL.createObjectURL(file);
       
-      // Make sure onUpload is a function before calling it
-      if (typeof onUpload === 'function') {
-        onUpload(backgroundUrl);
+      // Make sure onBackgroundChange is a function before calling it
+      if (typeof onBackgroundChange === 'function') {
+        onBackgroundChange(backgroundUrl);
       } else {
-        console.error('onUpload is not a function');
+        console.error('onBackgroundChange is not a function');
       }
       
       setIsUploading(false);
@@ -55,11 +55,11 @@ const BackgroundUploader = ({ onUpload, buttonText = "Upload Background", curren
   };
 
   const handleRemoveBackground = () => {
-    // Make sure onUpload is a function before calling it
-    if (typeof onUpload === 'function') {
-      onUpload(null);
+    // Make sure onBackgroundChange is a function before calling it
+    if (typeof onBackgroundChange === 'function') {
+      onBackgroundChange(null);
     } else {
-      console.error('onUpload is not a function');
+      console.error('onBackgroundChange is not a function');
     }
     
     // Clear the file input

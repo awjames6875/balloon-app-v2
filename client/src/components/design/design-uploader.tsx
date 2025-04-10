@@ -7,9 +7,10 @@ import { queryClient } from "@/lib/queryClient";
 
 interface DesignUploaderProps {
   onAnalysisStart: () => void;
+  onAnalysisComplete?: (result: any) => void;
 }
 
-const DesignUploader = ({ onAnalysisStart }: DesignUploaderProps) => {
+const DesignUploader = ({ onAnalysisStart, onAnalysisComplete }: DesignUploaderProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -117,6 +118,11 @@ const DesignUploader = ({ onAnalysisStart }: DesignUploaderProps) => {
       
       const analyzedDesign = await analysisResponse.json();
       setActiveDesign(analyzedDesign);
+      
+      // Call onAnalysisComplete if provided
+      if (onAnalysisComplete) {
+        onAnalysisComplete(analyzedDesign);
+      }
       
       queryClient.invalidateQueries({ queryKey: ["/api/designs"] });
 
