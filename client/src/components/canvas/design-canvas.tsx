@@ -64,9 +64,10 @@ const DesignCanvas = ({
   const snapToGridFunc = (x: number, y: number) => {
     if (!snapToGrid) return { x, y };
     
+    // Use Math.floor for more consistent grid snapping
     return {
-      x: Math.round(x / gridSize) * gridSize,
-      y: Math.round(y / gridSize) * gridSize
+      x: Math.floor(x / gridSize) * gridSize,
+      y: Math.floor(y / gridSize) * gridSize
     };
   };
   
@@ -296,12 +297,25 @@ const DesignCanvas = ({
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Optional grid overlay */}
+      {/* Grid overlay */}
       {snapToGrid && (
         <div className="absolute inset-0 pointer-events-none z-0">
+          {/* Primary grid lines (every gridSize pixels) */}
           <div className="w-full h-full" style={{
-            backgroundImage: 'radial-gradient(circle, #00000010 1px, transparent 1px)',
+            backgroundImage: `
+              linear-gradient(to right, rgba(81, 92, 230, 0.2) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(81, 92, 230, 0.2) 1px, transparent 1px)
+            `,
             backgroundSize: `${gridSize}px ${gridSize}px`
+          }} />
+          
+          {/* Emphasized major grid lines (every 5 grid cells) */}
+          <div className="w-full h-full" style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
+            `,
+            backgroundSize: `${gridSize * 5}px ${gridSize * 5}px`
           }} />
         </div>
       )}

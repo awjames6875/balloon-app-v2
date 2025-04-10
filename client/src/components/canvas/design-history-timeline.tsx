@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useDesignHistory } from '@/context/design-history-context';
 import { Button } from '@/components/ui/button';
-import { ClockRewind, Undo2, Redo2, History } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, History } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DesignHistoryTimelineProps {

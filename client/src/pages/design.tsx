@@ -543,10 +543,10 @@ const Design = () => {
             {/* Canvas Controls */}
             <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
               {/* Snap to Grid Toggle */}
-              <div className="bg-white/90 p-2 rounded-lg border border-gray-300 shadow flex items-center space-x-2">
-                <AlignCenter className="h-4 w-4 text-gray-600" />
+              <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-md flex items-center space-x-2">
+                <Grid className="h-4 w-4 text-blue-600" />
                 <div className="flex-1">
-                  <Label htmlFor="snap-to-grid" className="text-xs font-medium">
+                  <Label htmlFor="snap-to-grid" className="text-sm font-medium text-gray-800">
                     Snap to Grid
                   </Label>
                 </div>
@@ -554,6 +554,7 @@ const Design = () => {
                   id="snap-to-grid"
                   checked={snapToGrid}
                   onCheckedChange={setSnapToGrid}
+                  className={snapToGrid ? "data-[state=checked]:bg-blue-600" : ""}
                 />
               </div>
               
