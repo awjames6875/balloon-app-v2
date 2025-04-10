@@ -1,13 +1,28 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { ChevronRight, BarChart3, LineChart, FileText, Calendar, Package, AlertTriangle } from "lucide-react";
+import { 
+  ChevronRight, 
+  BarChart3, 
+  LineChart, 
+  FileText, 
+  Calendar, 
+  Package, 
+  AlertTriangle,
+  Palette,
+  Eye,
+  Edit,
+  Grid,
+  Clock
+} from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/auth-context";
+import { useDesign } from "@/context/design-context";
 import { Design } from "@shared/schema";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -27,7 +42,9 @@ const Dashboard = () => {
   });
 
   // Calculate low inventory items
-  const lowInventoryItems = inventory?.filter(item => item.status === 'low_stock' || item.status === 'out_of_stock') || [];
+  const lowInventoryItems = Array.isArray(inventory) 
+    ? inventory.filter(item => item.status === 'low_stock' || item.status === 'out_of_stock') 
+    : [];
 
   // Example data for charts
   const salesData = [
@@ -190,6 +207,103 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* My Designs Section */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-secondary-900">My Balloon Designs</h2>
+          <Link href="/my-designs" className="text-sm text-purple-600 hover:text-purple-700 flex items-center font-medium">
+            View all designs <ChevronRight className="h-4 w-4 ml-1" />
+          </Link>
+        </div>
+        
+        {designsLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="w-8 h-8 border-4 border-purple-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+        ) : !designs || !Array.isArray(designs) || designs.length === 0 ? (
+          <Card className="text-center py-10 bg-purple-50 border-2 border-dashed border-purple-200">
+            <CardContent>
+              <Palette className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-secondary-900 mb-2">No Designs Yet</h3>
+              <p className="text-secondary-500 mb-4">Create your first balloon design to get started</p>
+              <Button 
+                onClick={() => window.location.href = '/design-editor'}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Palette className="h-4 w-4 mr-1.5" />
+                Create New Design
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {designs.slice(0, 4).map((design: any) => (
+              <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow border-2 border-gray-100">
+                <div className="aspect-video bg-secondary-100 relative">
+                  {design.imageUrl ? (
+                    <img 
+                      src={design.imageUrl} 
+                      alt={design.clientName} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : design.backgroundUrl ? (
+                    <img 
+                      src={design.backgroundUrl} 
+                      alt={design.clientName} 
+                      className="w-full h-full object-cover opacity-50"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Palette className="h-12 w-12 text-secondary-300" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm"
+                      onClick={() => window.location.href = `/design-editor/${design.id}`}
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                  </div>
+                </div>
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h3 className="font-medium text-secondary-900 text-sm">{design.clientName}</h3>
+                      <div className="flex items-center text-xs text-secondary-500 mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>{new Date(design.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {/* Placeholder card that links to Create New Design */}
+            <Card className="overflow-hidden hover:shadow-md transition-shadow border-2 border-dashed border-secondary-200 flex flex-col items-center justify-center h-full">
+              <CardContent className="p-6 flex flex-col items-center justify-center h-full">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-3">
+                  <PlusCircle className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-base font-medium text-secondary-800 mb-2 text-center">Create New Design</h3>
+                <Button 
+                  size="sm"
+                  onClick={() => window.location.href = '/design-editor'}
+                  className="bg-purple-600 hover:bg-purple-700 mt-2"
+                >
+                  <Palette className="h-4 w-4 mr-1.5" />
+                  Start Now
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
 
       {/* Recent Projects & Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
