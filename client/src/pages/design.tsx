@@ -3,12 +3,13 @@ import { useDesign } from "@/context/design-context";
 import { useQuery } from "@tanstack/react-query";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Share, Upload, PlusCircle, Image, RefreshCw, Edit, Grid, Palette, Clock, Eye, Tag, User, Calendar, Copy, RotateCcw, RotateCw, Trash2, AlignCenter } from "lucide-react";
+import { Save, Share, Upload, PlusCircle, Image, RefreshCw, Edit, Grid, Palette, Clock, Eye, Tag, User, Calendar, Copy, RotateCcw, RotateCw, Trash2, AlignCenter, Layers, Droplet, Maximize } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
+import BalloonCustomizer from '@/components/canvas/balloon-customizer';
 import { useToast } from '@/hooks/use-toast';
 import { DesignElement } from '@/types';
 // DesignUploader removed as it's not being used
@@ -462,6 +463,13 @@ const Design = () => {
     }));
   };
   
+  // Handle element update from the customizer
+  const handleElementUpdate = (updatedElement: DesignElement) => {
+    setElements(
+      elements.map(el => (el.id === updatedElement.id ? updatedElement : el))
+    );
+  };
+  
   const handleClearCanvas = () => {
     if (confirm('Are you sure you want to clear the canvas? This will remove all elements.')) {
       setElements([]);
@@ -605,50 +613,127 @@ const Design = () => {
 
           {/* Balloon Templates */}
           <div className="p-4 space-y-4">
-            <h3 className="text-lg font-semibold mb-4">Balloon Clusters</h3>
+            <Tabs defaultValue={selectedElement ? "customize" : "create"}>
+              <TabsList className="w-full mb-4">
+                <TabsTrigger value="create">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Create
+                </TabsTrigger>
+                <TabsTrigger value="customize" disabled={!selectedElement}>
+                  <Palette className="h-4 w-4 mr-2" />
+                  Customize
+                </TabsTrigger>
+              </TabsList>
             
-            {/* Create New Balloon Cluster */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="text-lg font-semibold mb-4">Create New Balloon Cluster</h3>
-                
-                {/* Preview */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium mb-2">Preview</h4>
-                  <div 
-                    className="flex items-center justify-center p-4 border rounded-md"
-                    style={{ height: '150px' }}
-                    dangerouslySetInnerHTML={{ __html: currentTemplate.svgContent }}
-                  />
-                </div>
-                
-                {/* Color Selection */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium mb-2">Select Color</h4>
-                  <div className="flex flex-wrap gap-2 max-w-md">
-                    {colorOptions.map((color) => (
-                      <button
-                        key={color.value}
-                        className={`w-8 h-8 rounded-full border-2 ${
-                          selectedColor.value === color.value ? 'border-black shadow-md' : 'border-gray-200'
-                        }`}
-                        style={{ backgroundColor: color.value }}
-                        onClick={() => setSelectedColor(color)}
-                        title={color.name}
+              <TabsContent value="create">
+                <Card>
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold mb-4">Create New Balloon Cluster</h3>
+                    
+                    {/* Preview */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Preview</h4>
+                      <div 
+                        className="flex items-center justify-center p-4 border rounded-md"
+                        style={{ height: '150px' }}
+                        dangerouslySetInnerHTML={{ __html: currentTemplate.svgContent }}
                       />
-                    ))}
+                    </div>
+                    
+                    {/* Color Selection */}
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Select Color</h4>
+                      <div className="flex flex-wrap gap-2 max-w-md">
+                        {colorOptions.map((color) => (
+                          <button
+                            key={color.value}
+                            className={`w-8 h-8 rounded-full border-2 ${
+                              selectedColor.value === color.value ? 'border-black shadow-md' : 'border-gray-200'
+                            }`}
+                            style={{ backgroundColor: color.value }}
+                            onClick={() => setSelectedColor(color)}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="default" 
+                      className="w-full"
+                      onClick={addClusterToCanvas}
+                    >
+                      Add Cluster to Canvas
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="customize">
+                {selectedElement ? (
+                  <>
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">Selected Balloon Cluster</h3>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={handleElementDuplicate}
+                            title="Duplicate"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleElementRotate(-15)}
+                            title="Rotate Left"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleElementRotate(15)}
+                            title="Rotate Right"
+                          >
+                            <RotateCw className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={handleElementDelete}
+                            title="Delete"
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2 mb-4">
+                        <div 
+                          className="flex items-center justify-center p-4 border rounded-md"
+                          style={{ height: '120px' }}
+                          dangerouslySetInnerHTML={{ __html: selectedElement.svgContent }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <BalloonCustomizer 
+                      selectedElement={selectedElement}
+                      onUpdate={handleElementUpdate}
+                      colorOptions={colorOptions}
+                    />
+                  </>
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    Select a balloon cluster on the canvas to customize it
                   </div>
-                </div>
-                
-                <Button 
-                  variant="default" 
-                  className="w-full"
-                  onClick={addClusterToCanvas}
-                >
-                  Add Cluster to Canvas
-                </Button>
-              </CardContent>
-            </Card>
+                )}
+              </TabsContent>
+            </Tabs>
             
             {/* Balloon Requirements */}
             <Card>

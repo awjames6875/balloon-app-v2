@@ -9,6 +9,8 @@ interface DesignCanvasProps {
   onElementsChange: (elements: DesignElement[]) => void;
   snapToGrid?: boolean;
   gridSize?: number;
+  onElementSelect?: (id: string | null) => void;
+  selectedElementId?: string | null;
 }
 
 const DesignCanvas = ({ 
@@ -16,10 +18,23 @@ const DesignCanvas = ({
   elements, 
   onElementsChange,
   snapToGrid = true,
-  gridSize = 20
+  gridSize = 20,
+  onElementSelect,
+  selectedElementId: propSelectedElementId
 }: DesignCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [localSelectedElementId, setLocalSelectedElementId] = useState<string | null>(null);
+  
+  // Use the provided selectedElementId if available, otherwise use local state
+  const selectedElementId = propSelectedElementId !== undefined ? propSelectedElementId : localSelectedElementId;
+  
+  // Function to set the selected element ID and notify parent if callback is provided
+  const setSelectedElementId = (id: string | null) => {
+    setLocalSelectedElementId(id);
+    if (onElementSelect) {
+      onElementSelect(id);
+    }
+  };
   const [draggedElement, setDraggedElement] = useState<{ 
     id: string, 
     startX: number, 

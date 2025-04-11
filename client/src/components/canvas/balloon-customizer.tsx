@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DesignElement } from '@/types';
-import { Droplet, Maximize, Minimize, Layers, ColorPicker } from 'lucide-react';
+import { Droplet, Maximize, Minimize, Layers, Palette } from 'lucide-react';
 
 interface BalloonCustomizerProps {
   selectedElement: DesignElement;
@@ -123,7 +123,7 @@ const BalloonCustomizer: React.FC<BalloonCustomizerProps> = ({
         <Tabs defaultValue="colors" className="w-full">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="colors">
-              <ColorPicker className="h-4 w-4 mr-2" />
+              <Palette className="h-4 w-4 mr-2" />
               Colors
             </TabsTrigger>
             <TabsTrigger value="size">
