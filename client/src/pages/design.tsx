@@ -615,15 +615,11 @@ const Design = () => {
 
           {/* Balloon Templates */}
           <div className="p-4 space-y-4">
-            <Tabs defaultValue={selectedElement ? "customize" : "create"}>
+            <Tabs defaultValue="create">
               <TabsList className="w-full mb-4">
                 <TabsTrigger value="create">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Create
-                </TabsTrigger>
-                <TabsTrigger value="customize" disabled={!selectedElement}>
-                  <Palette className="h-4 w-4 mr-2" />
-                  Customize
                 </TabsTrigger>
               </TabsList>
             
