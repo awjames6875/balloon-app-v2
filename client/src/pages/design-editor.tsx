@@ -1,29 +1,76 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, ArrowLeft, ChevronLeft, ChevronRight, Undo2, Redo2 } from 'lucide-react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useDesign } from '@/context/design-context';
+import { useDesignHistory } from '@/context/design-history-context';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { DesignElement } from '@/types';
 import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
+import DesignHistoryTimeline from '@/components/canvas/design-history-timeline';
 import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-templates-data';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const DesignEditor = () => {
   const [, params] = useRoute('/design-editor/:id?');
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { activeDesign, setActiveDesign } = useDesign();
+  const { saveState, undo, redo, canUndo, canRedo, currentState, setCurrentState } = useDesignHistory();
   
   const [designName, setDesignName] = useState('Untitled Design');
   const [elements, setElements] = useState<DesignElement[]>([]);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showHistoryTimeline, setShowHistoryTimeline] = useState(false);
+  
+  // Sync with design history state when elements or background changes
+  useEffect(() => {
+    const currentDesignState = {
+      elements,
+      backgroundImage
+    };
+    
+    // Save the current state to history
+    if (elements.length > 0 || backgroundImage) {
+      saveState(currentDesignState);
+    }
+  }, [elements, backgroundImage, saveState]);
+  
+  // Load from history state when history changes
+  useEffect(() => {
+    if (currentState) {
+      setElements(currentState.elements);
+      setBackgroundImage(currentState.backgroundImage);
+    }
+  }, [currentState]);
+
+  // Handle keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if ctrl/cmd key is pressed
+      const ctrlPressed = e.ctrlKey || e.metaKey;
+      
+      if (ctrlPressed) {
+        if (e.key === 'z') {
+          e.preventDefault();
+          if (canUndo) undo();
+        } else if (e.key === 'y' || (e.shiftKey && e.key === 'z')) {
+          e.preventDefault();
+          if (canRedo) redo();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, undo, redo]);
   
   // Load existing design if ID is provided
   useEffect(() => {
@@ -54,6 +101,13 @@ const DesignEditor = () => {
           setElements(designElements);
           setBackgroundImage(design.backgroundUrl || null);
           
+          // Initialize history with the loaded design
+          const initialState = {
+            elements: designElements,
+            backgroundImage: design.backgroundUrl || null
+          };
+          setCurrentState(initialState);
+          
         } catch (error) {
           console.error('Failed to load design:', error);
           toast({
@@ -71,7 +125,7 @@ const DesignEditor = () => {
     };
     
     loadDesign();
-  }, [params?.id]);
+  }, [params?.id, setCurrentState]);
   
   const handleSaveDesign = async () => {
     try {
@@ -174,6 +228,52 @@ const DesignEditor = () => {
               className="text-lg font-medium bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded px-1"
               placeholder="Untitled Design"
             />
+            
+            {/* Undo/Redo Controls */}
+            <div className="flex items-center ml-4">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={undo}
+                      disabled={!canUndo}
+                      className="p-1.5 rounded-md text-secondary-600 hover:bg-secondary-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Undo"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Undo (Ctrl+Z)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={redo}
+                      disabled={!canRedo}
+                      className="p-1.5 rounded-md text-secondary-600 hover:bg-secondary-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Redo"
+                    >
+                      <Redo2 className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Redo (Ctrl+Y)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <button
+                onClick={() => setShowHistoryTimeline(!showHistoryTimeline)}
+                className="text-xs text-secondary-500 hover:text-secondary-700 underline ml-2"
+              >
+                {showHistoryTimeline ? 'Hide History' : 'Show History'}
+              </button>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -315,6 +415,9 @@ const DesignEditor = () => {
           
           {/* Canvas Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
+            {showHistoryTimeline && (
+              <DesignHistoryTimeline isOpen={showHistoryTimeline} />
+            )}
             <div className="flex-1 overflow-y-auto p-4">
               <DesignCanvas 
                 backgroundImage={backgroundImage} 
@@ -328,7 +431,7 @@ const DesignEditor = () => {
           <div className="w-80 bg-white border-l border-secondary-200 overflow-y-auto">
             <div className="p-4 space-y-6">
               <BackgroundUploader 
-                onUpload={setBackgroundImage} 
+                onBackgroundChange={(url) => setBackgroundImage(url)} 
                 currentBackground={backgroundImage} 
               />
               
