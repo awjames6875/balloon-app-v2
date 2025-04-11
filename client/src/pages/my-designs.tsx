@@ -178,7 +178,11 @@ const MyDesignsPage = () => {
   function renderDesignsGrid(designs: any[]) {
     if (designs.length === 0) return null;
     
-    return <DesignGallery />;
+    return (
+      <div className="mt-2">
+        <DesignGallery />
+      </div>
+    );
   }
 };
 

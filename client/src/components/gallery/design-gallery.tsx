@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Palette, Eye, Edit, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useDesign } from '@/context/design-context';
+import { useLocation } from 'wouter';
+
 // Using inline Design type to avoid import issues
 interface Design {
   id: number;
@@ -28,8 +31,6 @@ interface Design {
   createdAt: string;
   updatedAt?: string | null;
 }
-import { useDesign } from '@/context/design-context';
-import { useLocation } from 'wouter';
 
 interface DesignGalleryProps {
   onSelectDesign?: (design: Design) => void;
