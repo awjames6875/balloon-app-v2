@@ -545,6 +545,8 @@ const Design = () => {
                 backgroundImage={backgroundImage}
                 snapToGrid={snapToGrid}
                 gridSize={gridSize}
+                selectedElementId={selectedElementId}
+                onElementSelect={setSelectedElementId}
               />
             </DndProvider>
             
