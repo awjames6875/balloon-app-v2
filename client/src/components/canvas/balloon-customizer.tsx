@@ -48,16 +48,27 @@ const BalloonCustomizer: React.FC<BalloonCustomizerProps> = ({
     // Get the original SVG content
     let updatedSvg = selectedElement.svgContent;
     
-    // Replace color variables with actual colors
-    updatedSvg = updatedSvg.replace(/var\(--color-primary\)/g, primaryColor);
-    updatedSvg = updatedSvg.replace(/var\(--color-secondary\)/g, secondaryColor);
-    
-    // Update accent colors
-    for (let i = 0; i < accentColors.length && i < 11; i++) {
-      updatedSvg = updatedSvg.replace(
-        new RegExp(`var\\(--color-accent-${i+1}\\)`, 'g'), 
-        accentColors[i]
-      );
+    if (colorMode === 'uniform') {
+      // In uniform mode, replace all color variables with primary color
+      updatedSvg = updatedSvg.replace(/var\(--color-primary\)/g, primaryColor);
+      updatedSvg = updatedSvg.replace(/var\(--color-secondary\)/g, primaryColor);
+      
+      for (let i = 0; i < 11; i++) {
+        updatedSvg = updatedSvg.replace(
+          new RegExp(`var\\(--color-accent-${i+1}\\)`, 'g'), 
+          primaryColor
+        );
+      }
+    } else {
+      // In multi-color mode, apply different colors
+      updatedSvg = updatedSvg.replace(/var\(--color-primary\)/g, primaryColor);
+      updatedSvg = updatedSvg.replace(/var\(--color-secondary\)/g, secondaryColor);
+      
+      // Update each accent color individually
+      for (let i = 0; i < accentColors.length && i < 11; i++) {
+        const pattern = new RegExp(`var\\(--color-accent-${i+1}\\)`, 'g');
+        updatedSvg = updatedSvg.replace(pattern, accentColors[i]);
+      }
     }
     
     // Apply density by adjusting the opacity and spacing
@@ -218,10 +229,12 @@ const BalloonCustomizer: React.FC<BalloonCustomizerProps> = ({
                 <div className="mb-4">
                   <Label className="text-sm font-medium mb-2 block">Accent Colors (Small Balloons)</Label>
                   <div className="flex flex-wrap gap-2 max-w-md">
-                    {colorOptions.slice(0, 8).map((color) => (
+                    {colorOptions.map((color) => (
                       <button
                         key={color.value}
-                        className="w-8 h-8 rounded-full border-2 border-gray-200"
+                        className={`w-8 h-8 rounded-full border-2 ${
+                          accentColors[0] === color.value ? 'border-black shadow-md' : 'border-gray-200'
+                        }`}
                         style={{ backgroundColor: color.value }}
                         onClick={() => {
                           // Set all accent colors to this color
