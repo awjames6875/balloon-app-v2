@@ -13,7 +13,7 @@ import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
-import DesignHistoryTimeline from '@/components/canvas/design-history-timeline';
+// Removed import of DesignHistoryTimeline as we have inline implementation now
 import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-templates-data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -75,23 +75,23 @@ const DesignEditor = () => {
     }, 300);
   }, [currentHistoryIndex, historyStates]);
   
-  const undo = () => {
+  const undo = useCallback(() => {
     if (canUndo) {
       setCurrentHistoryIndex(currentHistoryIndex - 1);
     }
-  };
+  }, [canUndo, currentHistoryIndex]);
   
-  const redo = () => {
+  const redo = useCallback(() => {
     if (canRedo) {
       setCurrentHistoryIndex(currentHistoryIndex + 1);
     }
-  };
+  }, [canRedo, currentHistoryIndex]);
   
-  const setCurrentState = (state: { elements: DesignElement[], backgroundImage: string | null }) => {
+  const setCurrentState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
     // Initialize history with the given state
     setHistoryStates([state]);
     setCurrentHistoryIndex(0);
-  };
+  }, []);
   
   const [designName, setDesignName] = useState('Untitled Design');
   const [elements, setElements] = useState<DesignElement[]>([]);
@@ -111,7 +111,7 @@ const DesignEditor = () => {
     if (elements.length > 0 || backgroundImage) {
       saveState(currentDesignState);
     }
-  }, [elements, backgroundImage]);
+  }, [elements, backgroundImage, saveState]);
   
   // Load from history state when history changes
   useEffect(() => {
