@@ -17,6 +17,9 @@ import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-t
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const DesignEditor = () => {
+  // Note: We need to use the design-history-context.tsx without wrapping 
+  // this component directly with DesignHistoryProvider.
+  // The DesignHistoryProvider has been moved to App.tsx to wrap this route.
   const [, params] = useRoute('/design-editor/:id?');
   const [, navigate] = useLocation();
   const { toast } = useToast();
