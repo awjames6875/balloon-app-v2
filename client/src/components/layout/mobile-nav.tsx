@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { Home, Image, Package, Clipboard, BarChart3, CreditCard } from "lucide-react";
+import { Home, Image, Package, Clipboard, BarChart3, CreditCard, Grid } from "lucide-react";
 
 const MobileNav = () => {
   const [location] = useLocation();
@@ -7,10 +7,10 @@ const MobileNav = () => {
   const navItems = [
     { name: "Home", icon: <Home className="h-6 w-6" />, path: "/dashboard" },
     { name: "Design", icon: <Image className="h-6 w-6" />, path: "/design" },
+    { name: "Editor", icon: <Grid className="h-6 w-6" />, path: "/design-editor" },
     { name: "Inventory", icon: <Package className="h-6 w-6" />, path: "/inventory" },
     { name: "Production", icon: <Clipboard className="h-6 w-6" />, path: "/production" },
     { name: "Analytics", icon: <BarChart3 className="h-6 w-6" />, path: "/analytics" },
-    { name: "Payments", icon: <CreditCard className="h-6 w-6" />, path: "/payments" },
   ];
 
   return (

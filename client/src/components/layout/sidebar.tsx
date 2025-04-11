@@ -49,6 +49,7 @@ const Sidebar = () => {
       icon: <Palette className="h-5 w-5 mr-3" />,
       highlight: true  // This will be used to highlight this item
     },
+    { name: "Design Editor", path: "/design-editor", icon: <Grid className="h-5 w-5 mr-3" /> },
     { name: "Inventory", path: "/inventory", icon: <Package className="h-5 w-5 mr-3" /> },
     { name: "Production", path: "/production", icon: <Clipboard className="h-5 w-5 mr-3" /> },
     { name: "Analytics", path: "/analytics", icon: <BarChart3 className="h-5 w-5 mr-3" /> },
