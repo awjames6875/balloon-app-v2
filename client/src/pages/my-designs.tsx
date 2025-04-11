@@ -219,9 +219,9 @@ const MyDesignsPage = () => {
                   variant="secondary" 
                   className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm"
                   onClick={() => {
-                    // Open a preview of the design
+                    // Open a preview of the design by going to design-editor with the ID
                     setActiveDesign(design);
-                    navigate(`/design`);
+                    navigate(`/design-editor/${design.id}`);
                   }}
                 >
                   <Eye className="h-4 w-4" />
