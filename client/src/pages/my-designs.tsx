@@ -3,21 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { 
   Palette, 
-  Edit, 
-  Eye, 
-  Clock, 
   PlusCircle, 
   Search,
-  Calendar,
   Loader2,
   ListFilter
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useDesign } from "@/context/design-context";
+import DesignGallery from "@/components/gallery/design-gallery";
 
 const MyDesignsPage = () => {
   const [, navigate] = useLocation();
@@ -178,92 +174,11 @@ const MyDesignsPage = () => {
     </div>
   );
 
-  // Helper function to render designs grid
+  // Use our new DesignGallery component for rendering designs
   function renderDesignsGrid(designs: any[]) {
     if (designs.length === 0) return null;
     
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {designs.map((design: any) => (
-          <Card key={design.id} className="overflow-hidden hover:shadow-md transition-shadow border-2 border-gray-100">
-            <div className="aspect-video bg-secondary-100 relative">
-              {design.imageUrl ? (
-                <img 
-                  src={design.imageUrl} 
-                  alt={design.clientName} 
-                  className="w-full h-full object-cover"
-                />
-              ) : design.backgroundUrl ? (
-                <img 
-                  src={design.backgroundUrl} 
-                  alt={design.clientName} 
-                  className="w-full h-full object-cover opacity-50"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Palette className="h-12 w-12 text-secondary-300" />
-                </div>
-              )}
-              <div className="absolute top-2 right-2 flex gap-1">
-                <Button 
-                  size="icon" 
-                  variant="secondary" 
-                  className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm"
-                  onClick={() => navigate(`/design-editor/${design.id}`)}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Edit</span>
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="secondary" 
-                  className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm"
-                  onClick={() => {
-                    // Open a preview of the design by going to design-editor with the ID
-                    setActiveDesign(design);
-                    navigate(`/design-editor/${design.id}`);
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                  <span className="sr-only">View</span>
-                </Button>
-              </div>
-            </div>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-medium text-secondary-900">{design.clientName}</h3>
-                  <div className="flex items-center text-sm text-secondary-500 mt-1">
-                    <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                    <span>
-                      {design.eventDate ? new Date(String(design.eventDate)).toLocaleDateString() : "No date set"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1 text-xs font-medium text-secondary-500">
-                  <Clock className="h-3 w-3" />
-                  <span>{design.createdAt ? new Date(String(design.createdAt)).toLocaleDateString() : 'N/A'}</span>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {design.totalBalloons && (
-                  <span className="px-2.5 py-0.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full">
-                    {design.totalBalloons} balloons
-                  </span>
-                )}
-                
-                {design.notes && (
-                  <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full truncate max-w-[150px]">
-                    {design.notes}
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+    return <DesignGallery />;
   }
 };
 
