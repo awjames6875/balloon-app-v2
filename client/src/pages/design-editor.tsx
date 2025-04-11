@@ -28,27 +28,45 @@ const DesignEditor = () => {
   // Load existing design if ID is provided
   useEffect(() => {
     const loadDesign = async () => {
+      console.log("Design-editor params:", params);
       if (params?.id) {
         try {
+          // Log the API request for debugging
+          console.log(`Loading design with ID: ${params.id}`);
+          
           const response = await apiRequest('GET', `/api/designs/${params.id}`);
           if (!response.ok) {
             throw new Error('Failed to load design');
           }
           
           const design = await response.json();
+          console.log("Design loaded successfully:", design);
+          
+          // Update state with the loaded design data
           setActiveDesign(design);
           setDesignName(design.clientName || 'Untitled Design');
-          setElements(design.elements || []);
+          
+          // Make sure we have valid elements array
+          const designElements = Array.isArray(design.elements) && design.elements.length > 0 
+            ? design.elements 
+            : [];
+            
+          setElements(designElements);
           setBackgroundImage(design.backgroundUrl || null);
           
         } catch (error) {
           console.error('Failed to load design:', error);
           toast({
             title: 'Error',
-            description: 'Failed to load the design',
+            description: 'Failed to load the design. Please try again.',
             variant: 'destructive',
           });
         }
+      } else {
+        // Reset states for a new design
+        setDesignName('Untitled Design');
+        setElements([]);
+        setBackgroundImage(null);
       }
     };
     
@@ -144,7 +162,7 @@ const DesignEditor = () => {
         {/* Header */}
         <header className="flex justify-between items-center px-4 py-2 bg-white border-b border-secondary-200">
           <div className="flex items-center">
-            <Link href="/design">
+            <Link href="/my-designs">
               <a className="mr-4 text-secondary-600 hover:text-secondary-800">
                 <ArrowLeft className="h-5 w-5" />
               </a>
