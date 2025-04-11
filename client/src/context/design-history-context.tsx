@@ -37,6 +37,7 @@ export const useDesignHistory = () => {
   return context;
 };
 
+// Make sure this is properly exported
 export const DesignHistoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initial empty state
   const initialState: DesignState = {

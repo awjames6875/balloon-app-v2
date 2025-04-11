@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Save, ArrowLeft, ChevronLeft, ChevronRight, Undo2, Redo2 } from 'lucide-react';
 import { Link, useRoute, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useDesign } from '@/context/design-context';
-import { useDesignHistory } from '@/context/design-history-context';
+// Direct implementation of design history functionality instead of using context
+// import { useDesignHistory, DesignHistoryProvider } from '@/context/design-history-context';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { DesignElement } from '@/types';
 import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
@@ -16,15 +17,81 @@ import DesignHistoryTimeline from '@/components/canvas/design-history-timeline';
 import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-templates-data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+// Maximum number of states to store in history
+const MAX_HISTORY_LENGTH = 30;
+
+// The design editor component with integrated history functionality
 const DesignEditor = () => {
-  // Note: We need to use the design-history-context.tsx without wrapping 
-  // this component directly with DesignHistoryProvider.
-  // The DesignHistoryProvider has been moved to App.tsx to wrap this route.
   const [, params] = useRoute('/design-editor/:id?');
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { activeDesign, setActiveDesign } = useDesign();
-  const { saveState, undo, redo, canUndo, canRedo, currentState, setCurrentState } = useDesignHistory();
+  
+  // Internal history state management
+  const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null }[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Computed history state flags
+  const canUndo = currentHistoryIndex > 0;
+  const canRedo = currentHistoryIndex < historyStates.length - 1;
+  
+  // Current design state (derived from history when navigating through history)
+  const currentState = historyStates[currentHistoryIndex];
+  
+  // History actions
+  const saveState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
+    // Skip if state is the same as current state
+    if (currentHistoryIndex >= 0 && 
+        JSON.stringify(state.elements) === JSON.stringify(historyStates[currentHistoryIndex].elements) &&
+        state.backgroundImage === historyStates[currentHistoryIndex].backgroundImage) {
+      return;
+    }
+    
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Throttle saving
+    saveTimeoutRef.current = setTimeout(() => {
+      setHistoryStates(prevStates => {
+        // If we've undone changes and now making a new one, remove future states
+        const newStates = prevStates.slice(0, currentHistoryIndex + 1);
+        
+        // Add the new state
+        const updatedStates = [...newStates, state];
+        
+        // Limit history length
+        if (updatedStates.length > MAX_HISTORY_LENGTH) {
+          updatedStates.shift();
+        }
+        
+        // Update current index
+        setCurrentHistoryIndex(updatedStates.length - 1);
+        
+        return updatedStates;
+      });
+    }, 300);
+  }, [currentHistoryIndex, historyStates]);
+  
+  const undo = () => {
+    if (canUndo) {
+      setCurrentHistoryIndex(currentHistoryIndex - 1);
+    }
+  };
+  
+  const redo = () => {
+    if (canRedo) {
+      setCurrentHistoryIndex(currentHistoryIndex + 1);
+    }
+  };
+  
+  const setCurrentState = (state: { elements: DesignElement[], backgroundImage: string | null }) => {
+    // Initialize history with the given state
+    setHistoryStates([state]);
+    setCurrentHistoryIndex(0);
+  };
   
   const [designName, setDesignName] = useState('Untitled Design');
   const [elements, setElements] = useState<DesignElement[]>([]);
@@ -44,7 +111,7 @@ const DesignEditor = () => {
     if (elements.length > 0 || backgroundImage) {
       saveState(currentDesignState);
     }
-  }, [elements, backgroundImage, saveState]);
+  }, [elements, backgroundImage]);
   
   // Load from history state when history changes
   useEffect(() => {
@@ -419,7 +486,23 @@ const DesignEditor = () => {
           {/* Canvas Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {showHistoryTimeline && (
-              <DesignHistoryTimeline isOpen={showHistoryTimeline} />
+              <div className="p-4 border-b border-secondary-200 bg-white">
+                <h3 className="font-medium text-secondary-800 mb-2">History Timeline</h3>
+                <div className="flex items-center gap-2">
+                  {historyStates.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentHistoryIndex(index)}
+                      className={`w-4 h-4 rounded-full ${
+                        index === currentHistoryIndex
+                          ? 'bg-primary-600 border-2 border-primary-300'
+                          : 'bg-secondary-300 hover:bg-secondary-400'
+                      }`}
+                      title={`State ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
             <div className="flex-1 overflow-y-auto p-4">
               <DesignCanvas 
