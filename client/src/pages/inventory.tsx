@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Package, Search, Plus, Edit, Trash2, AlertTriangle, Check, RefreshCw, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
+import { Link } from "wouter";
 
 const Inventory = () => {
   const { user } = useAuth();
@@ -302,6 +303,12 @@ const Inventory = () => {
               <CardDescription>Manage your balloon and accessory inventory</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+              <Link href="/production">
+                <Button className="bg-green-600 hover:bg-green-700 text-white mb-2 sm:mb-0 mr-2">
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Go to Production
+                </Button>
+              </Link>
               <div className="flex space-x-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-secondary-400" />
