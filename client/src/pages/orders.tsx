@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
 
 export default function Orders() {
   const { data: orders, isLoading } = useQuery({
@@ -12,13 +13,13 @@ export default function Orders() {
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-secondary-900">Orders</h1>
-        <p className="text-secondary-500 mt-1">View and manage balloon orders</p>
+        <p className="text-secondary-500 mt-1">View all balloon orders</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Order History</CardTitle>
-          <CardDescription>List of all balloon orders</CardDescription>
+          <CardTitle>All Orders</CardTitle>
+          <CardDescription>Complete order history</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -36,7 +37,8 @@ export default function Orders() {
                   <TableHead>Order ID</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Total Items</TableHead>
+                  <TableHead>Total Quantity</TableHead>
+                  <TableHead>Total Cost</TableHead>
                   <TableHead>Supplier</TableHead>
                 </TableRow>
               </TableHeader>
@@ -44,9 +46,10 @@ export default function Orders() {
                 {orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>#{order.id}</TableCell>
-                    <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{format(new Date(order.createdAt), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="capitalize">{order.status}</TableCell>
-                    <TableCell>{order.items?.length || 0}</TableCell>
+                    <TableCell>{order.totalQuantity}</TableCell>
+                    <TableCell>${(order.totalCost / 100).toFixed(2)}</TableCell>
                     <TableCell>{order.supplierName}</TableCell>
                   </TableRow>
                 ))}
