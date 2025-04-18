@@ -41,10 +41,13 @@ const DesignEditor = () => {
   
   // History actions
   const saveState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
+    console.log('SaveState called with:', state, 'Current index:', currentHistoryIndex, 'History length:', historyStates.length);
+    
     // Skip if state is the same as current state
     if (currentHistoryIndex >= 0 && 
         JSON.stringify(state.elements) === JSON.stringify(historyStates[currentHistoryIndex].elements) &&
         state.backgroundImage === historyStates[currentHistoryIndex].backgroundImage) {
+      console.log('State unchanged, skipping save');
       return;
     }
     
@@ -55,12 +58,15 @@ const DesignEditor = () => {
     
     // Throttle saving
     saveTimeoutRef.current = setTimeout(() => {
+      console.log('Adding state to history:', state, 'Current historyStates:', historyStates);
       setHistoryStates(prevStates => {
         // If we've undone changes and now making a new one, remove future states
         const newStates = prevStates.slice(0, currentHistoryIndex + 1);
+        console.log('Sliced states:', newStates);
         
         // Add the new state
         const updatedStates = [...newStates, state];
+        console.log('Updated states:', updatedStates);
         
         // Limit history length
         if (updatedStates.length > MAX_HISTORY_LENGTH) {
@@ -68,7 +74,9 @@ const DesignEditor = () => {
         }
         
         // Update current index
-        setCurrentHistoryIndex(updatedStates.length - 1);
+        const newIndex = updatedStates.length - 1;
+        console.log('Setting new index to:', newIndex);
+        setCurrentHistoryIndex(newIndex);
         
         return updatedStates;
       });
@@ -76,16 +84,34 @@ const DesignEditor = () => {
   }, [currentHistoryIndex, historyStates]);
   
   const undo = useCallback(() => {
+    console.log('Undo clicked, canUndo:', canUndo, 'historyIndex:', currentHistoryIndex, 'historyStates:', historyStates);
     if (canUndo) {
+      console.log('Performing undo, setting index to:', currentHistoryIndex - 1);
+      // Set the flag to prevent saving the state again during the undo operation
+      isUndoRedoInProgressRef.current = true;
       setCurrentHistoryIndex(currentHistoryIndex - 1);
+      
+      // Reset the flag after a short delay to allow React to finish the state update cycle
+      setTimeout(() => {
+        isUndoRedoInProgressRef.current = false;
+      }, 100);
     }
-  }, [canUndo, currentHistoryIndex]);
+  }, [canUndo, currentHistoryIndex, historyStates]);
   
   const redo = useCallback(() => {
+    console.log('Redo clicked, canRedo:', canRedo, 'historyIndex:', currentHistoryIndex, 'historyStates:', historyStates);
     if (canRedo) {
+      console.log('Performing redo, setting index to:', currentHistoryIndex + 1);
+      // Set the flag to prevent saving the state again during the redo operation
+      isUndoRedoInProgressRef.current = true;
       setCurrentHistoryIndex(currentHistoryIndex + 1);
+      
+      // Reset the flag after a short delay to allow React to finish the state update cycle
+      setTimeout(() => {
+        isUndoRedoInProgressRef.current = false;
+      }, 100);
     }
-  }, [canRedo, currentHistoryIndex]);
+  }, [canRedo, currentHistoryIndex, historyStates]);
   
   const setCurrentState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
     // Initialize history with the given state
@@ -100,8 +126,17 @@ const DesignEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showHistoryTimeline, setShowHistoryTimeline] = useState(false);
   
+  // Set up a ref to track if we're currently processing an undo/redo operation
+  const isUndoRedoInProgressRef = useRef(false);
+  
   // Sync with design history state when elements or background changes
   useEffect(() => {
+    // Skip saving to history if we're currently processing an undo/redo
+    if (isUndoRedoInProgressRef.current) {
+      console.log('Skipping history save during undo/redo operation');
+      return;
+    }
+    
     const currentDesignState = {
       elements,
       backgroundImage
@@ -109,6 +144,7 @@ const DesignEditor = () => {
     
     // Save the current state to history
     if (elements.length > 0 || backgroundImage) {
+      console.log('Saving state to history due to element/background change');
       saveState(currentDesignState);
     }
   }, [elements, backgroundImage, saveState]);
