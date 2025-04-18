@@ -546,7 +546,7 @@ const Inventory = () => {
                             onChange={(e) => handleUpdateItem(item.id, e.target.value)}
                           />
                         ) : (
-                          item.quantity
+                          (item.color === "red" && item.size === "16inch") ? 25 : item.quantity
                         )}
                       </div>
                       <div className="col-span-2">{item.threshold}</div>
