@@ -25,6 +25,7 @@ import Analytics from "@/pages/analytics";
 import Payments from "@/pages/payments";
 import DesignEditor from "@/pages/design-editor";
 import BalloonOrderDemo from "@/pages/BalloonOrderDemo";
+import Orders from "@/pages/orders"; // Added import for Orders page
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -111,6 +112,11 @@ function Router() {
       <Route path="/balloon-order-demo">
         <ProtectedRoute>
           <BalloonOrderDemo />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/orders"> {/* Added route for Orders page */}
+        <ProtectedRoute>
+          <Orders />
         </ProtectedRoute>
       </Route>
 
