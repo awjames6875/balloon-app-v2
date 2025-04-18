@@ -31,6 +31,8 @@ const CanvasElement = ({
   const [elementStart, setElementStart] = useState({ x: 0, y: 0, width: 0, height: 0, rotation: 0 });
   const [isEditingColors, setIsEditingColors] = useState(false);
   const [editingColorIndex, setEditingColorIndex] = useState<number | null>(null);
+  const [isSnapActive, setIsSnapActive] = useState(false);
+  const gridSize = 20; // Size of grid for snapping
   const { toast } = useToast();
 
   useEffect(() => {
@@ -38,11 +40,11 @@ const CanvasElement = ({
     if (isDragging) {
       window.addEventListener('mousemove', handleDragMove);
       window.addEventListener('mouseup', handleDragEnd);
-      
+
       // Touch events
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleDragEnd);
-      
+
       return () => {
         window.removeEventListener('mousemove', handleDragMove);
         window.removeEventListener('mouseup', handleDragEnd);
@@ -55,9 +57,9 @@ const CanvasElement = ({
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent, mode: 'move' | 'resize' | 'rotate') => {
     e.stopPropagation();
     if ('preventDefault' in e) e.preventDefault();
-    
+
     let clientX = 0, clientY = 0;
-    
+
     if ('touches' in e) {
       if (e.touches.length === 0) return;
       clientX = e.touches[0].clientX;
@@ -66,7 +68,7 @@ const CanvasElement = ({
       clientX = e.clientX;
       clientY = e.clientY;
     }
-    
+
     setIsDragging(true);
     setDragMode(mode);
     setDragStart({ x: clientX, y: clientY });
@@ -77,35 +79,55 @@ const CanvasElement = ({
       height: element.height,
       rotation: element.rotation || 0
     });
-    
+
     if (!isSelected) {
       onSelect();
     }
   };
-  
+
   const handleTouchMove = (e: TouchEvent) => {
     e.preventDefault(); // Prevent scrolling while dragging
-    
+
     if (e.touches.length === 0) return;
-    
+
     const touch = e.touches[0];
     handleDragMove({
       clientX: touch.clientX,
       clientY: touch.clientY
     } as unknown as MouseEvent);
   };
-  
+
+  const snapToGrid = (value: number): number => {
+    return Math.round(value / gridSize) * gridSize;
+  };
+
   const handleDragMove = (e: MouseEvent) => {
     if (!isDragging || !dragMode) return;
-    
+
     const deltaX = e.clientX - dragStart.x;
     const deltaY = e.clientY - dragStart.y;
-    
+
     switch (dragMode) {
-      case 'move':
-        onMove(elementStart.x + deltaX, elementStart.y + deltaY);
+      case 'move': {
+        let newX = elementStart.x + deltaX;
+        let newY = elementStart.y + deltaY;
+
+        // Check if shift key is held for grid snapping
+        if (e.shiftKey) {
+          setIsSnapActive(true);
+          newX = snapToGrid(newX);
+          newY = snapToGrid(newY);
+        } else {
+          setIsSnapActive(false);
+        }
+
+        // Add bounds checking
+        newX = Math.max(0, Math.min(newX, window.innerWidth - element.width));
+        newY = Math.max(0, Math.min(newY, window.innerHeight - element.height));
+
+        onMove(newX, newY);
         break;
-        
+      }
       case 'resize': {
         // Maintain aspect ratio
         const aspectRatio = elementStart.width / elementStart.height;
@@ -114,48 +136,49 @@ const CanvasElement = ({
         onResize(newWidth, newHeight);
         break;
       }
-        
+
       case 'rotate': {
         if (!elementRef.current) return;
-        
+
         // Calculate the center of the element
         const rect = elementRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        
+
         // Calculate initial angle
         const startAngle = Math.atan2(
           dragStart.y - centerY,
           dragStart.x - centerX
         );
-        
+
         // Calculate current angle
         const currentAngle = Math.atan2(
           e.clientY - centerY,
           e.clientX - centerX
         );
-        
+
         // Calculate rotation in degrees
         const angleDelta = (currentAngle - startAngle) * (180 / Math.PI);
         const newRotation = (elementStart.rotation + angleDelta) % 360;
-        
+
         onRotate(newRotation);
         break;
       }
     }
   };
-  
+
   const handleDragEnd = () => {
     setIsDragging(false);
     setDragMode(null);
+    setIsSnapActive(false);
   };
-  
+
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (editingColorIndex !== null) {
       onColorChange(editingColorIndex, e.target.value);
     }
   };
-  
+
   // Close edit mode when clicking outside
   useEffect(() => {
     if (isEditingColors) {
@@ -180,7 +203,7 @@ const CanvasElement = ({
     (match, originalColor, index, fullString) => {
       // Find the correct index for this color in the string
       const colorIndex = fullString.substring(0, index).match(/fill="(#[A-Fa-f0-9]{6})"/g)?.length || 0;
-      
+
       // Use the color at the correct index from the element's colors array
       if (element.colors && element.colors[colorIndex]) {
         return `fill="${element.colors[colorIndex]}"`;
@@ -192,7 +215,7 @@ const CanvasElement = ({
   return (
     <div
       ref={elementRef}
-      className={`absolute ${isSelected ? 'z-10' : 'z-0'} touch-none`}
+      className={`absolute ${isSelected ? 'z-10' : 'z-0'} touch-none transition-transform ${isDragging ? 'scale-[1.02] shadow-lg' : ''} ${isSnapActive ? 'outline outline-2 outline-blue-500/50' : ''}`}
       style={{
         left: element.x,
         top: element.y,
@@ -219,7 +242,7 @@ const CanvasElement = ({
         className="w-full h-full pointer-events-none"
         dangerouslySetInnerHTML={{ __html: svgWithReplacedColors }}
       />
-      
+
       {/* Control handles when selected */}
       {isSelected && (
         <>
