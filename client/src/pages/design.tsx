@@ -331,8 +331,12 @@ const Design = () => {
       
       toast({
         title: 'Saved to inventory',
-        description: result.message || 'The balloon requirements have been added to your inventory',
+        description: result.message || 'Materials used for this design have been subtracted from inventory',
       });
+      
+      // Automatically navigate to inventory page after successful save
+      setShowInventoryDialog(false);
+      navigate('/inventory');
       
       return result;
     } catch (error) {
