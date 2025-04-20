@@ -13,7 +13,7 @@ import { IStorage } from './interfaces';
  * Storage factory that provides access to the appropriate storage implementation
  */
 export class StorageFactory {
-  private static instance: IStorage;
+  private static instance: IStorage | null = null;
   
   /**
    * Get the configured storage implementation
@@ -39,7 +39,7 @@ export class StorageFactory {
    * Reset the storage instance (useful for testing)
    */
   static resetStorage(): void {
-    this.instance = undefined;
+    this.instance = null;
   }
 }
 
