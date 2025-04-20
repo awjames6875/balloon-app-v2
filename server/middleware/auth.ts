@@ -6,6 +6,9 @@ import { storage } from "../storage";
  */
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (req.session && req.session.userId) {
+    // Add userId and userRole to request object for route handlers
+    (req as any).userId = req.session.userId;
+    (req as any).userRole = req.session.userRole;
     console.log("User authenticated via session:", req.session.userId);
     return next();
   }
@@ -22,6 +25,10 @@ export const hasRole = (role: string) => {
       console.log("Role check failed: User not authenticated");
       return res.status(401).json({ message: 'Not authenticated' });
     }
+
+    // Add userId and userRole to request object for route handlers
+    (req as any).userId = req.session.userId;
+    (req as any).userRole = req.session.userRole;
 
     try {
       const user = await storage.getUser(req.session.userId);
@@ -51,6 +58,10 @@ export const isAdmin = async (req: Request, res: Response, next: NextFunction) =
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
+
+  // Add userId and userRole to request object for route handlers
+  (req as any).userId = req.session.userId;
+  (req as any).userRole = req.session.userRole;
 
   try {
     const user = await storage.getUser(req.session.userId);
