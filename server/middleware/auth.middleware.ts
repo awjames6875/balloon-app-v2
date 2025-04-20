@@ -77,8 +77,13 @@ export function configurePassport(app: Express): void {
  */
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.session && req.session.userId) {
+    // Add userId and userRole to request object for route handlers
+    (req as any).userId = req.session.userId;
+    (req as any).userRole = req.session.userRole;
+    console.log('Session active for user ID:', req.session.userId);
     return next();
   }
+  console.log('Authentication required but not found in session');
   return res.status(401).json({ message: 'Authentication required' });
 }
 
@@ -92,6 +97,10 @@ export function hasRole(roles: string[]) {
     if (!req.session || !req.session.userId) {
       return res.status(401).json({ message: 'Authentication required' });
     }
+    
+    // Add userId and userRole to request object for route handlers
+    (req as any).userId = req.session.userId;
+    (req as any).userRole = req.session.userRole;
     
     const user = await storage.getUser(req.session.userId);
     if (!user) {
@@ -121,6 +130,10 @@ export function isResourceOwnerOrAdmin<T extends { [key: string]: any }>(
     if (!req.session || !req.session.userId) {
       return res.status(401).json({ message: 'Authentication required' });
     }
+    
+    // Add userId and userRole to request object for route handlers
+    (req as any).userId = req.session.userId;
+    (req as any).userRole = req.session.userRole;
     
     const resourceId = parseInt(req.params.id);
     if (isNaN(resourceId)) {
@@ -155,6 +168,10 @@ export function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunc
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ message: 'Authentication required' });
   }
+  
+  // Add userId and userRole to request object for route handlers
+  (req as any).userId = req.session.userId;
+  (req as any).userRole = req.session.userRole;
   
   const designId = parseInt(req.params.id);
   if (isNaN(designId)) {
