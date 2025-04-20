@@ -164,15 +164,29 @@ const Design = () => {
       // Make sure elements is always an array
       const elementsCopy = Array.isArray(elements) ? [...elements] : [];
       
+      // Add element validation to ensure each element has required fields
+      const validatedElements = elementsCopy.map(el => ({
+        id: el.id,
+        type: el.type,
+        x: el.x,
+        y: el.y,
+        width: el.width,
+        height: el.height,
+        rotation: el.rotation || 0,
+        svgContent: el.svgContent,
+        colors: Array.isArray(el.colors) ? el.colors : [selectedColor.value],
+        scale: el.scale || 1
+      }));
+      
       const designData = {
         clientName: clientName || designName,
         eventDate: eventDate || null,
-        elements: elementsCopy,
+        elements: validatedElements,
         backgroundUrl: backgroundImage,
         notes: eventType || null
       };
       
-      console.log('Saving design with elements:', elementsCopy.length);
+      console.log('Saving design with elements:', validatedElements.length);
       
       // Create new design
       const response = await fetch('/api/designs/create', {

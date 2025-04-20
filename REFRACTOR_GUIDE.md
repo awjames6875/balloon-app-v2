@@ -76,3 +76,69 @@ Areas for performance improvement:
 ---
 
 This guide is a living document and will be updated as the refactoring process continues.
+
+
+🧭 Step-by-Step Guide for Large Codebase Refactor
+✅ Step 1: Safe Refactor Overview
+Prompt to Use:
+Safe & Smart Refactoring for Large Codebase
+
+Goal:
+
+Get a full analysis of code structure.
+
+Identify risky areas and improvement zones.
+
+No code edits — just suggestions.
+
+📁 Step 2: File-by-File Refactor
+Prompt to Use:
+Refactor One File at a Time – No Functional Changes
+
+What to Do:
+
+Start with main file (e.g. main.py, app.js, etc.)
+
+Refactor for readability and structure.
+
+Avoid changing logic or output.
+
+Move to next file after reviewing each result.
+
+🔤 Step 3: Rename Variables for Clarity
+Prompt to Use:
+Rename Variables for Clarity Only
+
+What to Do:
+
+Only rename unclear variables/functions.
+
+Get before/after list.
+
+Confirm before applying changes project-wide.
+
+🧠 Step 4: Organize Logic Without Changing Behavior
+Prompt to Use:
+Organize Code Without Changing Behavior
+
+What to Do:
+
+Group helper functions and logic into folders/modules.
+
+Keep function and output behavior identical.
+
+Add meaningful comments and structure for future devs.
+
+🧪 Final Step: Test Everything
+Run your app after each step.
+
+Confirm outputs match previous versions.
+
+Use version control (e.g., Replit Git, or export a ZIP before edits).
+
+✅ Optional Bonus
+Add version tags or comments like:
+
+python
+Copy
+Edit
