@@ -3,13 +3,13 @@ import {
   designs, type Design, type InsertDesign,
   inventory, type Inventory, type InsertInventory,
   accessories, type Accessory, type InsertAccessory,
-  production as productionTable, type Production, type InsertProduction,
+  production as productionSchema, type Production, type InsertProduction,
   orders, type Order, type InsertOrder,
   orderItems, type OrderItem, type InsertOrderItem,
   designAccessories
 } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { database } from "./db";
+import { eq as equals } from "drizzle-orm";
 import { calculateInventoryStatus } from "./utils/inventory.utils";
 
 // Interface for all storage operations

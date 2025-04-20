@@ -1,6 +1,6 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq as equals, sql } from 'drizzle-orm';
 import { Production, InsertProduction } from '@shared/schema';
-import { db } from '../db';
+import { database } from '../db';
 import { production } from '@shared/schema';
 import { BaseRepository } from './base.repository';
 
@@ -36,20 +36,20 @@ export interface IProductionRepository extends BaseRepository<Production, Insert
  */
 export class ProductionRepository implements IProductionRepository {
   async findById(id: number): Promise<Production | undefined> {
-    const result = await db.select().from(production).where(eq(production.id, id)).limit(1);
+    const result = await database.select().from(production).where(equals(production.id, id)).limit(1);
     return result[0];
   }
 
   async findByDesign(designId: number): Promise<Production[]> {
-    return await db.select().from(production).where(eq(production.designId, designId));
+    return await database.select().from(production).where(equals(production.designId, designId));
   }
 
   async findByStatus(status: string): Promise<Production[]> {
-    return await db.select().from(production).where(eq(production.status, status));
+    return await database.select().from(production).where(equals(production.status, status));
   }
 
   async findByDateRange(startDate: Date, endDate: Date): Promise<Production[]> {
-    return await db
+    return await database
       .select()
       .from(production)
       .where(
@@ -58,24 +58,24 @@ export class ProductionRepository implements IProductionRepository {
   }
 
   async create(productionData: InsertProduction): Promise<Production> {
-    const result = await db.insert(production).values(productionData).returning();
+    const result = await database.insert(production).values(productionData).returning();
     return result[0];
   }
 
   async update(id: number, productionData: Partial<Production>): Promise<Production | undefined> {
-    const result = await db
+    const result = await database
       .update(production)
       .set(productionData)
-      .where(eq(production.id, id))
+      .where(equals(production.id, id))
       .returning();
     
     return result[0];
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await db
+    const result = await database
       .delete(production)
-      .where(eq(production.id, id))
+      .where(equals(production.id, id))
       .returning({ id: production.id });
     
     return result.length > 0;

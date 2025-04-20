@@ -1,6 +1,6 @@
-import { eq, sql } from 'drizzle-orm';
+import { eq as equals, sql } from 'drizzle-orm';
 import { Accessory, InsertAccessory } from '@shared/schema';
-import { db } from '../db';
+import { database } from '../db';
 import { accessories } from '@shared/schema';
 import { BaseRepository } from './base.repository';
 
@@ -27,38 +27,38 @@ export interface IAccessoryRepository extends BaseRepository<Accessory, InsertAc
  */
 export class AccessoryRepository implements IAccessoryRepository {
   async findById(id: number): Promise<Accessory | undefined> {
-    const result = await db.select().from(accessories).where(eq(accessories.id, id)).limit(1);
+    const result = await database.select().from(accessories).where(equals(accessories.id, id)).limit(1);
     return result[0];
   }
   
   async findAll(): Promise<Accessory[]> {
-    return await db.select().from(accessories);
+    return await database.select().from(accessories);
   }
   
   async findByType(type: string): Promise<Accessory[]> {
     // Using sql`` tagged template to create a raw SQL condition
-    return await db.select().from(accessories).where(sql`${accessories.name} LIKE ${`%${type}%`}`);
+    return await database.select().from(accessories).where(sql`${accessories.name} LIKE ${`%${type}%`}`);
   }
 
   async create(accessory: InsertAccessory): Promise<Accessory> {
-    const result = await db.insert(accessories).values(accessory).returning();
+    const result = await database.insert(accessories).values(accessory).returning();
     return result[0];
   }
 
   async update(id: number, accessoryData: Partial<Accessory>): Promise<Accessory | undefined> {
-    const result = await db
+    const result = await database
       .update(accessories)
       .set(accessoryData)
-      .where(eq(accessories.id, id))
+      .where(equals(accessories.id, id))
       .returning();
     
     return result[0];
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await db
+    const result = await database
       .delete(accessories)
-      .where(eq(accessories.id, id))
+      .where(equals(accessories.id, id))
       .returning({ id: accessories.id });
     
     return result.length > 0;

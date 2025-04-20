@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq as equals } from 'drizzle-orm';
 import { Order, OrderItem, InsertOrder, InsertOrderItem } from '@shared/schema';
-import { db } from '../db';
+import { database } from '../db';
 import { orders, orderItems } from '@shared/schema';
 import { BaseRepository } from './base.repository';
 
@@ -42,19 +42,19 @@ export interface IOrderRepository extends BaseRepository<Order, InsertOrder> {
  */
 export class OrderRepository implements IOrderRepository {
   async findById(id: number): Promise<Order | undefined> {
-    const result = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+    const result = await database.select().from(orders).where(equals(orders.id, id)).limit(1);
     return result[0];
   }
 
   async findByUser(userId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.userId, userId));
+    return await database.select().from(orders).where(equals(orders.userId, userId));
   }
 
   async findByDesign(designId: number): Promise<Order[]> {
     // Find orders that contain items with the given designId
-    const items = await db.select()
+    const items = await database.select()
       .from(orderItems)
-      .where(eq(orderItems.designId, designId));
+      .where(equals(orderItems.designId, designId));
     
     if (items.length === 0) {
       return [];
@@ -64,7 +64,7 @@ export class OrderRepository implements IOrderRepository {
     const orderIds = [...new Set(items.map(item => item.orderId))];
     
     // Fetch orders with those IDs
-    return await db.select()
+    return await database.select()
       .from(orders)
       .where(
         // Using an SQL "in" clause
@@ -73,38 +73,38 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async create(order: InsertOrder): Promise<Order> {
-    const result = await db.insert(orders).values(order).returning();
+    const result = await database.insert(orders).values(order).returning();
     return result[0];
   }
 
   async update(id: number, orderData: Partial<Order>): Promise<Order | undefined> {
-    const result = await db
+    const result = await database
       .update(orders)
       .set(orderData)
-      .where(eq(orders.id, id))
+      .where(equals(orders.id, id))
       .returning();
     
     return result[0];
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await db
+    const result = await database
       .delete(orders)
-      .where(eq(orders.id, id))
+      .where(equals(orders.id, id))
       .returning({ id: orders.id });
     
     return result.length > 0;
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return await db
+    return await database
       .select()
       .from(orderItems)
-      .where(eq(orderItems.orderId, orderId));
+      .where(equals(orderItems.orderId, orderId));
   }
 
   async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const result = await db
+    const result = await database
       .insert(orderItems)
       .values(orderItem)
       .returning();
