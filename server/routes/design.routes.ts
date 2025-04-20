@@ -1,12 +1,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { isAuthenticated, hasRole, isDesignOwnerOrAdmin } from '../middleware/auth.middleware';
-import { storage } from '../storage-updated';
+import { storage } from '../storage';
 import { insertDesignSchema } from '../../shared/schema';
 import { z } from 'zod';
 import { uploadDesignImage } from '../middleware/upload.middleware';
 import { RepositoryFactory } from '../repositories';
 import { AuthenticatedRequest } from '../types/express';
-import { analyzeDesignImage } from '../ai';
+import { calculateBalloonRequirements } from '../ai';
 
 const router = Router();
 
