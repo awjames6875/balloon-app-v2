@@ -163,7 +163,7 @@ export function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunc
   
   // Use the standard storage
   storage.getDesign(designId)
-    .then(design => {
+    .then((design) => {
       if (!design) {
         return res.status(404).json({ message: 'Design not found' });
       }
@@ -172,7 +172,7 @@ export function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunc
       
       // Get user to check if they're an admin
       return storage.getUser(userId)
-        .then(user => {
+        .then((user) => {
           const isAdmin = user && user.role === 'admin';
           
           if (design.userId !== userId && !isAdmin) {
@@ -182,7 +182,7 @@ export function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunc
           next();
         });
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Error in isDesignOwnerOrAdmin middleware:', error);
       res.status(500).json({ message: 'Server error' });
     });
