@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import { environment } from '../../config/environment';
 
 // Promisify file system operations
 const writeFile = promisify(fs.writeFile);
@@ -19,7 +20,7 @@ const mkdir = promisify(fs.mkdir);
  * @param directory Directory path to ensure exists
  * @returns Path to the directory
  */
-export async function ensureUploadsDirectory(directory: string = 'uploads'): Promise<string> {
+export async function ensureUploadsDirectory(directory: string = environment.UPLOAD_DIR): Promise<string> {
   const fullPath = path.resolve(process.cwd(), directory);
   
   try {
@@ -74,7 +75,7 @@ export async function saveBase64File(
 export async function deleteFile(fileUrl: string): Promise<boolean> {
   // Extract filename from URL
   const filename = path.basename(fileUrl);
-  const filePath = path.join(process.cwd(), 'uploads', filename);
+  const filePath = path.join(process.cwd(), environment.UPLOAD_DIR, filename);
   
   try {
     await unlink(filePath);

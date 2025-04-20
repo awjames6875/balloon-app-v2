@@ -60,7 +60,7 @@ export function errorHandler() {
       ? 'Internal server error'
       : message
   });
-}
+  };
 }
 
 /**
