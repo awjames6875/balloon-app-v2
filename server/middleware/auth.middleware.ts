@@ -7,8 +7,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Express } from 'express';
 import { storage } from '../storage';
-// Use storage-updated for designs to match existing routes
-import { storage as storageUpdated } from '../storage-updated';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcryptjs';
@@ -163,8 +161,8 @@ export function isDesignOwnerOrAdmin(req: Request, res: Response, next: NextFunc
     return res.status(400).json({ message: 'Invalid design ID' });
   }
   
-  // Use the design-specific storage from storage-updated.ts
-  storageUpdated.getDesign(designId)
+  // Use the standard storage
+  storage.getDesign(designId)
     .then(design => {
       if (!design) {
         return res.status(404).json({ message: 'Design not found' });
