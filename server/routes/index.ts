@@ -1,6 +1,4 @@
 import { Express } from 'express';
-import session from 'express-session';
-import connectPg from 'connect-pg-simple';
 import { pool } from '../db';
 
 // Import route modules
@@ -16,24 +14,8 @@ import orderRoutes from './order.routes';
  * Register all application routes
  */
 export function registerRoutes(app: Express): void {
-  // Initialize PostgreSQL session store
-  const PostgresStore = connectPg(session);
-  
-  // Session setup for authentication
-  app.use(session({
-    store: new PostgresStore({
-      pool,
-      tableName: 'session', // Use this table for session storage
-      createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || 'balloon-app-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    }
-  }));
+  // NOTE: Session is already configured in server/routes.ts
+  // Do not add a second session configuration here
 
   // Register API routes
   app.use('/api/auth', authRoutes);
