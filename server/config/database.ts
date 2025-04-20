@@ -27,7 +27,7 @@ export const pool = new Pool({
 /**
  * Initialize Drizzle ORM with the database connection pool
  */
-export const database = drizzle(pool, { schema });
+export const db = drizzle(pool, { schema });
 
 /**
  * Event handlers for the database connection pool

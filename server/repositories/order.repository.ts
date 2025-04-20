@@ -1,7 +1,6 @@
 import { eq as equals } from 'drizzle-orm';
-import { Order, OrderItem, InsertOrder, InsertOrderItem } from '@shared/schema';
-import { database } from '../db';
-import { orders, orderItems } from '@shared/schema';
+import { Order, OrderItem, InsertOrder, InsertOrderItem, orders, orderItems } from '@shared/schema';
+import { db } from '../db';
 import { BaseRepository } from './base.repository';
 
 /**
@@ -42,17 +41,17 @@ export interface IOrderRepository extends BaseRepository<Order, InsertOrder> {
  */
 export class OrderRepository implements IOrderRepository {
   async findById(id: number): Promise<Order | undefined> {
-    const result = await database.select().from(orders).where(equals(orders.id, id)).limit(1);
+    const result = await db.select().from(orders).where(equals(orders.id, id)).limit(1);
     return result[0];
   }
 
   async findByUser(userId: number): Promise<Order[]> {
-    return await database.select().from(orders).where(equals(orders.userId, userId));
+    return await db.select().from(orders).where(equals(orders.userId, userId));
   }
 
   async findByDesign(designId: number): Promise<Order[]> {
     // Find orders that contain items with the given designId
-    const items = await database.select()
+    const items = await db.select()
       .from(orderItems)
       .where(equals(orderItems.designId, designId));
     
@@ -64,7 +63,7 @@ export class OrderRepository implements IOrderRepository {
     const orderIds = [...new Set(items.map(item => item.orderId))];
     
     // Fetch orders with those IDs
-    return await database.select()
+    return await db.select()
       .from(orders)
       .where(
         // Using an SQL "in" clause
@@ -73,12 +72,12 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async create(order: InsertOrder): Promise<Order> {
-    const result = await database.insert(orders).values(order).returning();
+    const result = await db.insert(orders).values(order).returning();
     return result[0];
   }
 
   async update(id: number, orderData: Partial<Order>): Promise<Order | undefined> {
-    const result = await database
+    const result = await db
       .update(orders)
       .set(orderData)
       .where(equals(orders.id, id))
@@ -88,7 +87,7 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await database
+    const result = await db
       .delete(orders)
       .where(equals(orders.id, id))
       .returning({ id: orders.id });
@@ -97,14 +96,14 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return await database
+    return await db
       .select()
       .from(orderItems)
       .where(equals(orderItems.orderId, orderId));
   }
 
   async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const result = await database
+    const result = await db
       .insert(orderItems)
       .values(orderItem)
       .returning();

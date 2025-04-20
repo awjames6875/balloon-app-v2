@@ -1,19 +1,17 @@
-import {
-  User, InsertUser,
-  Design, InsertDesign,
-  Inventory, InsertInventory,
-  Accessory, InsertAccessory,
-  Production, InsertProduction,
-  Order, InsertOrder,
-  OrderItem, InsertOrderItem
+import { 
+  users, type User, type InsertUser,
+  designs, type Design, type InsertDesign,
+  inventory, type Inventory, type InsertInventory,
+  accessories, type Accessory, type InsertAccessory,
+  production, type Production, type InsertProduction,
+  orders, type Order, type InsertOrder,
+  orderItems, type OrderItem, type InsertOrderItem,
+  designAccessories
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
-import { RepositoryFactory } from './repositories';
-
-/**
- * Interface for all storage operations
- * @deprecated Use individual repositories instead
- */
+// Interface for all storage operations
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -63,145 +61,202 @@ export interface IStorage {
   addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
 }
 
-/**
- * Storage implementation that delegates to repositories
- * This class is used to maintain backwards compatibility
- * with existing code while we transition to the repository pattern
- * @deprecated Use individual repositories instead
- */
 export class DatabaseStorage implements IStorage {
-  // User operations
+  constructor() {
+    console.log("DatabaseStorage initialized - Consider using repositories directly");
+  }
+
   async getUser(id: number): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findById(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
-  
+
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findByUsername(username);
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
-  
+
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return RepositoryFactory.getUserRepository().findByEmail(email);
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
-  
+
   async createUser(user: InsertUser): Promise<User> {
-    return RepositoryFactory.getUserRepository().create(user);
+    const [newUser] = await db.insert(users).values(user).returning();
+    return newUser;
   }
-  
-  // Design operations
+
   async getDesign(id: number): Promise<Design | undefined> {
-    return RepositoryFactory.getDesignRepository().findById(id);
+    const [design] = await db.select().from(designs).where(eq(designs.id, id));
+    return design || undefined;
   }
-  
+
   async getDesignsByUser(userId: number): Promise<Design[]> {
-    return RepositoryFactory.getDesignRepository().findByUser(userId);
+    return await db.select().from(designs).where(eq(designs.userId, userId));
   }
-  
+
   async createDesign(design: InsertDesign): Promise<Design> {
-    return RepositoryFactory.getDesignRepository().create(design);
+    // Ensure elements is handled properly as JSON
+    const [newDesign] = await db.insert(designs).values({
+      ...design,
+      // Don't stringify elements as Drizzle handles this automatically with json columns
+      elements: design.elements || [],
+    }).returning();
+    return newDesign;
   }
-  
-  async updateDesign(id: number, design: Partial<Design>): Promise<Design | undefined> {
-    return RepositoryFactory.getDesignRepository().update(id, design);
+
+  async updateDesign(id: number, updatedDesign: Partial<Design>): Promise<Design | undefined> {
+    const [design] = await db.update(designs)
+      .set({
+        ...updatedDesign,
+        updatedAt: new Date(),
+      })
+      .where(eq(designs.id, id))
+      .returning();
+    return design || undefined;
   }
-  
+
   async deleteDesign(id: number): Promise<boolean> {
-    return RepositoryFactory.getDesignRepository().delete(id);
+    const result = await db.delete(designs).where(eq(designs.id, id));
+    return result.rowCount > 0;
   }
-  
-  // Inventory operations
+
   async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    return RepositoryFactory.getInventoryRepository().findById(id);
+    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
+    return item || undefined;
   }
-  
+
   async getAllInventory(): Promise<Inventory[]> {
-    return RepositoryFactory.getInventoryRepository().findAll();
+    return await db.select().from(inventory);
   }
-  
+
   async getInventoryByColor(color: string): Promise<Inventory[]> {
-    return RepositoryFactory.getInventoryRepository().findByColor(color);
+    return await db.select().from(inventory).where(eq(inventory.color, color as any));
   }
-  
+
   async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    return RepositoryFactory.getInventoryRepository().create(item);
+    const [newItem] = await db.insert(inventory).values(item).returning();
+    return newItem;
   }
-  
+
   async updateInventoryItem(id: number, item: Partial<Inventory>): Promise<Inventory | undefined> {
-    return RepositoryFactory.getInventoryRepository().update(id, item);
+    const [updatedItem] = await db.update(inventory)
+      .set({
+        ...item,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventory.id, id))
+      .returning();
+    return updatedItem || undefined;
   }
-  
-  // Accessory operations
+
   async getAccessory(id: number): Promise<Accessory | undefined> {
-    return RepositoryFactory.getAccessoryRepository().findById(id);
+    const [accessory] = await db.select().from(accessories).where(eq(accessories.id, id));
+    return accessory || undefined;
   }
-  
+
   async getAllAccessories(): Promise<Accessory[]> {
-    return RepositoryFactory.getAccessoryRepository().findAll();
+    return await db.select().from(accessories);
   }
-  
+
   async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
-    return RepositoryFactory.getAccessoryRepository().create(accessory);
+    const [newAccessory] = await db.insert(accessories).values(accessory).returning();
+    return newAccessory;
   }
-  
-  async updateAccessory(id: number, accessory: Partial<Accessory>): Promise<Accessory | undefined> {
-    return RepositoryFactory.getAccessoryRepository().update(id, accessory);
+
+  async updateAccessory(id: number, update: Partial<Accessory>): Promise<Accessory | undefined> {
+    const [updatedAccessory] = await db.update(accessories)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(accessories.id, id))
+      .returning();
+    return updatedAccessory || undefined;
   }
-  
-  // Production operations
+
   async getProduction(id: number): Promise<Production | undefined> {
-    return RepositoryFactory.getProductionRepository().findById(id);
+    const [prod] = await db.select().from(production).where(eq(production.id, id));
+    return prod || undefined;
   }
-  
+
   async getProductionsByDesign(designId: number): Promise<Production[]> {
-    return RepositoryFactory.getProductionRepository().findByDesign(designId);
+    return await db.select().from(production).where(eq(production.designId, designId));
   }
-  
-  async createProduction(production: InsertProduction): Promise<Production> {
-    return RepositoryFactory.getProductionRepository().create(production);
+
+  async createProduction(prod: InsertProduction): Promise<Production> {
+    const [newProduction] = await db.insert(production).values(prod).returning();
+    return newProduction;
   }
-  
-  async updateProduction(id: number, production: Partial<Production>): Promise<Production | undefined> {
-    return RepositoryFactory.getProductionRepository().update(id, production);
+
+  async updateProduction(id: number, update: Partial<Production>): Promise<Production | undefined> {
+    const [updated] = await db.update(production)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(production.id, id))
+      .returning();
+    return updated || undefined;
   }
-  
-  // Design accessories operations
+
   async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    return RepositoryFactory.getDesignRepository().addAccessory(designId, accessoryId, quantity);
+    await db.insert(designAccessories).values({
+      designId,
+      accessoryId,
+      quantity
+    });
   }
-  
+
   async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    return RepositoryFactory.getDesignRepository().getAccessories(designId);
+    const result = await db.select()
+      .from(designAccessories)
+      .where(eq(designAccessories.designId, designId))
+      .innerJoin(accessories, eq(designAccessories.accessoryId, accessories.id));
+
+    return result.map(item => ({
+      accessory: item.accessories,
+      quantity: item.design_accessories.quantity
+    }));
   }
-  
-  // Order operations
+
   async getOrder(id: number): Promise<Order | undefined> {
-    return RepositoryFactory.getOrderRepository().findById(id);
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
   }
-  
+
   async getOrdersByUser(userId: number): Promise<Order[]> {
-    return RepositoryFactory.getOrderRepository().findByUser(userId);
+    return await db.select().from(orders).where(eq(orders.userId, userId));
   }
-  
+
   async getOrdersByDesign(designId: number): Promise<Order[]> {
-    return RepositoryFactory.getOrderRepository().findByDesign(designId);
+    return await db.select().from(orders).where(eq(orders.designId, designId));
   }
-  
+
   async createOrder(order: InsertOrder): Promise<Order> {
-    return RepositoryFactory.getOrderRepository().create(order);
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
   }
-  
-  async updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined> {
-    return RepositoryFactory.getOrderRepository().update(id, order);
+
+  async updateOrder(id: number, update: Partial<Order>): Promise<Order | undefined> {
+    const [updated] = await db.update(orders)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, id))
+      .returning();
+    return updated || undefined;
   }
-  
-  // Order items operations
+
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return RepositoryFactory.getOrderRepository().getOrderItems(orderId);
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   }
-  
-  async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    return RepositoryFactory.getOrderRepository().addOrderItem(orderItem);
+
+  async addOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const [newItem] = await db.insert(orderItems).values(item).returning();
+    return newItem;
   }
 }
 
-// Create a single instance of the storage implementation
 export const storage = new DatabaseStorage();

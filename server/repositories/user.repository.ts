@@ -1,7 +1,6 @@
 import { eq as equals } from 'drizzle-orm';
-import { User, InsertUser } from '@shared/schema';
-import { database } from '../db';
-import { users } from '@shared/schema';
+import { User, InsertUser, users } from '@shared/schema';
+import { db } from '../db';
 import { BaseRepository } from './base.repository';
 
 /**
@@ -28,27 +27,27 @@ export interface IUserRepository extends BaseRepository<User, InsertUser> {
  */
 export class UserRepository implements IUserRepository {
   async findById(id: number): Promise<User | undefined> {
-    const result = await database.select().from(users).where(equals(users.id, id)).limit(1);
+    const result = await db.select().from(users).where(equals(users.id, id)).limit(1);
     return result[0];
   }
 
   async findByUsername(username: string): Promise<User | undefined> {
-    const result = await database.select().from(users).where(equals(users.username, username)).limit(1);
+    const result = await db.select().from(users).where(equals(users.username, username)).limit(1);
     return result[0];
   }
 
   async findByEmail(email: string): Promise<User | undefined> {
-    const result = await database.select().from(users).where(equals(users.email, email)).limit(1);
+    const result = await db.select().from(users).where(equals(users.email, email)).limit(1);
     return result[0];
   }
 
   async create(userData: InsertUser): Promise<User> {
-    const result = await database.insert(users).values(userData).returning();
+    const result = await db.insert(users).values(userData).returning();
     return result[0];
   }
 
   async update(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const result = await database
+    const result = await db
       .update(users)
       .set(userData)
       .where(equals(users.id, id))
@@ -58,7 +57,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await database
+    const result = await db
       .delete(users)
       .where(equals(users.id, id))
       .returning({ id: users.id });

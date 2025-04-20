@@ -8,9 +8,8 @@ import {
   orderItems, type OrderItem, type InsertOrderItem,
   designAccessories
 } from "@shared/schema";
-import { database } from "./db";
-import { eq as equals } from "drizzle-orm";
-import { calculateInventoryStatus } from "./utils/inventory.utils";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Interface for all storage operations
 export interface IStorage {
@@ -62,510 +61,201 @@ export interface IStorage {
   addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private designs: Map<number, Design>;
-  private inventory: Map<number, Inventory>;
-  private accessories: Map<number, Accessory>;
-  private production: Map<number, Production>;
-  private orders: Map<number, Order>;
-  private orderItems: Map<number, OrderItem[]>;
-  private designAccessoriesMap: Map<number, { accessoryId: number; quantity: number }[]>;
-  
-  private userIdCounter: number;
-  private designIdCounter: number;
-  private inventoryIdCounter: number;
-  private accessoryIdCounter: number;
-  private productionIdCounter: number;
-  private orderIdCounter: number;
-  private orderItemIdCounter: number;
-  private designAccessoryIdCounter: number;
-
-  constructor() {
-    this.users = new Map();
-    this.designs = new Map();
-    this.inventory = new Map();
-    this.accessories = new Map();
-    this.production = new Map();
-    this.orders = new Map();
-    this.orderItems = new Map();
-    this.designAccessoriesMap = new Map();
-    
-    this.userIdCounter = 1;
-    this.designIdCounter = 1;
-    this.inventoryIdCounter = 1;
-    this.accessoryIdCounter = 1;
-    this.productionIdCounter = 1;
-    this.orderIdCounter = 1;
-    this.orderItemIdCounter = 1;
-    this.designAccessoryIdCounter = 1;
-    
-    // Initialize with default accessories
-    this.initDefaultAccessories();
-    this.initDefaultInventory();
-  }
-
-  private initDefaultAccessories() {
-    const defaultAccessories = [
-      { name: "LED Lights", quantity: 50, threshold: 10 },
-      { name: "Starbursts", quantity: 30, threshold: 5 },
-      { name: "Pearl Garlands", quantity: 8, threshold: 10 },
-      { name: "Support Base", quantity: 25, threshold: 5 }
-    ];
-
-    defaultAccessories.forEach(acc => {
-      this.createAccessory({
-        name: acc.name,
-        quantity: acc.quantity,
-        threshold: acc.threshold
-      });
-    });
-  }
-
-  private initDefaultInventory() {
-    const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'white', 'black', 'silver', 'gold'];
-    const sizes = ['11inch', '16inch'];
-
-    colors.forEach(color => {
-      sizes.forEach(size => {
-        this.createInventoryItem({
-          color: color as any,
-          size: size as any,
-          quantity: Math.floor(Math.random() * 100) + 50,
-          threshold: 20
-        });
-      });
-    });
-  }
-
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
-  }
-
-  async createUser(user: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const timestamp = new Date();
-    const newUser: User = {
-      ...user,
-      id,
-      createdAt: timestamp
-    };
-    this.users.set(id, newUser);
-    return newUser;
-  }
-
-  // Design operations
-  async getDesign(id: number): Promise<Design | undefined> {
-    return this.designs.get(id);
-  }
-
-  async getDesignsByUser(userId: number): Promise<Design[]> {
-    return Array.from(this.designs.values()).filter(design => design.userId === userId);
-  }
-
-  async createDesign(design: InsertDesign): Promise<Design> {
-    const id = this.designIdCounter++;
-    const timestamp = new Date();
-    const newDesign: Design = {
-      ...design,
-      id,
-      colorAnalysis: { colors: [] },
-      materialRequirements: {},
-      totalBalloons: 0,
-      estimatedClusters: 0,
-      productionTime: '',
-      createdAt: timestamp,
-      updatedAt: timestamp
-    };
-    this.designs.set(id, newDesign);
-    return newDesign;
-  }
-
-  async updateDesign(id: number, design: Partial<Design>): Promise<Design | undefined> {
-    const existingDesign = this.designs.get(id);
-    if (!existingDesign) return undefined;
-
-    const updatedDesign = {
-      ...existingDesign,
-      ...design,
-      updatedAt: new Date()
-    };
-    this.designs.set(id, updatedDesign);
-    return updatedDesign;
-  }
-
-  async deleteDesign(id: number): Promise<boolean> {
-    return this.designs.delete(id);
-  }
-
-  // Inventory operations
-  async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    return this.inventory.get(id);
-  }
-
-  async getAllInventory(): Promise<Inventory[]> {
-    return Array.from(this.inventory.values());
-  }
-
-  async getInventoryByColor(color: string): Promise<Inventory[]> {
-    return Array.from(this.inventory.values()).filter(item => item.color === color);
-  }
-
-  async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    const id = this.inventoryIdCounter++;
-    const timestamp = new Date();
-    
-    // Calculate status using the utility function
-    // Handle potential undefined values with default fallbacks
-    const quantity = item.quantity || 0;
-    const threshold = item.threshold || 0;
-    const status = calculateInventoryStatus(quantity, threshold);
-    
-    const newItem: Inventory = {
-      ...item,
-      id,
-      status: status as any,
-      updatedAt: timestamp
-    };
-    this.inventory.set(id, newItem);
-    return newItem;
-  }
-
-  async updateInventoryItem(id: number, item: Partial<Inventory>): Promise<Inventory | undefined> {
-    const existingItem = this.inventory.get(id);
-    if (!existingItem) return undefined;
-
-    // Use current values for quantity and threshold if not provided in update
-    const quantity = item.quantity !== undefined ? item.quantity : existingItem.quantity;
-    const threshold = item.threshold !== undefined ? item.threshold : existingItem.threshold;
-    
-    // Calculate status using the utility function
-    const status = calculateInventoryStatus(quantity, threshold);
-
-    const updatedItem = {
-      ...existingItem,
-      ...item,
-      status: status as any,
-      updatedAt: new Date()
-    };
-    this.inventory.set(id, updatedItem);
-    return updatedItem;
-  }
-
-  // Accessory operations
-  async getAccessory(id: number): Promise<Accessory | undefined> {
-    return this.accessories.get(id);
-  }
-
-  async getAllAccessories(): Promise<Accessory[]> {
-    return Array.from(this.accessories.values());
-  }
-
-  async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
-    const id = this.accessoryIdCounter++;
-    const timestamp = new Date();
-    
-    // Calculate status using the utility function
-    // This ensures consistent status calculation across inventory and accessories
-    const status = calculateInventoryStatus(
-      accessory.quantity || 0, 
-      accessory.threshold || 0
-    );
-    
-    const newAccessory: Accessory = {
-      ...accessory,
-      id,
-      status: status as any,
-      updatedAt: timestamp
-    };
-    this.accessories.set(id, newAccessory);
-    return newAccessory;
-  }
-
-  async updateAccessory(id: number, accessory: Partial<Accessory>): Promise<Accessory | undefined> {
-    const existingAccessory = this.accessories.get(id);
-    if (!existingAccessory) return undefined;
-
-    // Use current values if not provided in update
-    const quantity = accessory.quantity !== undefined ? accessory.quantity : existingAccessory.quantity;
-    const threshold = accessory.threshold !== undefined ? accessory.threshold : existingAccessory.threshold;
-    
-    // Calculate status using the utility function
-    const status = calculateInventoryStatus(quantity, threshold);
-
-    const updatedAccessory = {
-      ...existingAccessory,
-      ...accessory,
-      status: status as any,
-      updatedAt: new Date()
-    };
-    this.accessories.set(id, updatedAccessory);
-    return updatedAccessory;
-  }
-
-  // Production operations
-  async getProduction(id: number): Promise<Production | undefined> {
-    return this.production.get(id);
-  }
-
-  async getProductionsByDesign(designId: number): Promise<Production[]> {
-    return Array.from(this.production.values()).filter(p => p.designId === designId);
-  }
-
-  async createProduction(production: InsertProduction): Promise<Production> {
-    const id = this.productionIdCounter++;
-    const timestamp = new Date();
-    const newProduction: Production = {
-      ...production,
-      id,
-      completionDate: null,
-      actualTime: null,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    };
-    this.production.set(id, newProduction);
-    return newProduction;
-  }
-
-  async updateProduction(id: number, production: Partial<Production>): Promise<Production | undefined> {
-    const existingProduction = this.production.get(id);
-    if (!existingProduction) return undefined;
-
-    const updatedProduction = {
-      ...existingProduction,
-      ...production,
-      updatedAt: new Date()
-    };
-    this.production.set(id, updatedProduction);
-    return updatedProduction;
-  }
-
-  // Design accessories operations
-  async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    const accessoriesList = this.designAccessoriesMap.get(designId) || [];
-    
-    // Check if this accessory already exists for this design
-    const existingIndex = accessoriesList.findIndex(a => a.accessoryId === accessoryId);
-    
-    if (existingIndex >= 0) {
-      // Update existing entry
-      accessoriesList[existingIndex].quantity = quantity;
-    } else {
-      // Add new entry
-      accessoriesList.push({ accessoryId, quantity });
-    }
-    
-    this.designAccessoriesMap.set(designId, accessoriesList);
-  }
-
-  async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    const accessoriesIds = this.designAccessoriesMap.get(designId) || [];
-    const result = [];
-    
-    for (const { accessoryId, quantity } of accessoriesIds) {
-      const accessory = await this.getAccessory(accessoryId);
-      if (accessory) {
-        result.push({ accessory, quantity });
-      }
-    }
-    
-    return result;
-  }
-  
-  // Order operations
-  async getOrder(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
-  }
-
-  async getOrdersByUser(userId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(order => order.userId === userId);
-  }
-
-  async getOrdersByDesign(designId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(order => order.designId === designId);
-  }
-
-  async createOrder(order: InsertOrder): Promise<Order> {
-    const id = this.orderIdCounter++;
-    const timestamp = new Date();
-    
-    const newOrder: Order = {
-      ...order,
-      id,
-      status: order.status || 'pending',
-      createdAt: timestamp,
-      updatedAt: timestamp
-    };
-    
-    this.orders.set(id, newOrder);
-    return newOrder;
-  }
-
-  async updateOrder(id: number, order: Partial<Order>): Promise<Order | undefined> {
-    const existingOrder = this.orders.get(id);
-    if (!existingOrder) return undefined;
-
-    const updatedOrder = {
-      ...existingOrder,
-      ...order,
-      updatedAt: new Date()
-    };
-    
-    this.orders.set(id, updatedOrder);
-    return updatedOrder;
-  }
-
-  // Order items operations
-  async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return this.orderItems.get(orderId) || [];
-  }
-
-  async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const id = this.orderItemIdCounter++;
-    
-    const newOrderItem: OrderItem = {
-      ...orderItem,
-      id
-    };
-    
-    const orderItems = this.orderItems.get(orderItem.orderId) || [];
-    orderItems.push(newOrderItem);
-    this.orderItems.set(orderItem.orderId, orderItems);
-    
-    return newOrderItem;
-  }
-}
-
 export class DatabaseStorage implements IStorage {
+  constructor() {
+    console.log("DatabaseStorage initialized - Consider using repositories directly");
+  }
+
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await database.select().from(users).where(equals(users.id, id));
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await database.select().from(users).where(equals(users.username, username));
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await database.select().from(users).where(equals(users.email, email));
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await database.insert(users).values(user).returning();
+    const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
   }
 
   async getDesign(id: number): Promise<Design | undefined> {
-    const [design] = await database.select().from(designs).where(equals(designs.id, id));
+    const [design] = await db.select().from(designs).where(eq(designs.id, id));
     return design || undefined;
   }
 
   async getDesignsByUser(userId: number): Promise<Design[]> {
-    return await database.select().from(designs).where(equals(designs.userId, userId));
+    return await db.select().from(designs).where(eq(designs.userId, userId));
   }
 
   async createDesign(design: InsertDesign): Promise<Design> {
-    const [newDesign] = await database.insert(designs).values(design).returning();
+    // Ensure elements is handled properly as JSON
+    let elementsData = design.elements;
+    
+    // Debugging info
+    console.log('Elements type:', typeof elementsData);
+    
+    // Handle the case where elements might be a string (already stringified JSON)
+    if (typeof elementsData === 'string') {
+      try {
+        // Try to parse it as JSON
+        elementsData = JSON.parse(elementsData);
+        console.log('Successfully parsed elements from string to array');
+      } catch (e) {
+        // If parsing fails, use an empty array as a fallback
+        console.error('Failed to parse elements string:', e);
+        elementsData = [];
+      }
+    } else if (!elementsData) {
+      // If elements is null or undefined, use an empty array
+      elementsData = [];
+    }
+    
+    // Create a new object without the elements field
+    const { elements, ...designWithoutElements } = design;
+    
+    // Create the design with properly handled elements added separately to avoid type errors
+    const designData = {
+      ...designWithoutElements
+    };
+    
+    // Add the elements field directly to avoid TypeScript errors
+    (designData as any).elements = elementsData;
+    
+    const [newDesign] = await db.insert(designs).values(designData).returning();
+    
     return newDesign;
   }
 
   async updateDesign(id: number, updatedDesign: Partial<Design>): Promise<Design | undefined> {
-    const [design] = await database.update(designs)
-      .set(updatedDesign)
-      .where(equals(designs.id, id))
+    // Handle elements field properly if it exists in the update
+    if (updatedDesign.elements !== undefined) {
+      let elementsData = updatedDesign.elements;
+      
+      // Handle the case where elements might be a string (already stringified JSON)
+      if (typeof elementsData === 'string') {
+        try {
+          // Try to parse it as JSON
+          elementsData = JSON.parse(elementsData);
+          console.log('Successfully parsed elements from string to array in update');
+        } catch (e) {
+          // If parsing fails, keep it as is
+          console.error('Failed to parse elements string in update:', e);
+        }
+      }
+      
+      // Update the elements field with properly processed data
+      updatedDesign = {
+        ...updatedDesign,
+        elements: elementsData
+      };
+    }
+    
+    // Perform the update
+    const [design] = await db.update(designs)
+      .set({
+        ...updatedDesign,
+        updatedAt: new Date(),
+      })
+      .where(eq(designs.id, id))
       .returning();
+    
     return design || undefined;
   }
 
   async deleteDesign(id: number): Promise<boolean> {
-    await database.delete(designs).where(equals(designs.id, id));
-    return true;
+    const result = await db.delete(designs).where(eq(designs.id, id));
+    return result.rowCount > 0;
   }
 
   async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    const [item] = await database.select().from(inventory).where(equals(inventory.id, id));
+    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
     return item || undefined;
   }
 
   async getAllInventory(): Promise<Inventory[]> {
-    return await database.select().from(inventory);
+    return await db.select().from(inventory);
   }
 
   async getInventoryByColor(color: string): Promise<Inventory[]> {
-    // Cast the color to the enum type expected by the database
-    return await database.select().from(inventory).where(equals(inventory.color, color as any));
+    return await db.select().from(inventory).where(eq(inventory.color, color as any));
   }
 
   async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    const [newItem] = await database.insert(inventory).values(item).returning();
+    const [newItem] = await db.insert(inventory).values(item).returning();
     return newItem;
   }
 
-  async updateInventoryItem(id: number, updatedItem: Partial<Inventory>): Promise<Inventory | undefined> {
-    const [item] = await database.update(inventory)
-      .set(updatedItem)
-      .where(equals(inventory.id, id))
+  async updateInventoryItem(id: number, item: Partial<Inventory>): Promise<Inventory | undefined> {
+    const [updatedItem] = await db.update(inventory)
+      .set({
+        ...item,
+        updatedAt: new Date(),
+      })
+      .where(eq(inventory.id, id))
       .returning();
-    return item || undefined;
+    return updatedItem || undefined;
   }
 
   async getAccessory(id: number): Promise<Accessory | undefined> {
-    const [accessory] = await database.select().from(accessories).where(equals(accessories.id, id));
+    const [accessory] = await db.select().from(accessories).where(eq(accessories.id, id));
     return accessory || undefined;
   }
 
   async getAllAccessories(): Promise<Accessory[]> {
-    return await database.select().from(accessories);
+    return await db.select().from(accessories);
   }
 
   async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
-    const [newAccessory] = await database.insert(accessories).values(accessory).returning();
+    const [newAccessory] = await db.insert(accessories).values(accessory).returning();
     return newAccessory;
   }
 
-  async updateAccessory(id: number, updatedAccessory: Partial<Accessory>): Promise<Accessory | undefined> {
-    const [accessory] = await database.update(accessories)
-      .set(updatedAccessory)
-      .where(equals(accessories.id, id))
+  async updateAccessory(id: number, update: Partial<Accessory>): Promise<Accessory | undefined> {
+    const [updatedAccessory] = await db.update(accessories)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(accessories.id, id))
       .returning();
-    return accessory || undefined;
+    return updatedAccessory || undefined;
   }
 
   async getProduction(id: number): Promise<Production | undefined> {
-    const [productionRecord] = await database.select().from(production).where(equals(production.id, id));
-    return productionRecord || undefined;
-  }
-
-  async getProductionsByDesign(designId: number): Promise<Production[]> {
-    return await database.select().from(production).where(equals(production.designId, designId));
-  }
-
-  async createProduction(prod: InsertProduction): Promise<Production> {
-    const [newProduction] = await database.insert(production).values(prod).returning();
-    return newProduction;
-  }
-
-  async updateProduction(id: number, updatedProduction: Partial<Production>): Promise<Production | undefined> {
-    const [prod] = await database.update(production)
-      .set(updatedProduction)
-      .where(equals(production.id, id))
-      .returning();
+    const [prod] = await db.select().from(production).where(eq(production.id, id));
     return prod || undefined;
   }
 
+  async getProductionsByDesign(designId: number): Promise<Production[]> {
+    return await db.select().from(production).where(eq(production.designId, designId));
+  }
+
+  async createProduction(prod: InsertProduction): Promise<Production> {
+    const [newProduction] = await db.insert(production).values(prod).returning();
+    return newProduction;
+  }
+
+  async updateProduction(id: number, update: Partial<Production>): Promise<Production | undefined> {
+    const [updated] = await db.update(production)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(production.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
   async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    await database.insert(designAccessories).values({
+    await db.insert(designAccessories).values({
       designId,
       accessoryId,
       quantity
@@ -573,52 +263,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    const result = await database.select({
-      accessory: accessories,
-      quantity: designAccessories.quantity
-    })
-    .from(designAccessories)
-    .innerJoin(accessories, equals(designAccessories.accessoryId, accessories.id))
-    .where(equals(designAccessories.designId, designId));
-    
-    return result;
+    const result = await db.select()
+      .from(designAccessories)
+      .where(eq(designAccessories.designId, designId))
+      .innerJoin(accessories, eq(designAccessories.accessoryId, accessories.id));
+
+    return result.map(item => ({
+      accessory: item.accessories,
+      quantity: item.design_accessories.quantity
+    }));
   }
-  
-  // Orders operations
+
   async getOrder(id: number): Promise<Order | undefined> {
-    const [order] = await database.select().from(orders).where(equals(orders.id, id));
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
     return order || undefined;
   }
 
   async getOrdersByUser(userId: number): Promise<Order[]> {
-    return await database.select().from(orders).where(equals(orders.userId, userId));
+    return await db.select().from(orders).where(eq(orders.userId, userId));
   }
 
   async getOrdersByDesign(designId: number): Promise<Order[]> {
-    return await database.select().from(orders).where(equals(orders.designId, designId));
+    return await db.select().from(orders).where(eq(orders.designId, designId));
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await database.insert(orders).values(order).returning();
+    const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
 
-  async updateOrder(id: number, updatedOrder: Partial<Order>): Promise<Order | undefined> {
-    const [order] = await database.update(orders)
-      .set(updatedOrder)
-      .where(equals(orders.id, id))
+  async updateOrder(id: number, update: Partial<Order>): Promise<Order | undefined> {
+    const [updated] = await db.update(orders)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, id))
       .returning();
-    return order || undefined;
+    return updated || undefined;
   }
 
-  // Order items operations
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return await database.select().from(orderItems).where(equals(orderItems.orderId, orderId));
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   }
 
-  async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const [newOrderItem] = await database.insert(orderItems).values(orderItem).returning();
-    return newOrderItem;
+  async addOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const [newItem] = await db.insert(orderItems).values(item).returning();
+    return newItem;
   }
 }
 

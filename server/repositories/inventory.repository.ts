@@ -1,7 +1,6 @@
 import { eq as equals, sql } from 'drizzle-orm';
-import { Inventory, InsertInventory } from '@shared/schema';
-import { database } from '../db';
-import { inventory } from '@shared/schema';
+import { Inventory, InsertInventory, inventory } from '@shared/schema';
+import { db } from '../db';
 import { BaseRepository } from './base.repository';
 
 /**
@@ -34,30 +33,30 @@ export interface IInventoryRepository extends BaseRepository<Inventory, InsertIn
  */
 export class InventoryRepository implements IInventoryRepository {
   async findById(id: number): Promise<Inventory | undefined> {
-    const result = await database.select().from(inventory).where(equals(inventory.id, id)).limit(1);
+    const result = await db.select().from(inventory).where(equals(inventory.id, id)).limit(1);
     return result[0];
   }
   
   async findAll(): Promise<Inventory[]> {
-    return await database.select().from(inventory);
+    return await db.select().from(inventory);
   }
   
   async findByColor(color: string): Promise<Inventory[]> {
     // Use sql`` tagged template to create a raw SQL condition
-    return await database.select().from(inventory).where(sql`${inventory.color} = ${color}`);
+    return await db.select().from(inventory).where(sql`${inventory.color} = ${color}`);
   }
   
   async findLowStock(threshold: number = 10): Promise<Inventory[]> {
-    return await database.select().from(inventory).where(sql`${inventory.quantity} < ${threshold}`);
+    return await db.select().from(inventory).where(sql`${inventory.quantity} < ${threshold}`);
   }
 
   async create(item: InsertInventory): Promise<Inventory> {
-    const result = await database.insert(inventory).values(item).returning();
+    const result = await db.insert(inventory).values(item).returning();
     return result[0];
   }
 
   async update(id: number, itemData: Partial<Inventory>): Promise<Inventory | undefined> {
-    const result = await database
+    const result = await db
       .update(inventory)
       .set(itemData)
       .where(equals(inventory.id, id))
@@ -67,7 +66,7 @@ export class InventoryRepository implements IInventoryRepository {
   }
 
   async delete(id: number): Promise<boolean> {
-    const result = await database
+    const result = await db
       .delete(inventory)
       .where(equals(inventory.id, id))
       .returning({ id: inventory.id });

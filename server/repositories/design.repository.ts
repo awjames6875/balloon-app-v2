@@ -1,7 +1,6 @@
 import { eq as equals, sql } from 'drizzle-orm';
-import { Design, InsertDesign, Accessory } from '@shared/schema';
-import { database } from '../db';
-import { designs, designAccessories, accessories } from '@shared/schema';
+import { Design, InsertDesign, Accessory, designs, designAccessories, accessories } from '@shared/schema';
+import { db } from '../db';
 import { BaseRepository } from './base.repository';
 
 /**
@@ -36,18 +35,18 @@ export interface IDesignRepository extends BaseRepository<Design, InsertDesign> 
  */
 export class DesignRepository implements IDesignRepository {
   async findById(id: number): Promise<Design | undefined> {
-    const result = await database.select().from(designs).where(equals(designs.id, id)).limit(1);
+    const result = await db.select().from(designs).where(equals(designs.id, id)).limit(1);
     return result[0];
   }
 
   async findByUser(userId: number): Promise<Design[]> {
-    return await database.select().from(designs).where(equals(designs.userId, userId));
+    return await db.select().from(designs).where(equals(designs.userId, userId));
   }
 
   async create(design: InsertDesign): Promise<Design> {
     try {
       // Use a slightly different approach to avoid type issues
-      const result = await database.insert(designs).values({
+      const result = await db.insert(designs).values({
         userId: design.userId,
         clientName: design.clientName,
         eventDate: design.eventDate,
@@ -71,7 +70,7 @@ export class DesignRepository implements IDesignRepository {
   }
 
   async update(id: number, designData: Partial<Design>): Promise<Design | undefined> {
-    const result = await database
+    const result = await db
       .update(designs)
       .set(designData)
       .where(equals(designs.id, id))
@@ -82,12 +81,12 @@ export class DesignRepository implements IDesignRepository {
 
   async delete(id: number): Promise<boolean> {
     // First, delete associated design accessories
-    await database
+    await db
       .delete(designAccessories)
       .where(equals(designAccessories.designId, id));
       
     // Then delete the design
-    const result = await database
+    const result = await db
       .delete(designs)
       .where(equals(designs.id, id))
       .returning({ id: designs.id });
@@ -97,7 +96,7 @@ export class DesignRepository implements IDesignRepository {
 
   async addAccessory(designId: number, accessoryId: number, quantity: number): Promise<void> {
     // Check if the design-accessory pair already exists
-    const existingRecord = await database
+    const existingRecord = await db
       .select()
       .from(designAccessories)
       .where(
@@ -107,7 +106,7 @@ export class DesignRepository implements IDesignRepository {
     
     if (existingRecord.length > 0) {
       // Update the quantity
-      await database
+      await db
         .update(designAccessories)
         .set({ quantity })
         .where(
@@ -115,7 +114,7 @@ export class DesignRepository implements IDesignRepository {
         );
     } else {
       // Create a new record
-      await database
+      await db
         .insert(designAccessories)
         .values({
           designId,
@@ -126,7 +125,7 @@ export class DesignRepository implements IDesignRepository {
   }
 
   async getAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    const result = await database
+    const result = await db
       .select({
         accessory: accessories,
         quantity: designAccessories.quantity

@@ -1,28 +1,28 @@
 import { Inventory, InsertInventory, inventory } from "@shared/schema";
-import { database } from "../../db";
+import { db } from "../../db";
 import { eq as equals } from "drizzle-orm";
 
 export class InventoryDatabaseStorage {
   async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    const result = await database.select().from(inventory).where(equals(inventory.id, id));
+    const result = await db.select().from(inventory).where(equals(inventory.id, id));
     return result[0];
   }
   
   async getAllInventory(): Promise<Inventory[]> {
-    return await database.select().from(inventory);
+    return await db.select().from(inventory);
   }
   
   async getInventoryByColor(color: string): Promise<Inventory[]> {
-    return await database.select().from(inventory).where(equals(inventory.color, color));
+    return await db.select().from(inventory).where(equals(inventory.color, color));
   }
   
   async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    const result = await database.insert(inventory).values(item).returning();
+    const result = await db.insert(inventory).values(item).returning();
     return result[0];
   }
   
   async updateInventoryItem(id: number, item: Partial<Inventory>): Promise<Inventory | undefined> {
-    const result = await database.update(inventory)
+    const result = await db.update(inventory)
       .set(item)
       .where(equals(inventory.id, id))
       .returning();
