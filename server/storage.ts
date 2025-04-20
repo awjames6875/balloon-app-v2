@@ -3,7 +3,7 @@ import {
   designs, type Design, type InsertDesign,
   inventory, type Inventory, type InsertInventory,
   accessories, type Accessory, type InsertAccessory,
-  production as productionSchema, type Production, type InsertProduction,
+  production, type Production, type InsertProduction,
   orders, type Order, type InsertOrder,
   orderItems, type OrderItem, type InsertOrderItem,
   designAccessories
@@ -447,125 +447,125 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await database.select().from(users).where(equals(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await database.select().from(users).where(equals(users.username, username));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await database.select().from(users).where(equals(users.email, email));
     return user || undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
+    const [newUser] = await database.insert(users).values(user).returning();
     return newUser;
   }
 
   async getDesign(id: number): Promise<Design | undefined> {
-    const [design] = await db.select().from(designs).where(eq(designs.id, id));
+    const [design] = await database.select().from(designs).where(equals(designs.id, id));
     return design || undefined;
   }
 
   async getDesignsByUser(userId: number): Promise<Design[]> {
-    return await db.select().from(designs).where(eq(designs.userId, userId));
+    return await database.select().from(designs).where(equals(designs.userId, userId));
   }
 
   async createDesign(design: InsertDesign): Promise<Design> {
-    const [newDesign] = await db.insert(designs).values(design).returning();
+    const [newDesign] = await database.insert(designs).values(design).returning();
     return newDesign;
   }
 
   async updateDesign(id: number, updatedDesign: Partial<Design>): Promise<Design | undefined> {
-    const [design] = await db.update(designs)
+    const [design] = await database.update(designs)
       .set(updatedDesign)
-      .where(eq(designs.id, id))
+      .where(equals(designs.id, id))
       .returning();
     return design || undefined;
   }
 
   async deleteDesign(id: number): Promise<boolean> {
-    await db.delete(designs).where(eq(designs.id, id));
+    await database.delete(designs).where(equals(designs.id, id));
     return true;
   }
 
   async getInventoryItem(id: number): Promise<Inventory | undefined> {
-    const [item] = await db.select().from(inventory).where(eq(inventory.id, id));
+    const [item] = await database.select().from(inventory).where(equals(inventory.id, id));
     return item || undefined;
   }
 
   async getAllInventory(): Promise<Inventory[]> {
-    return await db.select().from(inventory);
+    return await database.select().from(inventory);
   }
 
   async getInventoryByColor(color: string): Promise<Inventory[]> {
     // Cast the color to the enum type expected by the database
-    return await db.select().from(inventory).where(eq(inventory.color, color as any));
+    return await database.select().from(inventory).where(equals(inventory.color, color as any));
   }
 
   async createInventoryItem(item: InsertInventory): Promise<Inventory> {
-    const [newItem] = await db.insert(inventory).values(item).returning();
+    const [newItem] = await database.insert(inventory).values(item).returning();
     return newItem;
   }
 
   async updateInventoryItem(id: number, updatedItem: Partial<Inventory>): Promise<Inventory | undefined> {
-    const [item] = await db.update(inventory)
+    const [item] = await database.update(inventory)
       .set(updatedItem)
-      .where(eq(inventory.id, id))
+      .where(equals(inventory.id, id))
       .returning();
     return item || undefined;
   }
 
   async getAccessory(id: number): Promise<Accessory | undefined> {
-    const [accessory] = await db.select().from(accessories).where(eq(accessories.id, id));
+    const [accessory] = await database.select().from(accessories).where(equals(accessories.id, id));
     return accessory || undefined;
   }
 
   async getAllAccessories(): Promise<Accessory[]> {
-    return await db.select().from(accessories);
+    return await database.select().from(accessories);
   }
 
   async createAccessory(accessory: InsertAccessory): Promise<Accessory> {
-    const [newAccessory] = await db.insert(accessories).values(accessory).returning();
+    const [newAccessory] = await database.insert(accessories).values(accessory).returning();
     return newAccessory;
   }
 
   async updateAccessory(id: number, updatedAccessory: Partial<Accessory>): Promise<Accessory | undefined> {
-    const [accessory] = await db.update(accessories)
+    const [accessory] = await database.update(accessories)
       .set(updatedAccessory)
-      .where(eq(accessories.id, id))
+      .where(equals(accessories.id, id))
       .returning();
     return accessory || undefined;
   }
 
   async getProduction(id: number): Promise<Production | undefined> {
-    const [production] = await db.select().from(productionTable).where(eq(productionTable.id, id));
-    return production || undefined;
+    const [productionRecord] = await database.select().from(production).where(equals(production.id, id));
+    return productionRecord || undefined;
   }
 
   async getProductionsByDesign(designId: number): Promise<Production[]> {
-    return await db.select().from(productionTable).where(eq(productionTable.designId, designId));
+    return await database.select().from(production).where(equals(production.designId, designId));
   }
 
   async createProduction(prod: InsertProduction): Promise<Production> {
-    const [newProduction] = await db.insert(productionTable).values(prod).returning();
+    const [newProduction] = await database.insert(production).values(prod).returning();
     return newProduction;
   }
 
   async updateProduction(id: number, updatedProduction: Partial<Production>): Promise<Production | undefined> {
-    const [prod] = await db.update(productionTable)
+    const [prod] = await database.update(production)
       .set(updatedProduction)
-      .where(eq(productionTable.id, id))
+      .where(equals(production.id, id))
       .returning();
     return prod || undefined;
   }
 
   async addAccessoryToDesign(designId: number, accessoryId: number, quantity: number): Promise<void> {
-    await db.insert(designAccessories).values({
+    await database.insert(designAccessories).values({
       designId,
       accessoryId,
       quantity
@@ -573,51 +573,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDesignAccessories(designId: number): Promise<{ accessory: Accessory; quantity: number }[]> {
-    const result = await db.select({
+    const result = await database.select({
       accessory: accessories,
       quantity: designAccessories.quantity
     })
     .from(designAccessories)
-    .innerJoin(accessories, eq(designAccessories.accessoryId, accessories.id))
-    .where(eq(designAccessories.designId, designId));
+    .innerJoin(accessories, equals(designAccessories.accessoryId, accessories.id))
+    .where(equals(designAccessories.designId, designId));
     
     return result;
   }
   
   // Orders operations
   async getOrder(id: number): Promise<Order | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    const [order] = await database.select().from(orders).where(equals(orders.id, id));
     return order || undefined;
   }
 
   async getOrdersByUser(userId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.userId, userId));
+    return await database.select().from(orders).where(equals(orders.userId, userId));
   }
 
   async getOrdersByDesign(designId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.designId, designId));
+    return await database.select().from(orders).where(equals(orders.designId, designId));
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
+    const [newOrder] = await database.insert(orders).values(order).returning();
     return newOrder;
   }
 
   async updateOrder(id: number, updatedOrder: Partial<Order>): Promise<Order | undefined> {
-    const [order] = await db.update(orders)
+    const [order] = await database.update(orders)
       .set(updatedOrder)
-      .where(eq(orders.id, id))
+      .where(equals(orders.id, id))
       .returning();
     return order || undefined;
   }
 
   // Order items operations
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+    return await database.select().from(orderItems).where(equals(orderItems.orderId, orderId));
   }
 
   async addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const [newOrderItem] = await db.insert(orderItems).values(orderItem).returning();
+    const [newOrderItem] = await database.insert(orderItems).values(orderItem).returning();
     return newOrderItem;
   }
 }
