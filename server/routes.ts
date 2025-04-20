@@ -1226,9 +1226,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalQuantity: orderItems.reduce((sum, item) => sum + item.quantity, 0)
       });
       
+      // Update inventory with the ordered items
+      const allInventory = await storage.getAllInventory();
+      const updatedInventoryItems = [];
+      
+      // Process each order item and update inventory
+      for (const item of orderItems) {
+        if (item.inventoryType === 'balloon') {
+          // Get inventory for this color and size
+          const matchingInventory = allInventory.find(
+            inv => inv.color.toLowerCase() === item.color.toLowerCase() && inv.size === item.size
+          );
+          
+          if (matchingInventory) {
+            // Update existing inventory with the ordered quantity
+            const newQuantity = matchingInventory.quantity + item.quantity;
+            console.log(`Updating ${item.color} ${item.size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
+            
+            // Calculate new status based on quantity and threshold
+            let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
+            if (newQuantity <= 0) {
+              status = 'out_of_stock';
+            } else if (newQuantity < matchingInventory.threshold) {
+              status = 'low_stock';
+            }
+            
+            await storage.updateInventoryItem(matchingInventory.id, {
+              quantity: newQuantity,
+              status: status
+            });
+            
+            updatedInventoryItems.push({
+              color: item.color,
+              size: item.size,
+              previousQuantity: matchingInventory.quantity,
+              newQuantity: newQuantity
+            });
+          } else {
+            // Create new inventory item since it doesn't exist
+            console.log(`Creating new ${item.color} ${item.size} inventory with quantity ${item.quantity}`);
+            
+            // Set default threshold and status
+            const threshold = 20; // Default threshold
+            let status = 'in_stock';
+            if (item.quantity <= 0) {
+              status = 'out_of_stock';
+            } else if (item.quantity < threshold) {
+              status = 'low_stock';
+            }
+            
+            const newInventoryItem = await storage.createInventoryItem({
+              color: item.color.toLowerCase() as any,
+              size: item.size,
+              quantity: item.quantity,
+              threshold: threshold,
+              status: status
+            });
+            
+            updatedInventoryItems.push({
+              color: item.color,
+              size: item.size,
+              previousQuantity: 0,
+              newQuantity: item.quantity
+            });
+          }
+        }
+      }
+      
       res.status(201).json({
         ...updatedOrder,
-        items: orderItems
+        items: orderItems,
+        inventoryUpdated: true,
+        updatedInventoryItems
       });
     } catch (error) {
       console.error('Create design order error:', error);

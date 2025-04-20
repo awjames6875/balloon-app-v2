@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
@@ -62,6 +63,7 @@ export function BalloonOrderDialog({
   initialSize,
 }: BalloonOrderDialogProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Default form values
@@ -104,6 +106,10 @@ export function BalloonOrderDialog({
         title: "Order Placed! 🎈",
         description: "Your balloon order has been submitted successfully!",
       });
+      
+      // Invalidate inventory queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
       // Reset form and close dialog
       form.reset(defaultValues);
