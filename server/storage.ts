@@ -224,13 +224,11 @@ export class MemStorage implements IStorage {
     const id = this.inventoryIdCounter++;
     const timestamp = new Date();
     
-    // Determine status based on quantity and threshold
-    let status = 'in_stock';
-    if (item.quantity <= 0) {
-      status = 'out_of_stock';
-    } else if (item.quantity <= item.threshold) {
-      status = 'low_stock';
-    }
+    // Calculate status using the utility function
+    // Handle potential undefined values with default fallbacks
+    const quantity = item.quantity || 0;
+    const threshold = item.threshold || 0;
+    const status = calculateInventoryStatus(quantity, threshold);
     
     const newItem: Inventory = {
       ...item,
@@ -246,18 +244,12 @@ export class MemStorage implements IStorage {
     const existingItem = this.inventory.get(id);
     if (!existingItem) return undefined;
 
-    // Update status based on quantity and threshold
-    let status = existingItem.status;
+    // Use current values for quantity and threshold if not provided in update
     const quantity = item.quantity !== undefined ? item.quantity : existingItem.quantity;
     const threshold = item.threshold !== undefined ? item.threshold : existingItem.threshold;
     
-    if (quantity <= 0) {
-      status = 'out_of_stock';
-    } else if (quantity <= threshold) {
-      status = 'low_stock';
-    } else {
-      status = 'in_stock';
-    }
+    // Calculate status using the utility function
+    const status = calculateInventoryStatus(quantity, threshold);
 
     const updatedItem = {
       ...existingItem,
@@ -282,13 +274,12 @@ export class MemStorage implements IStorage {
     const id = this.accessoryIdCounter++;
     const timestamp = new Date();
     
-    // Determine status based on quantity and threshold
-    let status = 'in_stock';
-    if (accessory.quantity <= 0) {
-      status = 'out_of_stock';
-    } else if (accessory.quantity <= accessory.threshold) {
-      status = 'low_stock';
-    }
+    // Calculate status using the utility function
+    // This ensures consistent status calculation across inventory and accessories
+    const status = calculateInventoryStatus(
+      accessory.quantity || 0, 
+      accessory.threshold || 0
+    );
     
     const newAccessory: Accessory = {
       ...accessory,
@@ -304,18 +295,12 @@ export class MemStorage implements IStorage {
     const existingAccessory = this.accessories.get(id);
     if (!existingAccessory) return undefined;
 
-    // Update status based on quantity and threshold
-    let status = existingAccessory.status;
+    // Use current values if not provided in update
     const quantity = accessory.quantity !== undefined ? accessory.quantity : existingAccessory.quantity;
     const threshold = accessory.threshold !== undefined ? accessory.threshold : existingAccessory.threshold;
     
-    if (quantity <= 0) {
-      status = 'out_of_stock';
-    } else if (quantity <= threshold) {
-      status = 'low_stock';
-    } else {
-      status = 'in_stock';
-    }
+    // Calculate status using the utility function
+    const status = calculateInventoryStatus(quantity, threshold);
 
     const updatedAccessory = {
       ...existingAccessory,
