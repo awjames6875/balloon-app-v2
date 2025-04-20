@@ -1,35 +1,52 @@
+import { Express } from 'express';
+import { Server } from 'http';
 import { createApp } from "./app";
 import { setupVite, serveStatic, log } from "./vite";
 
-(async () => {
+/**
+ * Main application bootstrap function
+ * Initializes the Express application and starts the HTTP server
+ */
+async function startServer() {
   try {
     // Initialize app and server
     const { app, server } = await createApp();
     
     log('Express application and server created successfully');
     
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
+    // Configure environment-specific middleware
+    // In development: Setup Vite for hot reloading
+    // In production: Serve static files
+    configureStaticAssets(app, server);
     
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = 5000;
+    // Start the HTTP server
+    const PORT = 5000;
+    const HOST = "0.0.0.0";
+    
     server.listen({
-      port,
-      host: "0.0.0.0",
+      port: PORT,
+      host: HOST,
       reusePort: true,
     }, () => {
-      log(`serving on port ${port}`);
+      log(`serving on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
   }
-})();
+}
+
+/**
+ * Configure static assets based on environment
+ * Note: Vite middleware must be registered after API routes to prevent catch-all interference
+ */
+function configureStaticAssets(app: Express, server: Server) {
+  if (app.get("env") === "development") {
+    setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+}
+
+// Bootstrap the application
+startServer();

@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { calculateInventoryStatus } from "./utils/inventory.utils";
 
 // Interface for all storage operations
 export interface IStorage {
