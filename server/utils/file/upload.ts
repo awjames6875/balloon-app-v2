@@ -1,73 +1,100 @@
 /**
  * File Upload Utility Module
  * 
- * This module provides multer configuration for handling file uploads.
+ * Provides utility functions for handling file uploads.
  */
 
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { env } from "../../config/environment";
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
 
-// Configure allowed file types
-const ALLOWED_IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+// Promisify file system operations
+const writeFile = promisify(fs.writeFile);
+const readFile = promisify(fs.readFile);
+const unlink = promisify(fs.unlink);
+const mkdir = promisify(fs.mkdir);
 
 /**
- * Creates the uploads directory if it doesn't exist
- * @returns Path to the uploads directory
+ * Ensure uploads directory exists
+ * @param directory Directory path to ensure exists
+ * @returns Path to the directory
  */
-function ensureUploadsDirectory(): string {
-  const uploadsDir = path.join(process.cwd(), env.UPLOAD_DIR);
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-  return uploadsDir;
-}
-
-/**
- * Generates a unique filename for uploaded files
- * @param originalName Original filename
- * @returns Unique filename with original extension
- */
-export function generateUniqueFilename(originalName: string): string {
-  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-  const extension = path.extname(originalName);
-  const baseName = path.basename(originalName, extension);
+export async function ensureUploadsDirectory(directory: string = 'uploads'): Promise<string> {
+  const fullPath = path.resolve(process.cwd(), directory);
   
-  return `${baseName}-${uniqueSuffix}${extension}`;
-}
-
-/**
- * Validates if a file type is allowed
- * @param filename Filename to validate
- * @returns True if the file type is allowed
- */
-export function isAllowedImageType(filename: string): boolean {
-  const ext = path.extname(filename).toLowerCase();
-  return ALLOWED_IMAGE_TYPES.includes(ext);
-}
-
-/**
- * Multer configuration for handling file uploads
- */
-export const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, ensureUploadsDirectory());
-    },
-    filename: (req, file, cb) => {
-      const uniqueFilename = generateUniqueFilename(file.originalname);
-      cb(null, uniqueFilename);
+  try {
+    await mkdir(fullPath, { recursive: true });
+    return fullPath;
+  } catch (error) {
+    // If directory already exists, that's fine
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+      throw error;
     }
-  }),
-  fileFilter: (req, file, cb) => {
-    if (isAllowedImageType(file.originalname)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Invalid file type. Only ${ALLOWED_IMAGE_TYPES.join(', ')} files are allowed.`) as any);
-    }
-  },
-  limits: {
-    fileSize: env.MAX_FILE_SIZE // Max file size in bytes (default: 10MB)
+    return fullPath;
   }
-});
+}
+
+/**
+ * Save a file from a base64 string
+ * @param base64Data Base64 encoded file data
+ * @param filename Filename to save as
+ * @param mimeType MIME type of the file
+ * @returns Path to the saved file
+ */
+export async function saveBase64File(
+  base64Data: string,
+  filename: string,
+  mimeType: string = 'image/jpeg'
+): Promise<string> {
+  // Remove MIME type prefix if present
+  const data = base64Data.includes('base64,')
+    ? base64Data.split('base64,')[1]
+    : base64Data;
+  
+  // Ensure uploads directory exists
+  const uploadsDir = await ensureUploadsDirectory();
+  
+  // Generate unique filename
+  const uniqueFilename = `${Date.now()}-${filename}`;
+  const filePath = path.join(uploadsDir, uniqueFilename);
+  
+  // Save file
+  const buffer = Buffer.from(data, 'base64');
+  await writeFile(filePath, buffer);
+  
+  // Return the URL path (not filesystem path)
+  return `/uploads/${uniqueFilename}`;
+}
+
+/**
+ * Delete a file
+ * @param fileUrl URL path of the file to delete
+ * @returns True if the file was deleted successfully
+ */
+export async function deleteFile(fileUrl: string): Promise<boolean> {
+  // Extract filename from URL
+  const filename = path.basename(fileUrl);
+  const filePath = path.join(process.cwd(), 'uploads', filename);
+  
+  try {
+    await unlink(filePath);
+    return true;
+  } catch (error) {
+    console.error('Failed to delete file:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if a file exists
+ * @param filePath Path to the file
+ * @returns True if the file exists
+ */
+export function fileExists(filePath: string): boolean {
+  try {
+    return fs.existsSync(filePath);
+  } catch (error) {
+    console.error('Error checking if file exists:', error);
+    return false;
+  }
+}
