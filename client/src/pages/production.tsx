@@ -81,7 +81,7 @@ const Production = () => {
       await apiRequest("POST", "/api/production", {
         designId: parseInt(newProduction.designId),
         status: newProduction.status,
-        startDate: new Date(newProduction.startDate).toISOString(),
+        startDate: newProduction.startDate, // Send the date string directly, schema will convert it
         notes: newProduction.notes
       });
       
@@ -118,7 +118,7 @@ const Production = () => {
     try {
       await apiRequest("PUT", `/api/production/${id}`, {
         status: newStatus,
-        ...(newStatus === 'completed' ? { completionDate: new Date().toISOString() } : {})
+        ...(newStatus === 'completed' ? { completionDate: new Date() } : {})
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/production"] });

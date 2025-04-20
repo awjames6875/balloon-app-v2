@@ -175,23 +175,43 @@ export const insertAccessorySchema = createInsertSchema(accessories).pick({
   threshold: true,
 });
 
-export const insertProductionSchema = createInsertSchema(production).pick({
-  designId: true,
-  status: true,
-  startDate: true,
-  notes: true,
-});
+export const insertProductionSchema = createInsertSchema(production)
+  .pick({
+    designId: true,
+    status: true,
+    startDate: true,
+    notes: true,
+  })
+  .transform((data) => {
+    // Convert string date to Date object if needed
+    return {
+      ...data,
+      startDate: data.startDate && typeof data.startDate === 'string' 
+        ? new Date(data.startDate) 
+        : data.startDate,
+    };
+  });
 
-export const insertOrderSchema = createInsertSchema(orders).pick({
-  userId: true,
-  designId: true,
-  supplierName: true,
-  expectedDeliveryDate: true,
-  priority: true,
-  notes: true,
-  totalQuantity: true,
-  totalCost: true,
-});
+export const insertOrderSchema = createInsertSchema(orders)
+  .pick({
+    userId: true,
+    designId: true,
+    supplierName: true,
+    expectedDeliveryDate: true,
+    priority: true,
+    notes: true,
+    totalQuantity: true,
+    totalCost: true,
+  })
+  .transform((data) => {
+    // Convert string date to Date object if needed
+    return {
+      ...data,
+      expectedDeliveryDate: data.expectedDeliveryDate && typeof data.expectedDeliveryDate === 'string' 
+        ? new Date(data.expectedDeliveryDate) 
+        : data.expectedDeliveryDate,
+    };
+  });
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
   orderId: true,
