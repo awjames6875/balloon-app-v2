@@ -11,7 +11,8 @@ import {
   LogOut,
   CreditCard,
   Palette,
-  Grid
+  Grid,
+  ShoppingBag
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -46,11 +47,16 @@ const Sidebar = () => {
     { 
       name: "My Designs", 
       path: "/my-designs", 
-      icon: <Palette className="h-5 w-5 mr-3" />,
-      highlight: true  // This will be used to highlight this item
+      icon: <Palette className="h-5 w-5 mr-3" />
     },
     { name: "Design Editor", path: "/design-editor", icon: <Grid className="h-5 w-5 mr-3" /> },
     { name: "Inventory", path: "/inventory", icon: <Package className="h-5 w-5 mr-3" /> },
+    { 
+      name: "Orders", 
+      path: "/orders", 
+      icon: <ShoppingBag className="h-5 w-5 mr-3" />,
+      highlight: true  // Highlight the new Orders feature
+    },
     { name: "Production", path: "/production", icon: <Clipboard className="h-5 w-5 mr-3" /> },
     { name: "Analytics", path: "/analytics", icon: <BarChart3 className="h-5 w-5 mr-3" /> },
     { name: "Payments", path: "/payments", icon: <CreditCard className="h-5 w-5 mr-3" /> },
