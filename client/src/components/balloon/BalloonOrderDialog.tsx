@@ -101,13 +101,22 @@ export function BalloonOrderDialog({
         orderData
       );
 
-      // Show success message
+      // Parse the response
+      const resultData = await response.json();
+      
+      // Show success message with details from server
       toast({
         title: "Order Placed! 🎈",
-        description: "Your balloon order has been submitted successfully!",
+        description: resultData.message || "Your balloon order has been submitted successfully!",
       });
       
-      // Invalidate inventory queries to refresh the data
+      console.log("Order successful, inventory updated:", resultData);
+      
+      // Force immediate refetch of inventory and orders data
+      await queryClient.refetchQueries({ queryKey: ['/api/inventory'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/orders'] });
+      
+      // Also invalidate the queries to ensure any components using stale data get updated
       queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 

@@ -12,6 +12,18 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcryptjs';
 
 /**
+ * Extend the Express Request interface to include user authentication properties
+ */
+export interface AuthenticatedRequest extends Request {
+  userId: number;
+  userRole: string;
+  session: Express.Session & {
+    userId?: number;
+    userRole?: string;
+  };
+}
+
+/**
  * Configure passport authentication with local strategy
  * @param app Express application
  */

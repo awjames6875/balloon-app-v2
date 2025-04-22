@@ -313,7 +313,62 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       });
     }
     
-    // Create a simple order with a friendly name based on event
+    // Get all inventory to check and update
+    const allInventory = await storage.getAllInventory();
+    const normalizedColor = color.toLowerCase();
+    
+    // Find matching inventory item for the ordered balloon
+    const matchingInventory = allInventory.find(item => 
+      item.color === normalizedColor && item.size === size
+    );
+    
+    if (!matchingInventory) {
+      // Create new inventory item since it doesn't exist
+      console.log(`Creating new ${normalizedColor} ${size} inventory with initial quantity ${quantity}`);
+      
+      // Set default threshold and status
+      const threshold = 20; // Default threshold
+      
+      // If we're creating a new inventory item, we're adding to inventory,
+      // so the status will be 'in_stock' or 'low_stock' depending on threshold
+      let status: 'in_stock' | 'low_stock' | 'out_of_stock';
+      if (quantity <= 0) {
+        status = 'out_of_stock';
+      } else if (quantity < threshold) {
+        status = 'low_stock';
+      } else {
+        status = 'in_stock';
+      }
+      
+      await storage.createInventoryItem({
+        color: normalizedColor as any, // Type assertion needed here
+        size,
+        quantity,
+        threshold,
+        status
+      });
+    } else {
+      // Update existing inventory - ADD to the inventory when an order is placed
+      const newQuantity = matchingInventory.quantity + quantity;
+      console.log(`Updating ${normalizedColor} ${size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
+      
+      // Calculate new status based on quantity and threshold
+      let status: 'in_stock' | 'low_stock' | 'out_of_stock';
+      if (newQuantity <= 0) {
+        status = 'out_of_stock';
+      } else if (newQuantity < matchingInventory.threshold) {
+        status = 'low_stock';
+      } else {
+        status = 'in_stock';
+      }
+      
+      await storage.updateInventoryItem(matchingInventory.id, {
+        quantity: newQuantity,
+        status
+      });
+    }
+    
+    // Now proceed with creating the order
     const orderName = eventName 
       ? `Balloons for ${eventName}`
       : `Balloon order (${color} ${size})`;
@@ -325,7 +380,8 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       supplierName: 'Store Inventory',
       priority: 'normal',
       totalQuantity: quantity,
-      totalCost: 0 // Will be calculated after adding the item
+      totalCost: 0, // Will be calculated after adding the item
+      expectedDeliveryDate: null // Setting to null as it's required but not used here
     });
     
     // Set pricing based on balloon size (simplified for kids)
@@ -335,7 +391,7 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
     // Add the balloon item to the order
     const orderItem = await storage.addOrderItem({
       orderId: order.id,
-      color: color.toLowerCase(),
+      color: normalizedColor as any, // Type assertion needed here
       size,
       quantity,
       inventoryType: 'balloon',
@@ -348,6 +404,9 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       totalCost: subtotal
     });
     
+    // Invalidate any cached inventory data
+    // This is handled by the client side with the API response
+    
     // Return a kid-friendly response
     res.status(201).json({
       message: 'Yay! Your balloons have been ordered! 🎈',
@@ -355,7 +414,8 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       color,
       size,
       quantity,
-      total: `$${subtotal.toFixed(2)}`
+      total: `$${subtotal.toFixed(2)}`,
+      inventoryUpdated: true
     });
     
   } catch (error) {
