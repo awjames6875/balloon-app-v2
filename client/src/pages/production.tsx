@@ -81,18 +81,22 @@ const Production = () => {
       // Convert the date string to a proper Date object
       const startDate = newProduction.startDate ? new Date(newProduction.startDate) : new Date();
       
-      await apiRequest("POST", "/api/production", {
+      const response = await apiRequest("POST", "/api/production", {
         designId: parseInt(newProduction.designId),
         status: newProduction.status,
         startDate: startDate, // Send as Date object
         notes: newProduction.notes
       });
       
+      const result = await response.json();
+      
+      // Invalidate both production and inventory queries since inventory has been updated
       queryClient.invalidateQueries({ queryKey: ["/api/production"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       
       toast({
         title: "Production created",
-        description: "Production record has been created successfully",
+        description: "Production record has been created and inventory has been updated.",
       });
       
       // Reset form and close dialog
@@ -104,11 +108,40 @@ const Production = () => {
       });
       
       setShowCreateDialog(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating production:", error);
+      
+      // Try to get detailed error information
+      let errorMessage = "There was a problem creating the production record.";
+      
+      if (error.response) {
+        try {
+          const errorData = await error.response.json();
+          if (errorData.error === "Insufficient inventory") {
+            errorMessage = "Insufficient inventory: Not enough materials available. Please check inventory and order more supplies.";
+            
+            // Add details about which items are missing if available
+            if (errorData.insufficientItems && errorData.insufficientItems.length > 0) {
+              const items = errorData.insufficientItems.map((item: any) => 
+                `${item.color} (${item.size === '11inch' ? 'small' : 'large'}): need ${item.required}, have ${item.available}`
+              ).join(', ');
+              errorMessage += ` Missing: ${items}`;
+            }
+          } else if (errorData.error === "Missing material requirements") {
+            errorMessage = "This design does not have material requirements specified. Please update the design first.";
+          } else if (errorData.details) {
+            errorMessage = errorData.details;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (jsonError) {
+          console.error("Failed to parse error response:", jsonError);
+        }
+      }
+      
       toast({
         title: "Error creating production",
-        description: "There was a problem creating the production record.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -1,7 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
-import { isAuthenticated, isAdmin, AuthenticatedRequest } from '../middleware/auth.middleware';
-import { insertProductionSchema } from '@shared/schema';
+import { isAuthenticated } from '../middleware/auth.middleware';
+import { insertProductionSchema, inventoryStatusEnum } from '@shared/schema';
+
+// Define a type for authenticated requests
+interface AuthenticatedRequest extends Request {
+  userId?: number;
+  userRole?: string;
+}
 
 const router = Router();
 
@@ -97,6 +103,82 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
       return res.status(403).json({ error: 'Access denied' });
     }
     
+    // Check for material requirements in the design
+    if (!design.materialRequirements || Object.keys(design.materialRequirements).length === 0) {
+      return res.status(400).json({ 
+        error: 'Missing material requirements',
+        details: 'This design does not have material requirements specified. Please update the design first.'
+      });
+    }
+    
+    // Get all inventory to check availability
+    const allInventory = await storage.getAllInventory();
+    
+    // Check inventory availability and prepare updates
+    const updates = [];
+    const insufficientItems = [];
+    
+    // Process each color in material requirements
+    for (const [color, requirements] of Object.entries(design.materialRequirements)) {
+      // Get inventory for this color
+      const colorInventory = allInventory.filter(
+        item => item.color.toLowerCase() === color.toLowerCase()
+      );
+      
+      // Check small balloons (11inch)
+      const small = requirements.small || 0;
+      if (small > 0) {
+        const smallInventory = colorInventory.find(item => item.size === '11inch');
+        if (!smallInventory || smallInventory.quantity < small) {
+          insufficientItems.push({
+            color,
+            size: '11inch',
+            required: small,
+            available: smallInventory ? smallInventory.quantity : 0
+          });
+          continue;
+        }
+        
+        updates.push({
+          id: smallInventory.id,
+          quantity: smallInventory.quantity - small,
+          status: (smallInventory.quantity - small) <= 0 ? 'out_of_stock' : 
+                 (smallInventory.quantity - small < smallInventory.threshold) ? 'low_stock' : 'in_stock'
+        });
+      }
+      
+      // Check large balloons (16inch)
+      const large = requirements.large || 0;
+      if (large > 0) {
+        const largeInventory = colorInventory.find(item => item.size === '16inch');
+        if (!largeInventory || largeInventory.quantity < large) {
+          insufficientItems.push({
+            color,
+            size: '16inch',
+            required: large,
+            available: largeInventory ? largeInventory.quantity : 0
+          });
+          continue;
+        }
+        
+        updates.push({
+          id: largeInventory.id,
+          quantity: largeInventory.quantity - large,
+          status: (largeInventory.quantity - large) <= 0 ? 'out_of_stock' : 
+                 (largeInventory.quantity - large < largeInventory.threshold) ? 'low_stock' : 'in_stock'
+        });
+      }
+    }
+    
+    // Check if we have sufficient inventory
+    if (insufficientItems.length > 0) {
+      return res.status(400).json({
+        error: 'Insufficient inventory',
+        details: 'Not enough materials in inventory to create this production',
+        insufficientItems
+      });
+    }
+    
     // Set default status if not provided
     const productionData = {
       ...req.body,
@@ -127,10 +209,23 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
     // Validate production data
     const validatedProductionData = insertProductionSchema.parse(productionData);
     
+    // Update inventory items
+    for (const update of updates) {
+      await storage.updateInventoryItem(update.id, {
+        quantity: update.quantity,
+        status: update.status
+      });
+    }
+    
     // Create the production
     const production = await storage.createProduction(validatedProductionData);
     
-    res.status(201).json(production);
+    // Return success with production and inventory updates
+    res.status(201).json({
+      production,
+      inventoryUpdated: true,
+      materialRequirements: design.materialRequirements
+    });
   } catch (error: any) {
     console.error('Error creating production:', error);
     if (error.name === 'ZodError') {
