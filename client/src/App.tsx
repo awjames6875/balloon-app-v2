@@ -21,6 +21,7 @@ import Design from "@/pages/design";
 import MyDesigns from "@/pages/my-designs";
 import Inventory from "@/pages/inventory";
 import Production from "@/pages/production";
+import ProductionDetail from "@/pages/production-detail";
 import Analytics from "@/pages/analytics";
 import Payments from "@/pages/payments";
 import DesignEditor from "@/pages/design-editor";
@@ -91,6 +92,11 @@ function Router() {
       <Route path="/production">
         <ProtectedRoute>
           <Production />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/production/:id">
+        <ProtectedRoute>
+          <ProductionDetail />
         </ProtectedRoute>
       </Route>
       <Route path="/analytics">

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import { MaterialRequirements } from "shared/schema";
+import { MaterialRequirements, Design, Production } from "shared/schema";
 
 const ProductionDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,17 +17,17 @@ const ProductionDetail = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const { data: production, isLoading: productionLoading } = useQuery({
+  const { data: production, isLoading: productionLoading } = useQuery<Production>({
     queryKey: [`/api/production/${productionId}`],
     enabled: !isNaN(productionId),
   });
 
-  const { data: design, isLoading: designLoading } = useQuery({
+  const { data: design, isLoading: designLoading } = useQuery<Design>({
     queryKey: [`/api/designs/${production?.designId}`],
     enabled: !!production?.designId,
   });
 
-  const handleUpdateStatus = async (newStatus) => {
+  const handleUpdateStatus = async (newStatus: string) => {
     try {
       await apiRequest("PUT", `/api/production/${productionId}`, {
         status: newStatus,
@@ -52,7 +52,7 @@ const ProductionDetail = () => {
   };
 
   // Format date as Month Day, Year
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string | Date | null | undefined) => {
     if (!dateString) return "Not set";
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
@@ -87,7 +87,7 @@ const ProductionDetail = () => {
     ));
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch(status) {
       case 'pending':
         return <Badge variant="outline" className="bg-secondary-100">Pending</Badge>;

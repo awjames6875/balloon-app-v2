@@ -418,10 +418,8 @@ const renderProductionTable = (productions, isLoading, designs, handleUpdateStat
               )}
             </div>
             <div className="col-span-2 flex space-x-2">
-              <Link href={`/production/${item.id}`}>
-                <a className="px-2 py-1 text-xs bg-primary-50 hover:bg-primary-100 text-primary-700 rounded">
-                  View Details
-                </a>
+              <Link href={`/production/${item.id}`} className="px-2 py-1 text-xs bg-primary-50 hover:bg-primary-100 text-primary-700 rounded">
+                View Details
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
