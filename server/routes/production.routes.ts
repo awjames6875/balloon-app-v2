@@ -139,11 +139,22 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
           continue;
         }
         
+        // Determine the new inventory status based on quantity
+        const newQuantity = smallInventory.quantity - small;
+        let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock';
+        
+        if (newQuantity <= 0) {
+          newStatus = 'out_of_stock';
+        } else if (newQuantity < smallInventory.threshold) {
+          newStatus = 'low_stock';
+        } else {
+          newStatus = 'in_stock';
+        }
+        
         updates.push({
           id: smallInventory.id,
-          quantity: smallInventory.quantity - small,
-          status: (smallInventory.quantity - small) <= 0 ? 'out_of_stock' : 
-                 (smallInventory.quantity - small < smallInventory.threshold) ? 'low_stock' : 'in_stock'
+          quantity: newQuantity,
+          status: newStatus
         });
       }
       
@@ -161,11 +172,22 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
           continue;
         }
         
+        // Determine the new inventory status based on quantity
+        const newQuantity = largeInventory.quantity - large;
+        let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock';
+        
+        if (newQuantity <= 0) {
+          newStatus = 'out_of_stock';
+        } else if (newQuantity < largeInventory.threshold) {
+          newStatus = 'low_stock';
+        } else {
+          newStatus = 'in_stock';
+        }
+        
         updates.push({
           id: largeInventory.id,
-          quantity: largeInventory.quantity - large,
-          status: (largeInventory.quantity - large) <= 0 ? 'out_of_stock' : 
-                 (largeInventory.quantity - large < largeInventory.threshold) ? 'low_stock' : 'in_stock'
+          quantity: newQuantity,
+          status: newStatus
         });
       }
     }
