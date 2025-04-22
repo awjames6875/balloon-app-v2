@@ -3,6 +3,9 @@ import { isAuthenticated, AuthenticatedRequest } from '../middleware/auth.middle
 import { storage } from '../storage';
 import { insertOrderSchema, insertOrderItemSchema } from '@shared/schema';
 import { z } from 'zod';
+import { db } from '../db';
+import { eq } from 'drizzle-orm';
+import { orders, inventory, orderItems } from '@shared/schema';
 
 const router = Router();
 
@@ -262,10 +265,7 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
     console.log('New balloon order request:', {
       body: JSON.stringify(req.body),
       userId: req.userId,
-      sessionId: req.session.id,
-      sessionUserId: req.session.userId,
-      sessionUserRole: req.session.userRole,
-      userRole: req.userRole
+      sessionId: req.session.id
     });
 
     if (!req.userId) {
@@ -313,99 +313,29 @@ router.post('/balloon', isAuthenticated, async (req: AuthenticatedRequest, res: 
       });
     }
     
-    // Get all inventory to check and update
-    const allInventory = await storage.getAllInventory();
-    const normalizedColor = color.toLowerCase();
+    // Generate a kid-friendly order note
+    const orderNote = eventName 
+      ? `Balloons for ${eventName}: ${quantity} ${color} ${size}`
+      : `Kid-friendly order: ${quantity} ${color} ${size} balloons`;
     
-    // Find matching inventory item for the ordered balloon
-    const matchingInventory = allInventory.find(item => 
-      item.color === normalizedColor && item.size === size
-    );
-    
-    if (!matchingInventory) {
-      // Create new inventory item since it doesn't exist
-      console.log(`Creating new ${normalizedColor} ${size} inventory with initial quantity ${quantity}`);
-      
-      // Set default threshold and status
-      const threshold = 20; // Default threshold
-      
-      // If we're creating a new inventory item, we're adding to inventory,
-      // so the status will be 'in_stock' or 'low_stock' depending on threshold
-      let status: 'in_stock' | 'low_stock' | 'out_of_stock';
-      if (quantity <= 0) {
-        status = 'out_of_stock';
-      } else if (quantity < threshold) {
-        status = 'low_stock';
-      } else {
-        status = 'in_stock';
-      }
-      
-      await storage.createInventoryItem({
-        color: normalizedColor as any, // Type assertion needed here
-        size,
-        quantity,
-        threshold,
-        status
-      });
-    } else {
-      // Update existing inventory - ADD to the inventory when an order is placed
-      const newQuantity = matchingInventory.quantity + quantity;
-      console.log(`Updating ${normalizedColor} ${size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
-      
-      // Calculate new status based on quantity and threshold
-      let status: 'in_stock' | 'low_stock' | 'out_of_stock';
-      if (newQuantity <= 0) {
-        status = 'out_of_stock';
-      } else if (newQuantity < matchingInventory.threshold) {
-        status = 'low_stock';
-      } else {
-        status = 'in_stock';
-      }
-      
-      await storage.updateInventoryItem(matchingInventory.id, {
-        quantity: newQuantity,
-        status
-      });
-    }
-    
-    // Now proceed with creating the order
-    const orderName = eventName 
-      ? `Balloons for ${eventName}`
-      : `Balloon order (${color} ${size})`;
-    
-    // Create the order
-    const order = await storage.createOrder({
-      userId: req.userId,
-      notes: `Kid-friendly order: ${quantity} ${color} ${size} balloons`,
-      supplierName: 'Store Inventory',
-      priority: 'normal',
-      totalQuantity: quantity,
-      totalCost: 0, // Will be calculated after adding the item
-      expectedDeliveryDate: null // Setting to null as it's required but not used here
-    });
-    
-    // Set pricing based on balloon size (simplified for kids)
-    const unitPrice = size === '11inch' ? 1.99 : 2.99;
-    const subtotal = unitPrice * quantity;
-    
-    // Add the balloon item to the order
-    const orderItem = await storage.addOrderItem({
-      orderId: order.id,
-      color: normalizedColor as any, // Type assertion needed here
+    // Use our new transactional method to create the order and update inventory atomically
+    console.log('Creating order using transaction method...');
+    const { order, orderItem } = await storage.createBalloonOrderWithInventoryUpdate(
+      req.userId,
+      color,
       size,
       quantity,
-      inventoryType: 'balloon',
-      unitPrice,
-      subtotal
+      orderNote
+    );
+    
+    console.log('Transaction completed successfully:', {
+      orderId: order.id,
+      orderItemId: orderItem.id
     });
     
-    // Update the order with the calculated cost
-    await storage.updateOrder(order.id, {
-      totalCost: subtotal
-    });
-    
-    // Invalidate any cached inventory data
-    // This is handled by the client side with the API response
+    // Calculate display price (converting from database cents to dollars with decimals)
+    const unitPrice = orderItem.unitPrice / 100;
+    const subtotal = orderItem.subtotal / 100;
     
     // Return a kid-friendly response
     res.status(201).json({

@@ -59,6 +59,15 @@ export interface IStorage {
   // Order items operations
   getOrderItems(orderId: number): Promise<OrderItem[]>;
   addOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
+  
+  // Transaction operations - adding these for atomic operations
+  createBalloonOrderWithInventoryUpdate(
+    userId: number, 
+    color: string, 
+    size: string, 
+    quantity: number, 
+    notes?: string
+  ): Promise<{order: Order, orderItem: OrderItem}>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -310,6 +319,110 @@ export class DatabaseStorage implements IStorage {
   async addOrderItem(item: InsertOrderItem): Promise<OrderItem> {
     const [newItem] = await db.insert(orderItems).values(item).returning();
     return newItem;
+  }
+  
+  /**
+   * Creates a balloon order and updates inventory in a single transaction
+   * This ensures both operations succeed or fail together
+   */
+  async createBalloonOrderWithInventoryUpdate(
+    userId: number, 
+    color: string, 
+    size: string, 
+    quantity: number, 
+    notes?: string
+  ): Promise<{order: Order, orderItem: OrderItem}> {
+    console.log(`Creating balloon order transaction: ${quantity} ${color} ${size} balloons for user ${userId}`);
+    
+    // Ensure the color is properly normalized
+    const normalizedColor = color.toLowerCase();
+    
+    return await db.transaction(async (tx) => {
+      // 1. Find existing inventory item if any
+      const existingInventory = await tx.select().from(inventory)
+        .where(eq(inventory.color, normalizedColor as any))
+        .where(eq(inventory.size, size));
+      
+      const matchingInventory = existingInventory.length > 0 ? existingInventory[0] : null;
+      
+      // 2. Calculate pricing
+      const unitPrice = size === '11inch' ? 199 : 299; // Store in cents
+      const subtotal = unitPrice * quantity;
+      
+      // 3. Create or update inventory
+      if (matchingInventory) {
+        // Update existing inventory - ADD quantity
+        const newQuantity = matchingInventory.quantity + quantity;
+        console.log(`Updating ${normalizedColor} ${size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
+        
+        // Calculate new status
+        let status: 'in_stock' | 'low_stock' | 'out_of_stock';
+        if (newQuantity <= 0) {
+          status = 'out_of_stock';
+        } else if (newQuantity < matchingInventory.threshold) {
+          status = 'low_stock';
+        } else {
+          status = 'in_stock';
+        }
+        
+        await tx.update(inventory)
+          .set({
+            quantity: newQuantity,
+            status,
+            updatedAt: new Date()
+          })
+          .where(eq(inventory.id, matchingInventory.id));
+          
+        console.log(`Inventory updated, ID: ${matchingInventory.id}, New quantity: ${newQuantity}`);
+      } else {
+        // Create new inventory item
+        const threshold = 20; // Default threshold
+        const status = quantity >= threshold ? 'in_stock' : quantity > 0 ? 'low_stock' : 'out_of_stock';
+        
+        await tx.insert(inventory).values({
+          color: normalizedColor as any,
+          size,
+          quantity,
+          threshold,
+          status
+        });
+        
+        console.log(`New inventory created for ${normalizedColor} ${size} with quantity ${quantity}`);
+      }
+      
+      // 4. Create order
+      const orderResult = await tx.insert(orders).values({
+        userId,
+        notes: notes || `Balloon order: ${quantity} ${color} ${size}`,
+        supplierName: 'Store Inventory',
+        priority: 'normal',
+        totalQuantity: quantity,
+        totalCost: subtotal,
+        expectedDeliveryDate: null
+      }).returning();
+      
+      const newOrder = orderResult[0];
+      console.log(`Order created with ID: ${newOrder.id}`);
+      
+      // 5. Add order item
+      const orderItemResult = await tx.insert(orderItems).values({
+        orderId: newOrder.id,
+        color: normalizedColor as any,
+        size,
+        quantity,
+        inventoryType: 'balloon',
+        unitPrice,
+        subtotal
+      }).returning();
+      
+      const newOrderItem = orderItemResult[0];
+      console.log(`Order item created with ID: ${newOrderItem.id}`);
+      
+      return { 
+        order: newOrder, 
+        orderItem: newOrderItem 
+      };
+    });
   }
 }
 
