@@ -103,6 +103,27 @@ router.post('/', isAuthenticated, async (req: AuthenticatedRequest, res: Respons
       status: req.body.status || 'pending'
     };
     
+    // Ensure startDate is properly formatted if it's a string
+    if (productionData.startDate && typeof productionData.startDate === 'string') {
+      try {
+        // Create a proper Date object from the string
+        productionData.startDate = new Date(productionData.startDate);
+        
+        // Check if it's a valid date
+        if (isNaN(productionData.startDate.getTime())) {
+          return res.status(400).json({ 
+            error: 'Invalid date format', 
+            details: 'The provided start date is not a valid date' 
+          });
+        }
+      } catch (error) {
+        return res.status(400).json({ 
+          error: 'Invalid date format', 
+          details: 'The provided start date could not be parsed' 
+        });
+      }
+    }
+    
     // Validate production data
     const validatedProductionData = insertProductionSchema.parse(productionData);
     

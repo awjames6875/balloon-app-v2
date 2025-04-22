@@ -78,10 +78,13 @@ const Production = () => {
         return;
       }
       
+      // Convert the date string to a proper Date object
+      const startDate = newProduction.startDate ? new Date(newProduction.startDate) : new Date();
+      
       await apiRequest("POST", "/api/production", {
         designId: parseInt(newProduction.designId),
         status: newProduction.status,
-        startDate: newProduction.startDate, // Send the date string directly, schema will convert it
+        startDate: startDate, // Send as Date object
         notes: newProduction.notes
       });
       
