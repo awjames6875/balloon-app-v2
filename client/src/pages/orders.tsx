@@ -16,6 +16,36 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 import { OrderDetailDialog } from '@/components/order/order-detail-dialog';
 
+// Define the order interfaces
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
+interface OrderItem {
+  id: number;
+  orderId: number;
+  inventoryType: string;
+  color: string;
+  size: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+interface Order {
+  id: number;
+  userId: number;
+  designId?: number;
+  status: OrderStatus;
+  supplierName?: string;
+  expectedDeliveryDate?: string | Date;
+  priority: string;
+  notes?: string;
+  totalQuantity: number;
+  totalCost: number;
+  createdAt: string;
+  updatedAt: string;
+  items?: OrderItem[];
+}
+
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -23,28 +53,28 @@ const Orders = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // Fetch orders data
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ['/api/orders'],
   });
 
   // Fetch selected order details when an order is selected
-  const { data: orderDetails } = useQuery({
+  const { data: orderDetails } = useQuery<Order>({
     queryKey: [`/api/orders/${selectedOrder}`],
     enabled: !!selectedOrder,
   });
 
   // Filter orders by search term and status
-  const filteredOrders = orders?.filter(order => {
+  const filteredOrders = orders.filter((order: Order) => {
     const matchesSearch = order.supplierName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           String(order.id).includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  }) || [];
+  });
 
   // Get status badge styles and icon
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'completed':
         return {
@@ -56,6 +86,11 @@ const Orders = () => {
           classes: 'bg-blue-100 text-blue-800',
           icon: <PackageCheck className="h-3.5 w-3.5 mr-1" />
         };
+      case 'shipped':
+        return {
+          classes: 'bg-indigo-100 text-indigo-800',
+          icon: <PackageCheck className="h-3.5 w-3.5 mr-1" />
+        };  
       case 'cancelled':
         return {
           classes: 'bg-red-100 text-red-800',

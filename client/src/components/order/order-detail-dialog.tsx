@@ -54,11 +54,13 @@ interface OrderItem {
   subtotal: number;
 }
 
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
 interface Order {
   id: number;
   userId: number;
   designId?: number;
-  status: 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+  status: OrderStatus;
   supplierName?: string;
   expectedDeliveryDate?: string | Date;
   priority: string;
@@ -86,7 +88,7 @@ export function OrderDetailDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusUpdateNote, setStatusUpdateNote] = useState("");
-  const [newStatus, setNewStatus] = useState(orderData?.status || "pending");
+  const [newStatus, setNewStatus] = useState<OrderStatus>(orderData?.status || "pending");
   const [showCancelAlert, setShowCancelAlert] = useState(false);
   
   // Set the initial status when orderData changes
@@ -131,7 +133,7 @@ export function OrderDetailDialog({
   };
   
   // Define valid status transitions
-  const validStatusTransitions = {
+  const validStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
     pending: ["processing", "cancelled"],
     processing: ["shipped", "completed", "cancelled"],
     shipped: ["completed", "cancelled"],
@@ -188,7 +190,7 @@ export function OrderDetailDialog({
   // Handle cancel order
   const handleCancelOrder = () => {
     updateOrderMutation.mutate({
-      status: "cancelled",
+      status: "cancelled" as OrderStatus,
       notes: statusUpdateNote || "Order cancelled by user"
     });
     setShowCancelAlert(false);
@@ -319,7 +321,7 @@ export function OrderDetailDialog({
           <Separator />
           
           {/* Status update section - only show if order is not completed or cancelled */}
-          {orderData.status !== 'completed' && orderData.status !== 'cancelled' && (
+          {orderData.status !== ('completed' as OrderStatus) && orderData.status !== ('cancelled' as OrderStatus) && (
             <div className="my-4">
               <h3 className="font-bold mb-2">Update Order Status</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -327,7 +329,7 @@ export function OrderDetailDialog({
                   <Label htmlFor="new-status">New Status</Label>
                   <Select 
                     value={newStatus} 
-                    onValueChange={setNewStatus}
+                    onValueChange={(value: OrderStatus) => setNewStatus(value)}
                     disabled={availableStatusTransitions.length === 0}
                   >
                     <SelectTrigger id="new-status">
@@ -367,7 +369,7 @@ export function OrderDetailDialog({
                 <Button 
                   variant="destructive" 
                   onClick={() => setShowCancelAlert(true)}
-                  disabled={orderData.status === 'cancelled'}
+                  disabled={orderData.status === 'cancelled' as OrderStatus}
                 >
                   <X className="h-4 w-4 mr-2" />
                   Cancel Order
