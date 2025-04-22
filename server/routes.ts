@@ -11,8 +11,12 @@ import {
   insertAccessorySchema,
   insertProductionSchema,
   insertOrderSchema,
-  insertOrderItemSchema
+  insertOrderItemSchema,
+  orders,
+  inventory,
+  orderItems
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import session from "express-session";
 // AI import removed
@@ -1141,163 +1145,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create order for this design
       const { notes, supplierName, priority, expectedDeliveryDate, items } = req.body;
       
-      const orderData = {
-        userId: req.session.userId!,
-        designId,
-        status: 'pending',
-        notes: notes || `Order for design: ${design.clientName}`,
-        supplierName: supplierName || 'Default Supplier',
-        priority: priority || 'normal',
-        expectedDeliveryDate: expectedDeliveryDate || new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) // Default to 1 week from now
-      };
+      // Use a transaction to ensure all database operations succeed or fail together
+      const { db } = await import('./db');
       
-      const order = await storage.createOrder(orderData);
-      
-      // If custom items are sent, use them instead of material requirements
-      if (items && Array.isArray(items) && items.length > 0) {
-        console.log("Using custom items for order:", items);
+      return await db.transaction(async (tx) => {
+        // 1. Create the order
+        const orderData = {
+          userId: req.session.userId!,
+          designId,
+          status: 'pending',
+          notes: notes || `Order for design: ${design.clientName}`,
+          supplierName: supplierName || 'Default Supplier',
+          priority: priority || 'normal',
+          expectedDeliveryDate: expectedDeliveryDate || new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) // Default to 1 week from now
+        };
         
-        for (const item of items) {
-          // Convert prices to cents (integers) to match the database schema
-          const unitPrice = Math.round((item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75)) * 100);
-          const subtotal = Math.round(item.quantity * unitPrice);
+        const [order] = await tx.insert(orders).values(orderData).returning();
+        
+        // 2. Create order items
+        const orderItemsData = [];
+        
+        // If custom items are sent, use them instead of material requirements
+        if (items && Array.isArray(items) && items.length > 0) {
+          console.log("Using custom items for order:", items);
           
-          await storage.addOrderItem({
-            orderId: order.id,
-            inventoryType: 'balloon',
-            color: item.color.toLowerCase() as any, // Cast to colorEnum type
-            size: item.size,
-            quantity: item.quantity,
-            unitPrice: unitPrice, 
-            subtotal: subtotal
-          });
-        }
-      }
-      // Otherwise, if the design has material requirements, add them as order items
-      else if (design.materialRequirements && Object.keys(design.materialRequirements).length > 0) {
-        console.log("Using material requirements for order:", design.materialRequirements);
-        
-        for (const [color, requirements] of Object.entries(design.materialRequirements)) {
-          // Add small balloons as an order item
-          if (requirements.small > 0) {
+          for (const item of items) {
             // Convert prices to cents (integers) to match the database schema
-            const unitPrice = Math.round(0.5 * 100); // 50 cents per small balloon
-            const subtotal = Math.round(requirements.small * unitPrice);
+            const unitPrice = Math.round((item.unitPrice || (item.size === '11inch' ? 0.5 : 0.75)) * 100);
+            const subtotal = Math.round(item.quantity * unitPrice);
             
-            await storage.addOrderItem({
+            const [orderItem] = await tx.insert(orderItems).values({
               orderId: order.id,
               inventoryType: 'balloon',
-              color: color.toLowerCase() as any, // Cast to colorEnum type
-              size: '11inch',
-              quantity: requirements.small,
-              unitPrice: unitPrice,
-              subtotal: subtotal
-            });
-          }
-          
-          // Add large balloons as an order item
-          if (requirements.large > 0) {
-            // Convert prices to cents (integers) to match the database schema
-            const unitPrice = Math.round(0.75 * 100); // 75 cents per large balloon
-            const subtotal = Math.round(requirements.large * unitPrice);
-            
-            await storage.addOrderItem({
-              orderId: order.id,
-              inventoryType: 'balloon',
-              color: color.toLowerCase() as any, // Cast to colorEnum type
-              size: '16inch',
-              quantity: requirements.large,
-              unitPrice: unitPrice,
-              subtotal: subtotal
-            });
-          }
-        }
-      }
-      
-      // Get all order items
-      const orderItems = await storage.getOrderItems(order.id);
-      
-      // Calculate total cost (already in cents)
-      const totalCost = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-      
-      // Update order with total cost
-      const updatedOrder = await storage.updateOrder(order.id, {
-        totalCost,
-        totalQuantity: orderItems.reduce((sum, item) => sum + item.quantity, 0)
-      });
-      
-      // Update inventory with the ordered items
-      const allInventory = await storage.getAllInventory();
-      const updatedInventoryItems = [];
-      
-      // Process each order item and update inventory
-      for (const item of orderItems) {
-        if (item.inventoryType === 'balloon') {
-          // Get inventory for this color and size
-          const matchingInventory = allInventory.find(
-            inv => inv.color.toLowerCase() === item.color.toLowerCase() && inv.size === item.size
-          );
-          
-          if (matchingInventory) {
-            // Update existing inventory with the ordered quantity
-            const newQuantity = matchingInventory.quantity + item.quantity;
-            console.log(`Updating ${item.color} ${item.size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
-            
-            // Calculate new status based on quantity and threshold
-            let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
-            if (newQuantity <= 0) {
-              status = 'out_of_stock';
-            } else if (newQuantity < matchingInventory.threshold) {
-              status = 'low_stock';
-            }
-            
-            await storage.updateInventoryItem(matchingInventory.id, {
-              quantity: newQuantity,
-              status: status
-            });
-            
-            updatedInventoryItems.push({
-              color: item.color,
-              size: item.size,
-              previousQuantity: matchingInventory.quantity,
-              newQuantity: newQuantity
-            });
-          } else {
-            // Create new inventory item since it doesn't exist
-            console.log(`Creating new ${item.color} ${item.size} inventory with quantity ${item.quantity}`);
-            
-            // Set default threshold and status
-            const threshold = 20; // Default threshold
-            let status = 'in_stock';
-            if (item.quantity <= 0) {
-              status = 'out_of_stock';
-            } else if (item.quantity < threshold) {
-              status = 'low_stock';
-            }
-            
-            const newInventoryItem = await storage.createInventoryItem({
-              color: item.color.toLowerCase() as any,
+              color: item.color.toLowerCase() as any, // Cast to colorEnum type
               size: item.size,
               quantity: item.quantity,
-              threshold: threshold,
-              status: status
-            });
+              unitPrice: unitPrice, 
+              subtotal: subtotal
+            }).returning();
             
-            updatedInventoryItems.push({
-              color: item.color,
-              size: item.size,
-              previousQuantity: 0,
-              newQuantity: item.quantity
-            });
+            orderItemsData.push(orderItem);
           }
         }
-      }
-      
-      res.status(201).json({
-        ...updatedOrder,
-        items: orderItems,
-        inventoryUpdated: true,
-        updatedInventoryItems
+        // Otherwise, if the design has material requirements, add them as order items
+        else if (design.materialRequirements && Object.keys(design.materialRequirements).length > 0) {
+          console.log("Using material requirements for order:", design.materialRequirements);
+          
+          for (const [color, requirements] of Object.entries(design.materialRequirements)) {
+            // Add small balloons as an order item
+            if (requirements.small > 0) {
+              // Convert prices to cents (integers) to match the database schema
+              const unitPrice = Math.round(0.5 * 100); // 50 cents per small balloon
+              const subtotal = Math.round(requirements.small * unitPrice);
+              
+              const [orderItem] = await tx.insert(orderItems).values({
+                orderId: order.id,
+                inventoryType: 'balloon',
+                color: color.toLowerCase() as any, // Cast to colorEnum type
+                size: '11inch',
+                quantity: requirements.small,
+                unitPrice: unitPrice,
+                subtotal: subtotal
+              }).returning();
+              
+              orderItemsData.push(orderItem);
+            }
+            
+            // Add large balloons as an order item
+            if (requirements.large > 0) {
+              // Convert prices to cents (integers) to match the database schema
+              const unitPrice = Math.round(0.75 * 100); // 75 cents per large balloon
+              const subtotal = Math.round(requirements.large * unitPrice);
+              
+              const [orderItem] = await tx.insert(orderItems).values({
+                orderId: order.id,
+                inventoryType: 'balloon',
+                color: color.toLowerCase() as any, // Cast to colorEnum type
+                size: '16inch',
+                quantity: requirements.large,
+                unitPrice: unitPrice,
+                subtotal: subtotal
+              }).returning();
+              
+              orderItemsData.push(orderItem);
+            }
+          }
+        }
+        
+        // 3. Calculate total cost and quantity
+        const totalCost = orderItemsData.reduce((sum, item) => sum + item.subtotal, 0);
+        const totalQuantity = orderItemsData.reduce((sum, item) => sum + item.quantity, 0);
+        
+        // 4. Update order with total cost
+        const [updatedOrder] = await tx.update(orders)
+          .set({
+            totalCost,
+            totalQuantity,
+            updatedAt: new Date()
+          })
+          .where(eq(orders.id, order.id))
+          .returning();
+        
+        // 5. Get all inventory for reference
+        const allInventory = await tx.select().from(inventory);
+        
+        // 6. Update inventory with the ordered items
+        const updatedInventoryItems = [];
+        
+        // Process each order item and update inventory
+        for (const item of orderItemsData) {
+          if (item.inventoryType === 'balloon') {
+            // Get inventory for this color and size
+            const matchingInventory = allInventory.find(
+              inv => inv.color.toLowerCase() === item.color.toLowerCase() && inv.size === item.size
+            );
+            
+            if (matchingInventory) {
+              // Update existing inventory with the ordered quantity
+              const newQuantity = matchingInventory.quantity + item.quantity;
+              console.log(`Updating ${item.color} ${item.size} inventory from ${matchingInventory.quantity} to ${newQuantity}`);
+              
+              // Calculate new status based on quantity and threshold
+              let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
+              if (newQuantity <= 0) {
+                status = 'out_of_stock';
+              } else if (newQuantity < matchingInventory.threshold) {
+                status = 'low_stock';
+              }
+              
+              // Update inventory in the transaction
+              const [updated] = await tx.update(inventory)
+                .set({
+                  quantity: newQuantity,
+                  status: status,
+                  updatedAt: new Date()
+                })
+                .where(eq(inventory.id, matchingInventory.id))
+                .returning();
+              
+              updatedInventoryItems.push({
+                color: item.color,
+                size: item.size,
+                previousQuantity: matchingInventory.quantity,
+                newQuantity: newQuantity,
+                id: updated.id
+              });
+            } else {
+              // Create new inventory item since it doesn't exist
+              console.log(`Creating new ${item.color} ${item.size} inventory with quantity ${item.quantity}`);
+              
+              // Set default threshold and status
+              const threshold = 20; // Default threshold
+              let status = 'in_stock';
+              if (item.quantity <= 0) {
+                status = 'out_of_stock';
+              } else if (item.quantity < threshold) {
+                status = 'low_stock';
+              }
+              
+              // Create inventory in the transaction
+              const [newInventoryItem] = await tx.insert(inventory).values({
+                color: item.color.toLowerCase() as any,
+                size: item.size,
+                quantity: item.quantity,
+                threshold: threshold,
+                status: status
+              }).returning();
+              
+              updatedInventoryItems.push({
+                color: item.color,
+                size: item.size,
+                previousQuantity: 0,
+                newQuantity: item.quantity,
+                id: newInventoryItem.id
+              });
+            }
+          }
+        }
+        
+        // Return the response with all data
+        return res.status(201).json({
+          ...updatedOrder,
+          items: orderItemsData,
+          inventoryUpdated: true,
+          updatedInventoryItems
+        });
       });
     } catch (error) {
       console.error('Create design order error:', error);
