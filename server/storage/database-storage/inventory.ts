@@ -1,3 +1,11 @@
+
+export async function getInventoryByColorAndSize(color: string, size: string) {
+  return await db.query.inventory.findFirst({
+    where: (inventory, { and, eq }) => 
+      and(eq(inventory.color, color), eq(inventory.size, size))
+  });
+}
+
 import { Inventory, InsertInventory, inventory } from "@shared/schema";
 import { db } from "../../db";
 import { eq as equals } from "drizzle-orm";

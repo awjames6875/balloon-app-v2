@@ -169,6 +169,24 @@ router.post('/:id/items', isAuthenticated, async (req: AuthenticatedRequest, res
     // Calculate subtotal
     data.subtotal = data.quantity * data.unitPrice;
     
+    // First check and update inventory
+    const inventoryItem = await storage.getInventoryByColorAndSize(data.color, data.size);
+    if (!inventoryItem) {
+      return res.status(400).json({ message: 'Inventory item not found' });
+    }
+    
+    if (inventoryItem.quantity < data.quantity) {
+      return res.status(400).json({ message: 'Insufficient inventory' });
+    }
+    
+    // Update inventory quantity
+    const newQuantity = inventoryItem.quantity - data.quantity;
+    await storage.updateInventoryItem(inventoryItem.id, {
+      quantity: newQuantity,
+      status: newQuantity <= 0 ? 'out_of_stock' : 
+             newQuantity < inventoryItem.threshold ? 'low_stock' : 'in_stock'
+    });
+    
     const orderItem = await storage.addOrderItem(data);
     
     // Update order total cost
