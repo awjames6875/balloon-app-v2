@@ -1,11 +1,12 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-updated";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { 
   insertUserSchema, 
+  insertClientSchema,
   insertDesignSchema, 
   insertInventorySchema, 
   insertAccessorySchema,
@@ -16,6 +17,7 @@ import {
   inventory,
   orderItems
 } from "@shared/schema";
+import { crmService } from "./crm";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import session from "express-session";
@@ -199,6 +201,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password, ...userWithoutPassword } = user;
     
     res.json(userWithoutPassword);
+  });
+
+  // Client routes
+  app.post('/api/clients', async (req, res) => {
+    try {
+      const clientData = insertClientSchema.parse(req.body);
+      
+      // Check if client with this email already exists
+      const existingClient = await storage.getClientByEmail(clientData.email);
+      if (existingClient) {
+        return res.status(409).json({ message: 'Client with this email already exists' });
+      }
+      
+      // Create client in database
+      const client = await storage.createClient(clientData);
+      
+      // Try to sync with CRM if configured
+      if (crmService.isConfigured()) {
+        try {
+          const crmResponse = await crmService.createContact({
+            name: client.name,
+            email: client.email,
+            phone: client.phone || undefined,
+            address: client.address || undefined,
+            eventType: client.eventType || undefined,
+            budget: client.budget || undefined,
+            theme: client.theme || undefined,
+            colors: client.colors || undefined,
+            inspiration: client.inspiration || undefined,
+            birthdate: client.birthdate || undefined,
+            canText: client.canText || false,
+          });
+          
+          if (crmResponse.success && crmResponse.contactId) {
+            // Update client with CRM ID
+            await storage.updateClient(client.id, {
+              crmSynced: true,
+              crmId: crmResponse.contactId,
+            });
+          }
+        } catch (crmError) {
+          console.error('CRM sync failed:', crmError);
+          // Continue anyway - client is saved locally
+        }
+      }
+      
+      res.status(201).json(client);
+    } catch (error) {
+      console.error('Client creation error:', error);
+      res.status(400).json({ message: 'Failed to create client' });
+    }
+  });
+
+  app.get('/api/clients', isAuthenticated, async (req, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      console.error('Get clients error:', error);
+      res.status(500).json({ message: 'Failed to fetch clients' });
+    }
+  });
+
+  app.get('/api/clients/:id', isAuthenticated, async (req, res) => {
+    try {
+      const client = await storage.getClient(parseInt(req.params.id));
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+      res.json(client);
+    } catch (error) {
+      console.error('Get client error:', error);
+      res.status(500).json({ message: 'Failed to fetch client' });
+    }
+  });
+
+  app.put('/api/clients/:id', isAuthenticated, async (req, res) => {
+    try {
+      const clientId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const client = await storage.updateClient(clientId, updates);
+      if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      console.error('Update client error:', error);
+      res.status(400).json({ message: 'Failed to update client' });
+    }
   });
 
   // Design routes

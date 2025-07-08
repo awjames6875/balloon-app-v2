@@ -1,14 +1,18 @@
 import { 
   User, InsertUser, 
+  Client, InsertClient,
   Design, InsertDesign, 
   Inventory, InsertInventory, 
   Accessory, InsertAccessory, 
   Production, InsertProduction, 
   Order, InsertOrder, 
-  OrderItem, InsertOrderItem
+  OrderItem, InsertOrderItem,
+  clients, designs
 } from '@shared/schema';
 
 import { RepositoryFactory } from './repositories';
+import { db } from './db';
+import { eq, desc } from 'drizzle-orm';
 
 /**
  * Interface for all storage operations
@@ -21,9 +25,17 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
+  // Client operations
+  getClient(id: number): Promise<Client | undefined>;
+  getClientByEmail(email: string): Promise<Client | undefined>;
+  getAllClients(): Promise<Client[]>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, client: Partial<Client>): Promise<Client | undefined>;
+  
   // Design operations
   getDesign(id: number): Promise<Design | undefined>;
   getDesignsByUser(userId: number): Promise<Design[]>;
+  getDesignsByClient(clientId: number): Promise<Design[]>;
   createDesign(design: InsertDesign): Promise<Design>;
   updateDesign(id: number, design: Partial<Design>): Promise<Design | undefined>;
   deleteDesign(id: number): Promise<boolean>;
@@ -91,9 +103,41 @@ export class DatabaseStorage implements IStorage {
     return await RepositoryFactory.getUserRepository().create(user);
   }
   
+  // Client operations
+  async getClient(id: number): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client || undefined;
+  }
+
+  async getClientByEmail(email: string): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.email, email));
+    return client || undefined;
+  }
+
+  async getAllClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(desc(clients.createdAt));
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const [newClient] = await db.insert(clients).values(client).returning();
+    return newClient;
+  }
+
+  async updateClient(id: number, client: Partial<Client>): Promise<Client | undefined> {
+    const [updatedClient] = await db.update(clients)
+      .set({ ...client, updatedAt: new Date() })
+      .where(eq(clients.id, id))
+      .returning();
+    return updatedClient || undefined;
+  }
+  
   // Design operations
   async getDesign(id: number): Promise<Design | undefined> {
     return await RepositoryFactory.getDesignRepository().findById(id);
+  }
+  
+  async getDesignsByClient(clientId: number): Promise<Design[]> {
+    return await db.select().from(designs).where(eq(designs.clientId, clientId));
   }
   
   async getDesignsByUser(userId: number): Promise<Design[]> {

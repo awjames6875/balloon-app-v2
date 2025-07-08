@@ -40,6 +40,7 @@ export const users = pgTable("users", {
 export const designs = pgTable("designs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  clientId: integer("client_id").references(() => clients.id),
   clientName: text("client_name").notNull(),
   projectName: text("project_name").notNull().default("Untitled Project"),
   eventType: text("event_type").notNull().default("Birthday"),
@@ -150,7 +151,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export const insertDesignSchema = createInsertSchema(designs).pick({
   userId: true,
+  clientId: true,
   clientName: true,
+  projectName: true,
+  eventType: true,
   eventDate: true,
   dimensions: true,
   notes: true,
@@ -225,9 +229,46 @@ export const insertOrderItemSchema = createInsertSchema(orderItems).pick({
   subtotal: true,
 });
 
+// Clients table for intake form
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  eventType: text("event_type"),
+  budget: text("budget"),
+  theme: text("theme"),
+  colors: text("colors"),
+  inspiration: text("inspiration"),
+  birthdate: text("birthdate"),
+  canText: boolean("can_text").default(false),
+  crmSynced: boolean("crm_synced").default(false),
+  crmId: text("crm_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertClientSchema = createInsertSchema(clients).pick({
+  name: true,
+  email: true,
+  phone: true,
+  address: true,
+  eventType: true,
+  budget: true,
+  theme: true,
+  colors: true,
+  inspiration: true,
+  birthdate: true,
+  canText: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
 
 export type Design = typeof designs.$inferSelect;
 export type InsertDesign = z.infer<typeof insertDesignSchema>;
