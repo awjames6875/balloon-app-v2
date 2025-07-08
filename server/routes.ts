@@ -206,7 +206,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Client routes
   app.post('/api/clients', async (req, res) => {
     try {
-      const clientData = insertClientSchema.parse(req.body);
+      const rawData = req.body;
+      
+      // Clean the data - convert empty strings to null/undefined for optional fields
+      const cleanedData = {
+        ...rawData,
+        birthdate: rawData.birthdate === "" ? null : rawData.birthdate,
+        phone: rawData.phone === "" ? null : rawData.phone,
+        address: rawData.address === "" ? null : rawData.address,
+        eventType: rawData.eventType === "" ? null : rawData.eventType,
+        budget: rawData.budget === "" ? null : rawData.budget,
+        theme: rawData.theme === "" ? null : rawData.theme,
+        colors: rawData.colors === "" ? null : rawData.colors,
+        inspiration: rawData.inspiration === "" ? null : rawData.inspiration,
+      };
+      
+      const clientData = insertClientSchema.parse(cleanedData);
       
       // Check if client with this email already exists
       const existingClient = await storage.getClientByEmail(clientData.email);

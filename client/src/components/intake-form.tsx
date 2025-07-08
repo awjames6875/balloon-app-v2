@@ -39,7 +39,7 @@ const intakeFormSchema = z.object({
   theme: z.string().optional(),
   colors: z.string().optional(),
   inspiration: z.string().optional(),
-  birthdate: z.string().optional(),
+  birthdate: z.string().optional().transform(val => val === "" ? undefined : val),
   canText: z.boolean().default(false),
 });
 
