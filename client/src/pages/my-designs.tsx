@@ -8,6 +8,7 @@ import {
   Loader2,
   ListFilter
 } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ const MyDesignsPage = () => {
   const { setActiveDesign } = useDesign();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
 
   // Fetch user's designs
   const { data: designs, isLoading: designsLoading } = useQuery({
@@ -29,11 +31,18 @@ const MyDesignsPage = () => {
   // Create a safe array to avoid undefined/null errors
   const safeDesigns = Array.isArray(designs) ? designs : [];
   
-  // Filter designs based on search query
-  const filteredDesigns = safeDesigns.filter(design => 
-    (design.clientName?.toLowerCase?.() || '').includes(searchQuery.toLowerCase()) ||
-    (design.notes?.toLowerCase?.() || '').includes(searchQuery.toLowerCase())
-  );
+  // Filter designs based on search query and event type
+  const filteredDesigns = safeDesigns.filter(design => {
+    const matchesSearch = (design.clientName?.toLowerCase?.() || '').includes(searchQuery.toLowerCase()) ||
+      (design.projectName?.toLowerCase?.() || '').includes(searchQuery.toLowerCase()) ||
+      (design.eventType?.toLowerCase?.() || '').includes(searchQuery.toLowerCase()) ||
+      (design.notes?.toLowerCase?.() || '').includes(searchQuery.toLowerCase());
+    
+    const matchesEventType = eventTypeFilter === "all" || 
+      (design.eventType?.toLowerCase() === eventTypeFilter.toLowerCase());
+    
+    return matchesSearch && matchesEventType;
+  });
 
   // State for current tab
   const [currentTab, setCurrentTab] = useState("all");
@@ -101,6 +110,23 @@ const MyDesignsPage = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          
+          <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="birthday">Birthday</SelectItem>
+              <SelectItem value="corporate">Corporate</SelectItem>
+              <SelectItem value="baby shower">Baby Shower</SelectItem>
+              <SelectItem value="wedding">Wedding</SelectItem>
+              <SelectItem value="anniversary">Anniversary</SelectItem>
+              <SelectItem value="graduation">Graduation</SelectItem>
+              <SelectItem value="holiday party">Holiday Party</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
           
           <Button 
             onClick={() => navigate('/design-editor')}

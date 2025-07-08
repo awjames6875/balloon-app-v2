@@ -41,6 +41,8 @@ export const designs = pgTable("designs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   clientName: text("client_name").notNull(),
+  projectName: text("project_name").notNull().default("Untitled Project"),
+  eventType: text("event_type").notNull().default("Birthday"),
   eventDate: text("event_date"),
   dimensions: text("dimensions"),
   notes: text("notes"),

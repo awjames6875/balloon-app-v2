@@ -240,7 +240,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Create a design with elements and background
   app.post('/api/designs/create', isAuthenticated, async (req, res) => {
-    const { clientName = 'Anonymous Client', eventDate, elements = [], backgroundUrl, notes } = req.body;
+    const { 
+      clientName = 'Anonymous Client', 
+      projectName = 'Untitled Project',
+      eventType = 'Birthday',
+      eventDate, 
+      elements = [], 
+      backgroundUrl, 
+      notes 
+    } = req.body;
     const userId = req.session.userId!;
     
     try {
@@ -249,6 +257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const design = await storage.createDesign({
         userId,
         clientName,
+        projectName,
+        eventType,
         eventDate: eventDate || new Date().toISOString().split('T')[0],
         elements: JSON.stringify(elements || []) as any, // Type casting to avoid TS error
         backgroundUrl: backgroundUrl || null,

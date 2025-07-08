@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 // Color palette for the balloon clusters
 const colorOptions = [
@@ -49,6 +50,23 @@ const colorOptions = [
   { name: 'Orange', value: '#FF9800' },
   { name: 'Deep Orange', value: '#FF5722' },
   { name: 'Brown', value: '#795548' },
+];
+
+// Event type options
+const eventTypeOptions = [
+  'Birthday',
+  'Corporate',
+  'Baby Shower',
+  'Wedding',
+  'Anniversary',
+  'Graduation',
+  'Holiday Party',
+  'Grand Opening',
+  'Gender Reveal',
+  'Bridal Shower',
+  'Retirement',
+  'Product Launch',
+  'Other'
 ];
 
 const Design = () => {
@@ -79,8 +97,9 @@ const Design = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
   const [clientName, setClientName] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const [projectName, setProjectName] = useState('');
   const [eventType, setEventType] = useState('');
+  const [eventDate, setEventDate] = useState('');
   
   // Canvas settings
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -180,10 +199,12 @@ const Design = () => {
       
       const designData = {
         clientName: clientName || designName,
+        projectName: projectName || 'Untitled Project',
+        eventType: eventType || 'Birthday',
         eventDate: eventDate || null,
         elements: validatedElements,
         backgroundUrl: backgroundImage,
-        notes: eventType || null
+        notes: null
       };
       
       console.log('Saving design with elements:', validatedElements.length);
@@ -610,22 +631,49 @@ const Design = () => {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="text-sm font-medium">Client Name</label>
-                <input 
+                <Input
                   type="text" 
                   value={clientName} 
                   onChange={(e) => setClientName(e.target.value)}
-                  className="w-full p-2 border rounded mt-1"
                   placeholder="Enter client name"
+                  className="mt-1"
                 />
               </div>
               
               <div>
+                <label className="text-sm font-medium">Project Name</label>
+                <Input
+                  type="text" 
+                  value={projectName} 
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Enter project name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Event Type</label>
+                <Select value={eventType} onValueChange={setEventType}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select event type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {eventTypeOptions.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
                 <label className="text-sm font-medium">Event Date</label>
-                <input 
+                <Input
                   type="date" 
                   value={eventDate} 
                   onChange={(e) => setEventDate(e.target.value)}
-                  className="w-full p-2 border rounded mt-1"
+                  className="mt-1"
                 />
               </div>
             </div>

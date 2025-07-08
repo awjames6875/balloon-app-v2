@@ -139,10 +139,16 @@ const DesignGallery: React.FC<DesignGalleryProps> = ({ onSelectDesign, onEditDes
             </div>
             <div className="p-3">
               <h3 className="font-medium text-gray-800 truncate">
-                {design.clientName || 'Untitled Design'}
+                {design.projectName || design.clientName || 'Untitled Design'}
               </h3>
-              <div className="text-xs text-gray-500 mt-1">
-                {design.eventDate ? new Date(String(design.eventDate)).toLocaleDateString() : 'No date set'}
+              <p className="text-xs text-gray-600 truncate">{design.clientName}</p>
+              <div className="flex items-center justify-between mt-2">
+                <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
+                  {design.eventType || 'Birthday'}
+                </span>
+                <div className="text-xs text-gray-500">
+                  {design.eventDate ? new Date(String(design.eventDate)).toLocaleDateString() : 'No date'}
+                </div>
               </div>
             </div>
           </div>
@@ -153,7 +159,12 @@ const DesignGallery: React.FC<DesignGalleryProps> = ({ onSelectDesign, onEditDes
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle className="flex justify-between items-center">
-              <span>{previewDesign?.clientName || 'Design Preview'}</span>
+              <div>
+                <span>{previewDesign?.projectName || previewDesign?.clientName || 'Design Preview'}</span>
+                <div className="text-sm font-normal text-gray-600 mt-1">
+                  {previewDesign?.clientName} • {previewDesign?.eventType || 'Birthday'}
+                </div>
+              </div>
               <DialogClose asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <X className="h-4 w-4" />

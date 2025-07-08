@@ -277,7 +277,13 @@ const Dashboard = () => {
                 <CardContent className="p-3">
                   <div className="flex justify-between items-start mb-1">
                     <div>
-                      <h3 className="font-medium text-secondary-900 text-sm">{design.clientName}</h3>
+                      <h3 className="font-medium text-secondary-900 text-sm">{design.projectName || design.clientName}</h3>
+                      <p className="text-xs text-secondary-600 mb-1">{design.clientName}</p>
+                      <div className="flex items-center text-xs text-secondary-500 mb-1">
+                        <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full text-xs">
+                          {design.eventType || 'Birthday'}
+                        </span>
+                      </div>
                       <div className="flex items-center text-xs text-secondary-500 mt-1">
                         <Clock className="h-3 w-3 mr-1" />
                         <span>{design.createdAt ? new Date(design.createdAt).toLocaleDateString() : 'N/A'}</span>
