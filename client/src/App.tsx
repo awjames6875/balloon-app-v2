@@ -28,6 +28,7 @@ import DesignEditor from "@/pages/design-editor";
 import BalloonOrderDemo from "@/pages/BalloonOrderDemo";
 import Orders from "@/pages/orders"; // Added import for Orders page
 import Intake from "@/pages/intake";
+import ClientsPage from "@/pages/clients";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -128,6 +129,12 @@ function Router() {
       </Route>
       <Route path="/intake">
         <Intake />
+      </Route>
+      <Route path="/clients">
+        <ClientsPage />
+      </Route>
+      <Route path="/analytics">
+        <Analytics />
       </Route>
 
       {/* Fallback to 404 */}

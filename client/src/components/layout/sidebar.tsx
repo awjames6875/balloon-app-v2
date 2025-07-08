@@ -12,7 +12,8 @@ import {
   CreditCard,
   Palette,
   Grid,
-  ShoppingBag
+  ShoppingBag,
+  Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -60,6 +61,7 @@ const Sidebar = () => {
     { name: "Production", path: "/production", icon: <Clipboard className="h-5 w-5 mr-3" /> },
     { name: "Analytics", path: "/analytics", icon: <BarChart3 className="h-5 w-5 mr-3" /> },
     { name: "Payments", path: "/payments", icon: <CreditCard className="h-5 w-5 mr-3" /> },
+    { name: "Clients", path: "/clients", icon: <Users className="h-5 w-5 mr-3" /> },
   ];
 
   return (
@@ -68,7 +70,7 @@ const Sidebar = () => {
       <div className="p-4 border-b border-secondary-200">
         <h1 className="text-xl font-semibold text-primary-700">Balloon App</h1>
       </div>
-      
+
       {/* User Info */}
       {user && (
         <div className="p-4 border-b border-secondary-200 flex items-center space-x-3">
@@ -81,7 +83,7 @@ const Sidebar = () => {
           </div>
         </div>
       )}
-      
+
       {/* Navigation Links */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
@@ -107,7 +109,7 @@ const Sidebar = () => {
           ))}
         </ul>
       </nav>
-      
+
       {/* Bottom Links */}
       <div className="p-4 border-t border-secondary-200">
         <Link href="/settings" className="flex items-center p-2 rounded-md text-secondary-500 hover:bg-secondary-100">
