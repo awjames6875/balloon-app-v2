@@ -13,6 +13,9 @@ import TemplatesSidebar from '@/components/balloon-templates/templates-sidebar';
 import DesignCanvas from '@/components/canvas/design-canvas';
 import MaterialRequirementsPanel from '@/components/canvas/material-requirements-panel';
 import BackgroundUploader from '@/components/canvas/background-uploader';
+import MeasuringTool from '@/components/canvas/measuring-tool';
+import MeasurementLineRenderer from '@/components/canvas/measurement-line-renderer';
+import type { MeasurementLine } from '@shared/schema';
 // Removed import of DesignHistoryTimeline as we have inline implementation now
 import { BalloonClusterTemplate } from '@/components/balloon-templates/balloon-templates-data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -40,9 +43,13 @@ const DesignEditor = () => {
   }, [clientId, params?.id, activeDesign, navigate]);
   
   // Internal history state management
-  const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null }[]>([]);
+  const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null, measurements: MeasurementLine[] }[]>([]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Measuring tool state
+  const [measurements, setMeasurements] = useState<MeasurementLine[]>([]);
+  const [isDrawingMeasurement, setIsDrawingMeasurement] = useState(false);
   
   // Computed history state flags
   const canUndo = currentHistoryIndex > 0;
@@ -52,13 +59,14 @@ const DesignEditor = () => {
   const currentState = historyStates[currentHistoryIndex];
   
   // History actions
-  const saveState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
+  const saveState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null, measurements: MeasurementLine[] }) => {
     console.log('SaveState called with:', state, 'Current index:', currentHistoryIndex, 'History length:', historyStates.length);
     
     // Skip if state is the same as current state
     if (currentHistoryIndex >= 0 && 
         JSON.stringify(state.elements) === JSON.stringify(historyStates[currentHistoryIndex].elements) &&
-        state.backgroundImage === historyStates[currentHistoryIndex].backgroundImage) {
+        state.backgroundImage === historyStates[currentHistoryIndex].backgroundImage &&
+        JSON.stringify(state.measurements) === JSON.stringify(historyStates[currentHistoryIndex].measurements)) {
       console.log('State unchanged, skipping save');
       return;
     }
@@ -125,9 +133,10 @@ const DesignEditor = () => {
     }
   }, [canRedo, currentHistoryIndex, historyStates]);
   
-  const setCurrentState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null }) => {
+  const setCurrentState = useCallback((state: { elements: DesignElement[], backgroundImage: string | null, measurements?: MeasurementLine[] }) => {
     // Initialize history with the given state
-    setHistoryStates([state]);
+    const fullState = { elements: state.elements, backgroundImage: state.backgroundImage, measurements: state.measurements || [] };
+    setHistoryStates([fullState]);
     setCurrentHistoryIndex(0);
   }, []);
   
@@ -151,21 +160,23 @@ const DesignEditor = () => {
     
     const currentDesignState = {
       elements,
-      backgroundImage
+      backgroundImage,
+      measurements
     };
     
     // Save the current state to history
-    if (elements.length > 0 || backgroundImage) {
-      console.log('Saving state to history due to element/background change');
+    if (elements.length > 0 || backgroundImage || measurements.length > 0) {
+      console.log('Saving state to history due to element/background/measurement change');
       saveState(currentDesignState);
     }
-  }, [elements, backgroundImage, saveState]);
+  }, [elements, backgroundImage, measurements, saveState]);
   
   // Load from history state when history changes
   useEffect(() => {
     if (currentState) {
       setElements(currentState.elements);
       setBackgroundImage(currentState.backgroundImage);
+      setMeasurements(currentState.measurements || []);
     }
   }, [currentState]);
 
@@ -220,9 +231,13 @@ const DesignEditor = () => {
           setBackgroundImage(design.backgroundUrl || null);
           
           // Initialize history with the loaded design
+          const loadedMeasurements = design.measurements || [];
+          setMeasurements(loadedMeasurements);
+          
           const initialState = {
             elements: designElements,
-            backgroundImage: design.backgroundUrl || null
+            backgroundImage: design.backgroundUrl || null,
+            measurements: loadedMeasurements
           };
           setCurrentState(initialState);
           
@@ -253,6 +268,7 @@ const DesignEditor = () => {
         clientName: designName,
         elements,
         backgroundUrl: backgroundImage,
+        measurements,
       };
       
       let response;
@@ -525,6 +541,16 @@ const DesignEditor = () => {
                         setElements([...elements, newElement]);
                       }}
                     />
+                    
+                    {/* Measuring Tool */}
+                    <div className="border-t border-secondary-200 pt-4 mt-4">
+                      <MeasuringTool
+                        measurements={measurements}
+                        onMeasurementsChange={setMeasurements}
+                        isDrawingMode={isDrawingMeasurement}
+                        onDrawingModeChange={setIsDrawingMeasurement}
+                      />
+                    </div>
                   </div>
                 </>
               )}
@@ -552,11 +578,25 @@ const DesignEditor = () => {
                 </div>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 relative">
               <DesignCanvas 
                 backgroundImage={backgroundImage} 
                 elements={elements} 
-                onElementsChange={handleElementsChange} 
+                onElementsChange={handleElementsChange}
+                isDrawingMeasurement={isDrawingMeasurement}
+                measurements={measurements}
+                onMeasurementCreate={(measurement) => {
+                  setMeasurements([...measurements, measurement]);
+                }}
+              />
+              
+              {/* Render measurement lines over the canvas */}
+              <MeasurementLineRenderer
+                measurements={measurements}
+                onMeasurementClick={(measurement) => {
+                  console.log('Measurement clicked:', measurement);
+                  // TODO: Add edit functionality
+                }}
               />
             </div>
           </div>

@@ -25,6 +25,21 @@ export const designElementSchema = z.object({
 
 export type DesignElement = z.infer<typeof designElementSchema>;
 
+// Measurement line schema definition
+export const measurementLineSchema = z.object({
+  id: z.string(),
+  x1: z.number(),
+  y1: z.number(),
+  x2: z.number(),
+  y2: z.number(),
+  realWorldLength: z.number(), // Real-world measurement in feet or meters
+  unit: z.enum(['feet', 'meters', 'inches']),
+  label: z.string(),
+  color: z.string().default('#ff0000'),
+});
+
+export type MeasurementLine = z.infer<typeof measurementLineSchema>;
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -66,6 +81,8 @@ export const designs = pgTable("designs", {
   totalBalloons: integer("total_balloons"),
   estimatedClusters: integer("estimated_clusters"),
   productionTime: text("production_time"),
+  measurements: json("measurements").$type<MeasurementLine[]>().default([]),
+  scale: decimal("scale").default("1"), // Pixels per unit (e.g., pixels per foot)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

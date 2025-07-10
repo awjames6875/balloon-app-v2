@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { DesignElement } from '@/types';
 import { RotateCw, Maximize2, Move } from 'lucide-react';
+import type { MeasurementLine } from '@shared/schema';
 
 interface DesignCanvasProps {
   backgroundImage: string | null;
@@ -11,6 +12,9 @@ interface DesignCanvasProps {
   gridSize?: number;
   onElementSelect?: (id: string | null) => void;
   selectedElementId?: string | null;
+  isDrawingMeasurement?: boolean;
+  measurements?: MeasurementLine[];
+  onMeasurementCreate?: (measurement: MeasurementLine) => void;
 }
 
 const DesignCanvas = ({ 
@@ -20,7 +24,10 @@ const DesignCanvas = ({
   snapToGrid = true,
   gridSize = 20,
   onElementSelect,
-  selectedElementId: propSelectedElementId
+  selectedElementId: propSelectedElementId,
+  isDrawingMeasurement = false,
+  measurements = [],
+  onMeasurementCreate
 }: DesignCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const [localSelectedElementId, setLocalSelectedElementId] = useState<string | null>(null);
@@ -70,6 +77,14 @@ const DesignCanvas = ({
   const [canvasBounds, setCanvasBounds] = useState({ 
     left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 
   });
+  
+  // Measurement line drawing state
+  const [drawingMeasurement, setDrawingMeasurement] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
   
   // Set canvas boundaries on mount
   useEffect(() => {
@@ -217,14 +232,69 @@ const DesignCanvas = ({
   };
   
   // Handle canvas click to deselect elements
-  const handleCanvasClick = () => {
-    setSelectedElementId(null);
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (isDrawingMeasurement) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      if (!drawingMeasurement) {
+        // Start drawing
+        setDrawingMeasurement({
+          startX: x,
+          startY: y,
+          currentX: x,
+          currentY: y
+        });
+      } else {
+        // Finish drawing
+        const newMeasurement: MeasurementLine = {
+          id: `measurement-${Date.now()}`,
+          x1: drawingMeasurement.startX,
+          y1: drawingMeasurement.startY,
+          x2: x,
+          y2: y,
+          realWorldLength: 1, // Default, user will edit
+          unit: 'feet',
+          label: 'New measurement',
+          color: '#ff0000'
+        };
+        
+        if (onMeasurementCreate) {
+          onMeasurementCreate(newMeasurement);
+        }
+        
+        setDrawingMeasurement(null);
+      }
+    } else {
+      setSelectedElementId(null);
+      setDrawingMeasurement(null);
+    }
   };
   
+  // Handle mouse move for measurement line preview
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (drawingMeasurement && isDrawingMeasurement) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      setDrawingMeasurement({
+        ...drawingMeasurement,
+        currentX: x,
+        currentY: y
+      });
+    }
+  }, [drawingMeasurement, isDrawingMeasurement]);
+
   // Handle element transformations (dragging, resizing, rotating)
   useEffect(() => {
-    // If no transformation is in progress, exit early
-    if (!draggedElement && !resizingElement && !rotatingElement) return;
+    // If no transformation is in progress and not drawing measurement, exit early
+    if (!draggedElement && !resizingElement && !rotatingElement && !drawingMeasurement) return;
     
     // --- DRAGGING LOGIC ---
     const handleDrag = (e: MouseEvent) => {
@@ -362,10 +432,12 @@ const DesignCanvas = ({
     };
     
     // --- MOUSE MOVE HANDLER ---
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMoveInternal = (e: MouseEvent) => {
       if (draggedElement) handleDrag(e);
       if (resizingElement) handleResize(e);
       if (rotatingElement) handleRotation(e);
+      // Also call external mouse move handler for measurement lines
+      handleMouseMove(e);
     };
     
     // --- MOUSE UP HANDLER ---
@@ -463,17 +535,17 @@ const DesignCanvas = ({
     };
     
     // Add event listeners
-    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMoveInternal);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('keydown', handleKeyDown);
     
     // Cleanup
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mousemove', handleMouseMoveInternal);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [draggedElement, resizingElement, rotatingElement, elements, onElementsChange, snapToGrid, gridSize, canvasBounds]);
+  }, [draggedElement, resizingElement, rotatingElement, drawingMeasurement, elements, onElementsChange, snapToGrid, gridSize, canvasBounds, handleMouseMove]);
   
   return (
     <div 
@@ -512,6 +584,33 @@ const DesignCanvas = ({
             backgroundSize: `${gridSize * 5}px ${gridSize * 5}px`
           }} />
         </div>
+      )}
+      
+      {/* Drawing measurement line preview */}
+      {drawingMeasurement && isDrawingMeasurement && (
+        <svg className="absolute inset-0 pointer-events-none z-20">
+          <line
+            x1={drawingMeasurement.startX}
+            y1={drawingMeasurement.startY}
+            x2={drawingMeasurement.currentX}
+            y2={drawingMeasurement.currentY}
+            stroke="#ff0000"
+            strokeWidth="2"
+            strokeDasharray="5,5"
+          />
+          <circle
+            cx={drawingMeasurement.startX}
+            cy={drawingMeasurement.startY}
+            r="4"
+            fill="#ff0000"
+          />
+          <circle
+            cx={drawingMeasurement.currentX}
+            cy={drawingMeasurement.currentY}
+            r="4"
+            fill="#ff0000"
+          />
+        </svg>
       )}
       
       {/* Draggable elements */}
