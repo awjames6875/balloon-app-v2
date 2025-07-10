@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
@@ -15,7 +14,7 @@ router.get('/', isAuthenticated, async (req: AuthenticatedRequest, res: Response
       .select()
       .from(clients)
       .orderBy(desc(clients.createdAt));
-    
+
     res.json(allClients);
   } catch (error) {
     console.error('Error fetching clients:', error);
@@ -32,11 +31,11 @@ router.get('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Respo
       .from(clients)
       .where(eq(clients.id, clientId))
       .limit(1);
-    
+
     if (client.length === 0) {
       return res.status(404).json({ message: 'Client not found' });
     }
-    
+
     res.json(client[0]);
   } catch (error) {
     console.error('Error fetching client:', error);
@@ -48,7 +47,7 @@ router.get('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Respo
 router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = insertClientSchema.parse(req.body);
-    
+
     const newClient = await db
       .insert(clients)
       .values({
@@ -57,7 +56,7 @@ router.post('/', async (req: Request, res: Response) => {
         updatedAt: new Date(),
       })
       .returning();
-    
+
     console.log('Client created successfully:', newClient[0].id);
     res.json(newClient[0]);
   } catch (error) {
@@ -77,7 +76,7 @@ router.put('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Respo
   try {
     const clientId = parseInt(req.params.id);
     const validatedData = insertClientSchema.partial().parse(req.body);
-    
+
     const updatedClient = await db
       .update(clients)
       .set({
@@ -86,11 +85,11 @@ router.put('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Respo
       })
       .where(eq(clients.id, clientId))
       .returning();
-    
+
     if (updatedClient.length === 0) {
       return res.status(404).json({ message: 'Client not found' });
     }
-    
+
     res.json(updatedClient[0]);
   } catch (error) {
     console.error('Error updating client:', error);
