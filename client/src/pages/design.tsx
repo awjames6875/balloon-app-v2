@@ -73,6 +73,18 @@ const Design = () => {
   const { activeDesign, setActiveDesign } = useDesign();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // Check if user came from new project flow with client selection
+  const params = new URLSearchParams(window.location.search);
+  const clientId = params.get('clientId');
+  
+  // Redirect to new project flow if no client is selected
+  useEffect(() => {
+    if (!clientId && !activeDesign?.clientId) {
+      navigate('/new-project');
+      return;
+    }
+  }, [clientId, activeDesign, navigate]);
   const [isSavingToInventory, setIsSavingToInventory] = useState(false);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);

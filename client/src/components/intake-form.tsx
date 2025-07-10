@@ -395,3 +395,5 @@ export function IntakeForm({ onSuccess, onCancel, showHeader = true }: IntakeFor
     </Card>
   );
 }
+
+export default IntakeForm;

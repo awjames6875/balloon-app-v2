@@ -44,7 +44,7 @@ const Sidebar = () => {
   // Navigation links with their paths and icons
   const navLinks = [
     { name: "Dashboard", path: "/dashboard", icon: <Home className="h-5 w-5 mr-3" /> },
-    { name: "Design Upload", path: "/design", icon: <Image className="h-5 w-5 mr-3" /> },
+    { name: "New Project", path: "/new-project", icon: <Image className="h-5 w-5 mr-3" />, highlight: true },
     { 
       name: "My Designs", 
       path: "/my-designs", 

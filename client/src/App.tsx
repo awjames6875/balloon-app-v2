@@ -129,10 +129,19 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/intake">
-        <Intake />
+        <ProtectedRoute>
+          <Intake />
+        </ProtectedRoute>
       </Route>
       <Route path="/clients">
-        <ClientsPage />
+        <ProtectedRoute>
+          <ClientsPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/new-project">
+        <ProtectedRoute>
+          <NewProject />
+        </ProtectedRoute>
       </Route>
       <Route path="/analytics">
         <Analytics />
