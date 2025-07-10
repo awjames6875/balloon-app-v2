@@ -34,6 +34,14 @@ const DesignEditor = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('clientId');
   
+  // Redirect to new project flow if no client is selected and no existing design
+  useEffect(() => {
+    if (!clientId && !params?.id && !activeDesign?.clientId) {
+      navigate('/new-project');
+      return;
+    }
+  }, [clientId, params?.id, activeDesign, navigate]);
+  
   // Internal history state management
   const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null, measurements: MeasurementLine[] }[]>([]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);

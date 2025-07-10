@@ -48,29 +48,6 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = insertClientSchema.parse(req.body);
 
-    // Check if client with this email already exists
-    const existingClient = await db
-      .select()
-      .from(clients)
-      .where(eq(clients.email, validatedData.email))
-      .limit(1);
-
-    if (existingClient.length > 0) {
-      // Update existing client
-      const updatedClient = await db
-        .update(clients)
-        .set({
-          ...validatedData,
-          updatedAt: new Date(),
-        })
-        .where(eq(clients.email, validatedData.email))
-        .returning();
-
-      console.log('Client updated successfully:', updatedClient[0].id);
-      return res.json(updatedClient[0]);
-    }
-
-    // Create new client
     const newClient = await db
       .insert(clients)
       .values({
