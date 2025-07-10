@@ -29,6 +29,7 @@ import BalloonOrderDemo from "@/pages/BalloonOrderDemo";
 import Orders from "@/pages/orders"; // Added import for Orders page
 import Intake from "@/pages/intake";
 import ClientsPage from "@/pages/clients";
+import NewProject from "@/pages/new-project";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

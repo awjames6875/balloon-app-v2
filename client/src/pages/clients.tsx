@@ -1,12 +1,12 @@
-
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Eye, Mail, Phone, MapPin, Calendar, DollarSign, Palette, Heart, MessageSquare } from 'lucide-react';
+import { Eye, Mail, Phone, MapPin, Calendar, DollarSign, Palette, Heart, MessageSquare, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Client {
@@ -172,6 +172,12 @@ function ClientDetailDialog({ client }: { client: Client }) {
 }
 
 export default function ClientsPage() {
+  const [, navigate] = useLocation();
+  
+  // Check if we're in selection mode
+  const params = new URLSearchParams(window.location.search);
+  const isSelectionMode = params.get('mode') === 'select';
+  
   const { data: clients, isLoading, error } = useQuery({
     queryKey: ['/api/clients'],
     queryFn: async () => {
@@ -179,6 +185,12 @@ export default function ClientsPage() {
       return response.json();
     },
   });
+
+  const handleClientSelect = (clientId: number) => {
+    if (isSelectionMode) {
+      navigate(`/design-editor?clientId=${clientId}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -211,13 +223,28 @@ export default function ClientsPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Client Intake Forms</h1>
+          {isSelectionMode && (
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/new-project')}
+              className="mb-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to New Project
+            </Button>
+          )}
+          <h1 className="text-3xl font-bold">
+            {isSelectionMode ? 'Select Client for New Project' : 'Client Intake Forms'}
+          </h1>
           <p className="text-gray-600 mt-2">
-            View and manage client inquiry submissions
+            {isSelectionMode 
+              ? 'Choose an existing client to start a new project' 
+              : 'View and manage client inquiry submissions'
+            }
           </p>
         </div>
         <Badge variant="outline" className="text-lg px-3 py-1">
-          {clients?.length || 0} Total Submissions
+          {clients?.length || 0} Total {isSelectionMode ? 'Clients' : 'Submissions'}
         </Badge>
       </div>
 
@@ -258,7 +285,18 @@ export default function ClientsPage() {
                       {format(new Date(client.createdAt), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>
-                      <ClientDetailDialog client={client} />
+                      <div className="flex space-x-2">
+                        <ClientDetailDialog client={client} />
+                        {isSelectionMode && (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => handleClientSelect(client.id)}
+                          >
+                            Select Client
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
