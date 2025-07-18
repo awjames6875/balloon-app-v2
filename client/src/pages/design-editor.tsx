@@ -30,7 +30,53 @@ const DesignEditor = () => {
   const { toast } = useToast();
   const { activeDesign, setActiveDesign } = useDesign();
   
-  // Original design editor - no intake form requirement
+  // State initialization first
+  const [designName, setDesignName] = useState('Untitled Design');
+  const [elements, setElements] = useState<DesignElement[]>([]);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Calculate balloon counts from current elements
+  const calculateBalloonCounts = useCallback(() => {
+    const colorCounts: { [key: string]: { small: number; large: number; total: number; clusters: number; color?: string } } = {};
+    let totalSmall = 0;
+    let totalLarge = 0;
+    let totalBalloons = 0;
+    let totalClusters = 0;
+
+    elements.forEach(element => {
+      if (element.type === 'balloon-cluster' && element.colors) {
+        totalClusters++;
+        element.colors.forEach(color => {
+          if (!colorCounts[color]) {
+            colorCounts[color] = { small: 0, large: 0, total: 0, clusters: 0, color };
+          }
+          // Estimate balloons per cluster (small and large)
+          const smallPerCluster = 8;
+          const largePerCluster = 4;
+          
+          colorCounts[color].small += smallPerCluster;
+          colorCounts[color].large += largePerCluster;
+          colorCounts[color].total += (smallPerCluster + largePerCluster);
+          colorCounts[color].clusters++;
+          
+          totalSmall += smallPerCluster;
+          totalLarge += largePerCluster;
+          totalBalloons += (smallPerCluster + largePerCluster);
+        });
+      }
+    });
+
+    return {
+      colorCounts,
+      totalSmall,
+      totalLarge,
+      totalBalloons,
+      totalClusters
+    };
+  }, [elements]);
+
+  const balloonCounts = calculateBalloonCounts();
   
   // Internal history state management
   const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null, measurements: MeasurementLine[] }[]>([]);
@@ -130,11 +176,7 @@ const DesignEditor = () => {
     setCurrentHistoryIndex(0);
   }, []);
   
-  const [designName, setDesignName] = useState('Untitled Design');
-  const [elements, setElements] = useState<DesignElement[]>([]);
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [showHistoryTimeline, setShowHistoryTimeline] = useState(false);
   
   // Set up a ref to track if we're currently processing an undo/redo operation
@@ -280,8 +322,17 @@ const DesignEditor = () => {
         setActiveDesign(design);
         
       } else {
-        // Create new design
-        response = await apiRequest('POST', '/api/designs/create', designData);
+        // Create new design - simplified data structure
+        const newDesignData = {
+          clientName: designName || 'Untitled Design',
+          projectName: designName || 'Untitled Design',
+          eventType: 'Birthday',
+          elements: elements,
+          backgroundUrl: backgroundImage,
+          measurements: measurements,
+        };
+        
+        response = await apiRequest('POST', '/api/designs/create', newDesignData);
         
         if (!response.ok) {
           throw new Error('Failed to create design');
@@ -599,13 +650,7 @@ const DesignEditor = () => {
                 currentBackground={backgroundImage} 
               />
               
-              <MaterialRequirementsPanel balloonCounts={{
-                colorCounts: {},
-                totalSmall: 0,
-                totalLarge: 0,
-                totalBalloons: 0,
-                totalClusters: 0
-              }} />
+              <MaterialRequirementsPanel balloonCounts={balloonCounts} />
             </div>
           </div>
         </div>
