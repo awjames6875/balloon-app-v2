@@ -112,9 +112,13 @@ function Router() {
           <Payments />
         </ProtectedRoute>
       </Route>
-      <Route path="/design-editor/:id?">
+      <Route path="/design-editor">
         <ProtectedRoute>
-          {/* The DesignHistoryProvider import isn't working correctly, so we'll use DesignEditor without wrapping */}
+          <DesignEditor />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/design-editor/:id">
+        <ProtectedRoute>
           <DesignEditor />
         </ProtectedRoute>
       </Route>
