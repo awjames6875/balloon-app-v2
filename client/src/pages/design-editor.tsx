@@ -30,17 +30,7 @@ const DesignEditor = () => {
   const { toast } = useToast();
   const { activeDesign, setActiveDesign } = useDesign();
   
-  // Check if user came from new project flow with client selection
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientId = urlParams.get('clientId');
-  
-  // Redirect to new project flow if no client is selected and no existing design
-  useEffect(() => {
-    if (!clientId && !params?.id && !activeDesign?.clientId) {
-      navigate('/new-project');
-      return;
-    }
-  }, [clientId, params?.id, activeDesign, navigate]);
+  // Original design editor - no intake form requirement
   
   // Internal history state management
   const [historyStates, setHistoryStates] = useState<{ elements: DesignElement[], backgroundImage: string | null, measurements: MeasurementLine[] }[]>([]);
